@@ -1,0 +1,196 @@
+/* ================================================================
+   NAVBAR EXTRAS — Dropdown & Extended Styles
+   ================================================================ */
+
+/* ---- User Greeting (inside Ant Design Dropdown) ---- */
+.navbar-user-greeting-wrap {
+  padding: 8px 4px 12px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: default;
+}
+
+.navbar-user-greeting-name {
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 15px;
+}
+
+.navbar-user-greeting-email {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.navbar-menu-admin-link {
+  color: #16a34a !important;
+  font-weight: 600 !important;
+}
+
+.navbar-menu-logout {
+  color: #ef4444;
+}
+
+.navbar-top-icon {
+  margin-right: 5px;
+}
+
+.navbar-top-user-hello {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 12px;
+}
+
+.navbar-cart-wrap {
+  position: relative;
+}
+
+.navbar-user-avatar {
+  background: linear-gradient(135deg, #16a34a, #22c55e);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.navbar-login-btn {
+  border-radius: 10px;
+  height: 42px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #16a34a, #22c55e) !important;
+  border: none !important;
+}
+
+/* ================================================================
+   PRODUCTS DROPDOWN
+   ================================================================ */
+
+/* Wrapper — must be relative so dropdown panel positions correctly */
+.navbar-products-dropdown {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Trigger button — visually identical to a nav link */
+.navbar-products-trigger {
+  background: none;
+  border: none;
+  outline: none !important;
+  box-shadow: none !important;
+  cursor: pointer;
+  font-family: "Inter", "Noto Sans", sans-serif;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 11px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  border-bottom: 2px solid transparent;
+  transition:
+    color 0.2s,
+    border-color 0.2s,
+    background 0.2s;
+}
+
+.navbar-products-trigger:focus,
+.navbar-products-trigger:focus-visible,
+.navbar-products-trigger:active {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.navbar-products-trigger:hover,
+.navbar-products-trigger.active {
+  color: #16a34a;
+  border-bottom-color: #16a34a;
+  background: #f0fdf4;
+}
+
+/* Chevron icon — rotates 180° when open */
+.navbar-chevron {
+  font-size: 10px;
+  transition: transform 0.25s ease;
+  margin-left: 2px;
+  color: inherit;
+}
+
+.navbar-chevron--open {
+  transform: rotate(180deg);
+}
+
+/* Dropdown panel */
+.navbar-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 190px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow:
+    0 8px 30px rgba(0, 0, 0, 0.1),
+    0 2px 8px rgba(0, 0, 0, 0.06);
+  z-index: 1100;
+  overflow: hidden;
+  animation: dropdownFadeIn 0.18s ease;
+  padding: 6px 0;
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Each item row */
+.navbar-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  text-decoration: none !important;
+  transition:
+    background 0.15s,
+    color 0.15s;
+  border-radius: 0;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.navbar-dropdown-item:hover {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+.navbar-dropdown-item.active {
+  background: #dcfce7;
+  color: #15803d;
+  font-weight: 600;
+}
+
+.navbar-dropdown-item.active::before {
+  content: "";
+  display: block;
+  width: 3px;
+  height: 100%;
+  background: #16a34a;
+  position: absolute;
+  left: 0;
+  border-radius: 0 2px 2px 0;
+}
+
+.navbar-dropdown-item {
+  position: relative;
+}
+
+/* Category emoji / icon */
+.navbar-dropdown-icon {
+  font-size: 18px;
+  line-height: 1;
+  flex-shrink: 0;
+}

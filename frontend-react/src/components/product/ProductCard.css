@@ -1,0 +1,106 @@
+.product-card {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+  transition: transform 0.2s, box-shadow 0.2s;
+  display: flex;
+  flex-direction: column;
+}
+
+.product-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.product-image {
+  width: 100%;
+  aspect-ratio: 1; /* Cố định tỉ lệ 1:1 */
+  overflow: hidden;
+}
+
+.product-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.product-info {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.product-name {
+  font-size: 1.1rem;
+  margin: 0 0 0.5rem 0;
+  color: #333;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;  
+  overflow: hidden;
+}
+
+.product-price {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #e53935;
+  margin: auto 0 1rem 0; /* Đẩy giá xuống dưới */
+}
+
+.btn-detail {
+  display: block;
+  text-align: center;
+  background: #1976d2;
+  color: white;
+  text-decoration: none;
+  padding: 0.5rem;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.btn-detail:hover {
+  background: #1565c0;
+}
+
+/* ==================================================
+   New CSS extracted from inline styles 
+   ================================================== */
+
+.product-card-cover {
+  position: relative;
+  overflow: hidden;
+  background: #f8fafc;
+  padding: 16px;
+  height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.product-card-body {
+  padding: 14px 16px 16px;
+}
+
+.product-card-add-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #16a34a, #22c55e);
+  border: none;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.product-card-add-btn:hover {
+  background: linear-gradient(135deg, #15803d, #16a34a);
+  box-shadow: 0 6px 16px rgba(22, 163, 74, 0.4);
+}

@@ -1,0 +1,12 @@
+/* Home Page */
+.home-slider-wrap {
+    position: relative;
+}
+
+.home-categories-wrap {
+    padding: 48px 0;
+}
+
+.home-category-section {
+    margin-bottom: 60px;
+}

@@ -1,0 +1,55 @@
+/* Common Admin Styles */
+.admin-page-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.admin-btn-primary {
+    background: #10b981 !important; /* override antd */
+    border-color: #10b981 !important;
+}
+
+.admin-btn-primary:hover {
+    background: #059669 !important;
+    border-color: #059669 !important;
+}
+
+.admin-img-cell {
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.admin-price-discount {
+    color: #dc2626;
+    font-weight: 500;
+}
+
+.admin-form-group {
+    width: 100%;
+}
+
+.admin-form-input {
+    width: 100%;
+}
+
+.admin-form-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.admin-preview-img {
+    margin-top: 8px;
+    border-radius: 8px;
+}
+
+/* Dashboard specific */
+.dashboard-loading {
+    text-align: center;
+    padding: 60px;
+}
+
+.dashboard-card {
+    border-radius: 12px;
+}

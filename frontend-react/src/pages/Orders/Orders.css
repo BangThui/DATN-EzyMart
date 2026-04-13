@@ -1,0 +1,43 @@
+/* Orders Page */
+.orders-page-wrap {
+    max-width: 1100px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+
+.orders-not-logged-in {
+    text-align: center;
+    padding: 60px;
+}
+
+.orders-loading {
+    text-align: center;
+    padding: 60px;
+}
+
+.order-items-flex {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.order-item-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.order-item-img {
+    width: 36px;
+    height: 36px;
+    border-radius: 4px;
+    object-fit: cover;
+}
+
+.order-item-name {
+    font-size: 12px;
+}
+
+.order-total-price {
+    color: #dc2626;
+}
