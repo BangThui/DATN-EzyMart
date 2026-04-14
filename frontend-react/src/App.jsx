@@ -31,13 +31,13 @@ import AdminProducts from "./pages/admin/AdminProducts/AdminProducts";
 import AdminCategories from "./pages/admin/AdminCategories/AdminCategories";
 import AdminOrders from "./pages/admin/AdminOrders/AdminOrders";
 import AdminCustomers from "./pages/admin/AdminCustomers/AdminCustomers";
-import AdminLogin from "./pages/admin/AdminLogin/AdminLogin";
+import Login from "./pages/auth/Login";
 
 // Admin Route Guard
 const AdminRoute = ({ children }) => {
   const { user, isAdmin, loading } = useAuth();
   if (loading) return null;
-  if (!user || !isAdmin()) return <Navigate to="/admin/login" replace />;
+  if (!user || !isAdmin()) return <Navigate to="/login" replace />;
   return children;
 };
 
@@ -120,8 +120,8 @@ function AppRoutes() {
           }
         />
 
-        {/* Admin Login Route (No Layout) */}
-        <Route path="/admin/login" element={<AdminLogin />} />
+        {/* Login Route (No Layout) */}
+        <Route path="/login" element={<Login />} />
 
         {/* Admin Routes */}
         <Route

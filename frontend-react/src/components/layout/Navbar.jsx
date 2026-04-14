@@ -15,6 +15,7 @@ import {
 import { useAuth } from "../../context/AuthContext";
 import { authService } from "../../services/authService";
 import { cartService } from "../../services/cartService";
+import { categoryService } from "../../services/categoryService";
 import "./Navbar.css";
 
 const Navbar = () => {
@@ -38,6 +39,25 @@ const Navbar = () => {
   });
   const [productsOpen, setProductsOpen] = useState(false);
   const productsDropdownRef = useRef(null);
+  const [categories, setCategories] = useState([]);
+
+  // Fetch categories from API
+  useEffect(() => {
+    categoryService
+      .getAll()
+      .then(data => {
+        if (Array.isArray(data)) {
+          setCategories(
+            data.map(c => ({
+              label: c.category_name,
+              path: `/category/${c.category_id}`,
+              category_id: c.category_id,
+            })),
+          );
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Fetch cart count
   useEffect(() => {
@@ -61,19 +81,15 @@ const Navbar = () => {
     try {
       const res = await authService.login(loginData);
 
-      // Xử lý tách riêng admin và khách hàng
-      if (res.user.role === 1 || res.user.role === "1") {
-        setLoadingAuth(false);
-        setLoginError(
-          "Tài khoản Quản trị. Vui lòng đăng nhập tại trang Admin!",
-        );
-        return;
-      }
-
       login(res.user, res.token);
-      message.success(`Xin chào, ${res.user.user_name}! 🎉`);
       setLoginVisible(false);
       setLoginData({ email: "", password: "" });
+
+      if (res.user.role === 0 || res.user.role === "0") {
+        message.success(`Xin chào, ${res.user.user_name}! 🎉`);
+      } else {
+        message.success(`Xin chào, ${res.user.user_name}! 🎉`);
+      }
     } catch (err) {
       setLoginError(
         err.response?.data?.error || "Email hoặc mật khẩu không đúng",
@@ -164,13 +180,7 @@ const Navbar = () => {
     },
   ];
 
-  const productCategories = [
-    { label: "Trái cây", icon: "🍎", path: "/category/1" },
-    { label: "Rau củ", icon: "🥦", path: "/category/2" },
-    { label: "Đồ uống", icon: "🧃", path: "/category/3" },
-    { label: "Sữa các loại", icon: "🥛", path: "/category/4" },
-    { label: "Thực phẩm khô", icon: "🍜", path: "/category/5" },
-  ];
+  const productCategories = categories;
 
   const isActive = path => location.pathname === path;
   const isCategoryActive = () =>
@@ -237,7 +247,13 @@ const Navbar = () => {
         <div className="navbar-inner">
           {/* Logo */}
           <Link to="/" className="navbar-logo">
-            <div className="navbar-logo-icon">🌿</div>
+            <div className="navbar-logo-icon">
+              <img
+                src="/images/EzyMart_final.png"
+                alt="EzyMart Logo"
+                className="navbar-logo-image"
+              />
+            </div>
             <div className="navbar-logo-text">
               <span className="navbar-logo-name">EzyMart</span>
               <span className="navbar-logo-tagline">THỰC PHẨM SẠCH</span>
