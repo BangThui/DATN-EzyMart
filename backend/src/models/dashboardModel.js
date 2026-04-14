@@ -1,31 +1,36 @@
 const db = require('../config/db');
 
+// ─── Adapter: qlbanhang_v2 → qlbanhang_final ───────────────────────────────
+// donhang → orders | customer → users (role='customer') | product → products
+// tongDoanhThu → total_price | ngayDatHang → order_date
+// ───────────────────────────────────────────────────────────────────────────
+
 const DashboardModel = {
     getTotalOrders: () => {
-        return db.query('SELECT COUNT(DISTINCT mahang) as total_orders FROM donhang');
+        return db.query('SELECT COUNT(*) as total_orders FROM orders');
     },
 
     getRevenueByOrder: () => {
-        return db.query('SELECT COALESCE(SUM(tongDoanhThu), 0) as total_revenue FROM donhang GROUP BY mahang');
+        return db.query('SELECT COALESCE(SUM(total_price), 0) as total_revenue FROM orders');
     },
 
     getTotalCustomers: () => {
-        return db.query('SELECT COUNT(*) as total_customers FROM customer');
+        return db.query("SELECT COUNT(*) as total_customers FROM users WHERE role = 'customer'");
     },
 
     getMonthStats: () => {
         return db.query(`
-            SELECT 
-                COALESCE(SUM(tongDoanhThu), 0) AS month_revenue,
+            SELECT
+                COALESCE(SUM(total_price), 0) AS month_revenue,
                 COUNT(*) AS month_orders
-            FROM donhang
-            WHERE MONTH(ngayDatHang) = MONTH(CURDATE())
-              AND YEAR(ngayDatHang) = YEAR(CURDATE())
+            FROM orders
+            WHERE MONTH(order_date) = MONTH(CURDATE())
+              AND YEAR(order_date) = YEAR(CURDATE())
         `);
     },
 
     getTotalProducts: () => {
-        return db.query('SELECT COUNT(*) as total_products FROM product');
+        return db.query('SELECT COUNT(*) as total_products FROM products');
     }
 };
 

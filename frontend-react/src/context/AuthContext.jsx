@@ -7,29 +7,33 @@ export const AuthProvider = ({ children }) => {
     const [token, setToken] = useState(null);
     const [loading, setLoading] = useState(true);
 
+    const isAdminMode = window.location.pathname.startsWith('/admin');
+    const tokenKey = isAdminMode ? 'admin_token' : 'token';
+    const userKey = isAdminMode ? 'admin_user' : 'user';
+
     useEffect(() => {
         // Khôi phục session từ localStorage
-        const savedToken = localStorage.getItem('token');
-        const savedUser = localStorage.getItem('user');
+        const savedToken = localStorage.getItem(tokenKey);
+        const savedUser = localStorage.getItem(userKey);
         if (savedToken && savedUser) {
             setToken(savedToken);
             setUser(JSON.parse(savedUser));
         }
         setLoading(false);
-    }, []);
+    }, [tokenKey, userKey]);
 
     const login = (userData, userToken) => {
         setUser(userData);
         setToken(userToken);
-        localStorage.setItem('token', userToken);
-        localStorage.setItem('user', JSON.stringify(userData));
+        localStorage.setItem(tokenKey, userToken);
+        localStorage.setItem(userKey, JSON.stringify(userData));
     };
 
     const logout = () => {
         setUser(null);
         setToken(null);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        localStorage.removeItem(tokenKey);
+        localStorage.removeItem(userKey);
     };
 
     const isAdmin = () => user && (user.role === 1 || user.role === '1');

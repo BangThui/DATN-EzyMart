@@ -11,7 +11,7 @@ import '../Admin.css';
 const { Title } = Typography;
 const { Option } = Select;
 const { TextArea } = Input;
-const IMAGE_BASE = 'http://localhost:5000/images/';
+const IMAGE_BASE = 'http://localhost:5000/uploads/';
 const UPLOAD_BASE = 'http://localhost:5000/uploads/';
 
 const AdminProducts = () => {

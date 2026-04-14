@@ -1,15 +1,32 @@
 const db = require('../config/db');
 
+// ─── Adapter: qlbanhang_v2 → qlbanhang_final ───────────────────────────────
+// Bảng: product → products | tbl_category → categories
+// Alias: product_active AS product_acitve  (giữ lỗi chính tả của v2 cho FE)
+// ───────────────────────────────────────────────────────────────────────────
+
+const PRODUCT_SELECT = `
+    p.product_id,
+    p.category_id,
+    p.product_name,
+    p.product_details,
+    p.product_description,
+    p.product_active AS product_acitve,
+    p.product_hot,
+    p.product_image,
+    c.category_name
+`;
+
 const ProductModel = {
     getAll: async (filters = {}) => {
         const { category, search, hot } = filters;
         let query = `
-            SELECT p.*, c.category_name, 
-                   MIN(v.variant_price) as min_price, 
-                   MAX(v.variant_price) as max_price, 
-                   SUM(v.variant_quantity) as total_quantity 
-            FROM product p 
-            LEFT JOIN tbl_category c ON p.category_id = c.category_id
+            SELECT ${PRODUCT_SELECT},
+                   MIN(v.variant_price) as min_price,
+                   MAX(v.variant_price) as max_price,
+                   SUM(v.variant_quantity) as total_quantity
+            FROM products p
+            LEFT JOIN categories c ON p.category_id = c.category_id
             LEFT JOIN product_variants v ON p.product_id = v.product_id
         `;
         let params = [];
@@ -31,7 +48,7 @@ const ProductModel = {
         if (conditions.length > 0) {
             query += ' WHERE ' + conditions.join(' AND ');
         }
-        
+
         query += ' GROUP BY p.product_id ORDER BY p.product_id DESC';
 
         const [products] = await db.query(query, params);
@@ -47,7 +64,7 @@ const ProductModel = {
 
     getById: async (id) => {
         const [products] = await db.query(
-            'SELECT p.*, c.category_name FROM product p LEFT JOIN tbl_category c ON p.category_id = c.category_id WHERE p.product_id = ?',
+            `SELECT ${PRODUCT_SELECT} FROM products p LEFT JOIN categories c ON p.category_id = c.category_id WHERE p.product_id = ?`,
             [id]
         );
         if (products.length === 0) return [products];
@@ -58,7 +75,7 @@ const ProductModel = {
 
     getSimilar: async (category_id, current_id) => {
         const [products] = await db.query(
-            'SELECT * FROM product WHERE category_id = ? AND product_id != ? LIMIT 4',
+            `SELECT ${PRODUCT_SELECT} FROM products p LEFT JOIN categories c ON p.category_id = c.category_id WHERE p.category_id = ? AND p.product_id != ? LIMIT 4`,
             [category_id, current_id]
         );
         if (products.length === 0) return [products];
@@ -76,9 +93,9 @@ const ProductModel = {
         try {
             await connection.beginTransaction();
             const { product_name, product_image, product_details, product_description, category_id } = data;
-            
+
             const [result] = await connection.query(
-                'INSERT INTO product (product_name, product_image, product_details, product_description, category_id) VALUES (?, ?, ?, ?, ?)',
+                'INSERT INTO products (product_name, product_image, product_details, product_description, category_id) VALUES (?, ?, ?, ?, ?)',
                 [product_name, product_image, product_details || '', product_description || '', category_id]
             );
 
@@ -106,17 +123,16 @@ const ProductModel = {
         try {
             await connection.beginTransaction();
             const { product_name, product_image, product_details, product_description, category_id } = data;
-            
+
             await connection.query(
-                'UPDATE product SET product_name=?, product_image=?, product_details=?, product_description=?, category_id=? WHERE product_id=?',
+                'UPDATE products SET product_name=?, product_image=?, product_details=?, product_description=?, category_id=? WHERE product_id=?',
                 [product_name, product_image, product_details, product_description, category_id, id]
             );
 
-            // Fetch existing variants to know what to delete
             const [existingVars] = await connection.query('SELECT variant_id FROM product_variants WHERE product_id = ?', [id]);
             const existingVarIds = existingVars.map(v => v.variant_id);
             const inputVarIds = variants.map(v => Number(v.variant_id)).filter(v_id => !isNaN(v_id) && v_id > 0);
-            
+
             const toDelete = existingVarIds.filter(v_id => !inputVarIds.includes(v_id));
             if (toDelete.length > 0) {
                 await connection.query('DELETE FROM product_variants WHERE variant_id IN (?)', [toDelete]);
@@ -146,11 +162,11 @@ const ProductModel = {
     },
 
     delete: (id) => {
-        return db.query('DELETE FROM product WHERE product_id = ?', [id]);
+        return db.query('DELETE FROM products WHERE product_id = ?', [id]);
     },
 
     existsById: (id) => {
-        return db.query('SELECT product_id FROM product WHERE product_id = ?', [id]);
+        return db.query('SELECT product_id FROM products WHERE product_id = ?', [id]);
     }
 };
 

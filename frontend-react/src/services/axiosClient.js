@@ -8,7 +8,10 @@ const axiosClient = axios.create({
 // Request interceptor – thêm token vào header
 axiosClient.interceptors.request.use(
     (config) => {
-        const token = localStorage.getItem('token');
+        const isAdminMode = window.location.pathname.startsWith('/admin');
+        const tokenKey = isAdminMode ? 'admin_token' : 'token';
+        const token = localStorage.getItem(tokenKey);
+        
         if (token) {
             config.headers['Authorization'] = `Bearer ${token}`;
         }

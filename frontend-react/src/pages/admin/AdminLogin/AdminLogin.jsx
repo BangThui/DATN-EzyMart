@@ -37,7 +37,7 @@ const AdminLogin = () => {
             <Button 
                 type="text" 
                 icon={<ArrowLeftOutlined />} 
-                onClick={() => navigate('/')}
+                onClick={() => window.location.href = '/'}
                 className="admin-login-back-btn"
             >
                 Quay lại trang chính

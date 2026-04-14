@@ -27,7 +27,7 @@ const AdminLayout = () => {
 
     const handleLogout = () => {
         logout();
-        navigate('/');
+        window.location.href = '/';
     };
 
     return (

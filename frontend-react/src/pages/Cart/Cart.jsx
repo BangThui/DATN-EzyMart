@@ -7,7 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import './Cart.css';
 
 const { Title, Text } = Typography;
-const IMAGE_BASE = 'http://localhost:5000/images/';
+const IMAGE_BASE = 'http://localhost:5000/uploads/';
 
 const Cart = () => {
     const { user } = useAuth();

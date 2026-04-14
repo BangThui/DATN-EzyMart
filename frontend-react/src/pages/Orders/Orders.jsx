@@ -6,7 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import './Orders.css';
 
 const { Title, Text } = Typography;
-const IMAGE_BASE = 'http://localhost:5000/images/';
+const IMAGE_BASE = 'http://localhost:5000/uploads/';
 
 const Orders = () => {
     const { user } = useAuth();

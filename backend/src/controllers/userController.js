@@ -46,11 +46,13 @@ exports.changePassword = async (req, res) => {
     }
 };
 
-// [ADMIN] Lấy tất cả khách hàng (từ bảng customer)
+// [ADMIN] Lấy tất cả khách hàng (từ bảng users, role='customer')
 exports.getAllCustomers = async (req, res) => {
     try {
         const db = require('../config/db');
-        const [rows] = await db.query('SELECT * FROM customer ORDER BY customer_id DESC');
+        const [rows] = await db.query(
+            "SELECT user_id, user_name, user_email, user_phone, user_address FROM users WHERE role = 'customer' ORDER BY user_id DESC"
+        );
         res.json(rows);
     } catch (err) {
         console.error(err);

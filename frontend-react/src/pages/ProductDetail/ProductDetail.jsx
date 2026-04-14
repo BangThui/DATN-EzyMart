@@ -62,7 +62,7 @@ const ProductDetail = () => {
         setAddingCart(true);
         try {
             await cartService.addToCart({ product_id: product.product_id, variant_id: selectedVariant.variant_id, quantity, user_id: user?.user_id });
-            message.success({ content: '✅ Đã thêm vào giỏ hàng!', style: { marginTop: 60 } });
+            message.success({ content: 'Đã thêm vào giỏ hàng!', style: { marginTop: 60 } });
         } catch { message.error('Lỗi thêm vào giỏ hàng'); }
         finally { setAddingCart(false); }
     };

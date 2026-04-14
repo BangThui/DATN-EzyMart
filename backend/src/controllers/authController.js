@@ -30,7 +30,7 @@ exports.login = async (req, res) => {
                 user_id: user.user_id,
                 email: user.user_email,
                 name: user.user_name,
-                role: user.role || 0
+                role: user.role  // đã được alias về 0/1 từ UserModel
             },
             process.env.JWT_SECRET,
             { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }

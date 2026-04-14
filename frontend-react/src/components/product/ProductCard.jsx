@@ -32,7 +32,7 @@ const ProductCard = ({ product }) => {
         user_id: user?.user_id,
       });
       message.success({
-        content: `✅ Đã thêm "${product.product_name}" vào giỏ`,
+        content: `Đã thêm "${product.product_name}" vào giỏ`,
         style: { marginTop: 60 },
       });
     } catch {

@@ -35,6 +35,57 @@
 *::after {
   box-sizing: border-box;
 }
+
+/* ---- Remove browser default focus outline (black border on click) ---- */
+*:focus,
+*:focus-visible,
+*:active {
+  outline: none !important;
+}
+
+button,
+a,
+input,
+select,
+textarea,
+[role="button"] {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+button:focus,
+button:focus-visible,
+button:active,
+a:focus,
+a:focus-visible,
+a:active {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Ant Design button focus override */
+.ant-btn:focus,
+.ant-btn:focus-visible,
+.ant-btn:active,
+.ant-btn-primary:focus,
+.ant-btn-primary:focus-visible,
+.ant-btn-primary:active,
+.ant-btn-default:focus,
+.ant-btn-default:focus-visible,
+.ant-btn-default:active {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Ant Design InputNumber focus override */
+.ant-input-number:focus,
+.ant-input-number-focused,
+.ant-input-number-handler:focus,
+.ant-input:focus {
+  box-shadow: none !important;
+  outline: none !important;
+}
+
 html {
   scroll-behavior: smooth;
 }

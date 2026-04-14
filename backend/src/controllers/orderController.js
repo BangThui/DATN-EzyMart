@@ -1,8 +1,13 @@
 const OrderModel = require('../models/orderModel');
-const UserModel = require('../models/userModel');
 const CartModel = require('../models/cartModel');
 
-// Tạo đơn hàng (checkout flow từ PHP thanhtoan.php)
+// ─── Adapter: qlbanhang_v2 → qlbanhang_final ───────────────────────────────
+// createOrder: Bỏ customer/giaodich, dùng orders + order_items
+// getOrdersByUserCode → getOrdersByUserId (dùng user_id)
+// mahang = order_id
+// ───────────────────────────────────────────────────────────────────────────
+
+// Tạo đơn hàng
 exports.createOrder = async (req, res) => {
     try {
         const { name, phone, email, address, payments, note, cart_items, user_id } = req.body;
@@ -11,40 +16,27 @@ exports.createOrder = async (req, res) => {
             return res.status(400).json({ error: 'Giỏ hàng trống' });
         }
 
-        // Tạo mã đơn hàng và mã khách hàng
-        const mahang = Math.floor(1000 + Math.random() * 9000);
-        const user_code = Math.floor(1000 + Math.random() * 9000);
-        const ngayDatHang = new Date().toISOString().slice(0, 10);
-
         // Tính tổng tiền
-        const totalPayment = cart_items.reduce((sum, item) => {
-             const price = (item.variant_discount && Number(item.variant_discount) > 0 && Number(item.variant_discount) < Number(item.variant_price)) ? item.variant_discount : item.variant_price;
-             return sum + Number(price) * item.product_quantity;
+        const total_price = cart_items.reduce((sum, item) => {
+            const price = (item.variant_discount && Number(item.variant_discount) > 0 && Number(item.variant_discount) < Number(item.variant_price))
+                ? item.variant_discount
+                : item.variant_price;
+            return sum + Number(price) * (item.product_quantity || item.quantity || 1);
         }, 0);
 
-        // Thêm vào bảng customer
-        const [customerResult] = await OrderModel.createCustomer({ name, user_code, phone, email, address, payments, note });
-        const customer_id = customerResult.insertId;
+        // Tạo đơn hàng trong orders + order_items
+        const order_id = await OrderModel.createOrder({ user_id: user_id || null, cart_items, total_price });
 
-        // Thêm từng item vào bảng donhang và giaodich
-        for (const item of cart_items) {
-            await OrderModel.createOrderItem({ product_id: item.product_id, variant_id: item.variant_id, customer_id, soluong: item.product_quantity, tongDoanhThu: totalPayment, mahang, ngayDatHang });
-            await OrderModel.createTransaction({ customer_id, product_id: item.product_id, variant_id: item.variant_id, soluong: item.product_quantity, mahang, ngayDatHang });
-        }
-
-        // Cập nhật user_code trong quanli_user nếu có user đang đăng nhập
+        // Xoá giỏ hàng sau khi đặt thành công
         if (user_id) {
-            await UserModel.updateUserCode(user_id, user_code);
             await CartModel.clearByUserId(user_id);
-        } else {
-            await CartModel.clearAll();
         }
 
         res.status(201).json({
             message: 'Đặt hàng thành công',
-            mahang,
-            customer_id,
-            totalPayment
+            mahang: order_id,       // order_id dùng làm mahang cho FE
+            order_id,
+            totalPayment: total_price
         });
     } catch (err) {
         console.error('Create order error:', err);
@@ -52,11 +44,11 @@ exports.createOrder = async (req, res) => {
     }
 };
 
-// Lấy đơn hàng theo user_code (đã mua)
-exports.getOrdersByUserCode = async (req, res) => {
+// Lấy đơn hàng theo user_id (thay thế getOrdersByUserCode)
+exports.getOrdersByUserId = async (req, res) => {
     try {
-        const { user_code } = req.params;
-        const [rows] = await OrderModel.getByUserCode(user_code);
+        const { user_id } = req.params;
+        const [rows] = await OrderModel.getByUserId(user_id);
         res.json(rows);
     } catch (err) {
         console.error(err);
@@ -64,7 +56,21 @@ exports.getOrdersByUserCode = async (req, res) => {
     }
 };
 
-// Lấy chi tiết đơn hàng theo mã hàng
+// Backward-compat: getOrdersByUserCode vẫn hoạt động nếu FE gọi với user_code
+// Trong schema mới user_code đã bỏ, nên map user_code = user_id nếu cần
+exports.getOrdersByUserCode = async (req, res) => {
+    try {
+        const { user_code } = req.params;
+        // user_code trong v2 tương đương user_id trong final
+        const [rows] = await OrderModel.getByUserId(user_code);
+        res.json(rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Lỗi lấy đơn hàng' });
+    }
+};
+
+// Lấy chi tiết đơn hàng theo mahang (order_id)
 exports.getOrderByMahang = async (req, res) => {
     try {
         const { mahang } = req.params;
@@ -89,11 +95,13 @@ exports.getAllOrders = async (req, res) => {
 };
 
 // [ADMIN] Cập nhật trạng thái đơn hàng
+// Nhận { tinhtrang } (số 0-4) hoặc { order_status } (chuỗi enum) từ FE
 exports.updateOrderStatus = async (req, res) => {
     try {
         const { id } = req.params;
-        const { tinhtrang } = req.body;
-        await OrderModel.updateStatus(id, tinhtrang);
+        const { tinhtrang, order_status } = req.body;
+        const statusValue = tinhtrang !== undefined ? tinhtrang : order_status;
+        await OrderModel.updateStatus(id, statusValue);
         res.json({ message: 'Cập nhật trạng thái đơn hàng thành công' });
     } catch (err) {
         console.error(err);

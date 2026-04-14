@@ -9,7 +9,7 @@ import './Checkout.css';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
-const IMAGE_BASE = 'http://localhost:5000/images/';
+const IMAGE_BASE = 'http://localhost:5000/uploads/';
 
 const Checkout = () => {
     const { user } = useAuth();
