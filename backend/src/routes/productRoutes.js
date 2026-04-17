@@ -12,6 +12,7 @@ router.get('/:id', productController.getProductById);
 // Admin routes (require auth + admin role)
 router.post('/', authMiddleware, adminMiddleware, upload.single('image'), productController.createProduct);
 router.put('/:id', authMiddleware, adminMiddleware, upload.single('image'), productController.updateProduct);
+router.patch('/:id/status', authMiddleware, adminMiddleware, productController.updateProductStatus);
 router.delete('/:id', authMiddleware, adminMiddleware, productController.deleteProduct);
 
 module.exports = router;

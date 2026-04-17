@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
     Table, Button, Modal, Form, Input, Select, InputNumber,
-    Typography, Space, Popconfirm, message, Upload, Image, Row, Col
+    Typography, Space, Popconfirm, message, Upload, Image, Row, Col, Tag
 } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, UploadOutlined, MinusCircleOutlined } from '@ant-design/icons';
 import { productService } from '../../../services/productService';
@@ -70,6 +70,9 @@ const AdminProducts = () => {
                     formData.append(k, values[k]); 
                 } 
             });
+            if (!editingRecord) {
+                formData.append('product_active', 1);
+            }
             if (fileList.length > 0 && fileList[0].originFileObj) {
                 formData.append('image', fileList[0].originFileObj);
             }
@@ -87,6 +90,17 @@ const AdminProducts = () => {
         finally { setSaving(false); }
     };
 
+    const handleStatusChange = async (id, currentStatus) => {
+        const newStatus = (currentStatus === 1 || currentStatus === '1') ? 0 : 1;
+        try {
+            await productService.updateStatus(id, newStatus);
+            message.success('Cập nhật trạng thái thành công');
+            fetchData();
+        } catch {
+            message.error('Lỗi cập nhật trạng thái');
+        }
+    };
+
     const columns = [
         {
             title: 'Ảnh', dataIndex: 'product_image',
@@ -99,6 +113,7 @@ const AdminProducts = () => {
         },
         { 
             title: 'Số lượng', 
+            align: 'right',
             render: (_, record) => {
                 if (record.variants && record.variants.length > 0) {
                     return record.variants.reduce((sum, v) => sum + Number(v.variant_quantity || 0), 0);
@@ -108,40 +123,72 @@ const AdminProducts = () => {
             }
         },
         { 
-            title: 'Giá', 
+            title: 'Giá bán', 
+            align: 'right',
             render: (_, record) => {
                 if (record.variants && record.variants.length > 0) {
                     const prices = record.variants.map(v => Number(v.variant_price || 0));
                     const min = Math.min(...prices);
                     const max = Math.max(...prices);
-                    if (min === max) {
-                        return formatCurrency(min);
+                    const priceRange = min === max ? formatCurrency(min) : `${formatCurrency(min)} - ${formatCurrency(max)}`;
+                    
+                    const finalPrices = record.variants.map(v => Number(v.variant_discount) > 0 ? Number(v.variant_discount) : Number(v.variant_price));
+                    const minF = Math.min(...finalPrices);
+                    const maxF = Math.max(...finalPrices);
+                    const finalRange = minF === maxF ? formatCurrency(minF) : `${formatCurrency(minF)} - ${formatCurrency(maxF)}`;
+                    
+                    const hasDiscount = record.variants.some(v => Number(v.variant_discount) > 0);
+                    
+                    if (hasDiscount) {
+                        return (
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                                <Typography.Text delete type="secondary" style={{ fontSize: 12 }}>{priceRange}</Typography.Text>
+                                <Typography.Text type="danger" strong>{finalRange}</Typography.Text>
+                            </div>
+                        );
                     }
-                    return `${formatCurrency(min)} - ${formatCurrency(max)}`;
+                    return <Typography.Text strong>{priceRange}</Typography.Text>;
                 }
+                
                 const minPrice = Number(record.min_price);
                 const maxPrice = Number(record.max_price);
                 if (!isNaN(minPrice) && !isNaN(maxPrice) && maxPrice > 0) {
-                    if (minPrice === maxPrice) return formatCurrency(minPrice);
-                    return `${formatCurrency(minPrice)} - ${formatCurrency(maxPrice)}`;
+                     const pRange = minPrice === maxPrice ? formatCurrency(minPrice) : `${formatCurrency(minPrice)} - ${formatCurrency(maxPrice)}`;
+                     return <Typography.Text strong>{pRange}</Typography.Text>;
                 }
-                return formatCurrency(record.product_price);
+                
+                const price = Number(record.product_price || 0);
+                const discount = Number(record.product_discount || 0);
+                if (discount > 0 && discount < price) {
+                    return (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                            <Typography.Text delete type="secondary" style={{ fontSize: 12 }}>{formatCurrency(price)}</Typography.Text>
+                            <Typography.Text type="danger" strong>{formatCurrency(discount)}</Typography.Text>
+                        </div>
+                    );
+                }
+                return <Typography.Text strong>{formatCurrency(price)}</Typography.Text>;
             }
         },
-        { 
-            title: 'Giá KM', 
-            render: (_, record) => {
-                if (record.variants && record.variants.length > 0) {
-                    const discounts = record.variants.map(v => Number(v.variant_discount || 0));
-                    const min = Math.min(...discounts);
-                    const max = Math.max(...discounts);
-                    if (max > 0) {
-                        if (min === max) return <span className="admin-price-discount">{formatCurrency(min)}</span>;
-                        return <span className="admin-price-discount">{formatCurrency(min)} - {formatCurrency(max)}</span>;
-                    }
-                }
-                const discount = Number(record.product_discount || 0);
-                return <span className="admin-price-discount">{discount ? formatCurrency(discount) : formatCurrency(0)}</span>;
+        {
+            title: 'Trạng thái',
+            dataIndex: 'product_active',
+            align: 'center',
+            render: (val, record) => {
+                // Hỗ trợ cả 2 tên đề phòng alias SQL cũ
+                let statusVal = val;
+                if (statusVal === undefined) statusVal = record.product_acitve;
+                
+                const isActive = (statusVal === 1 || statusVal === '1');
+                return (
+                    <Tag 
+                        color={isActive ? 'green' : 'red'} 
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => handleStatusChange(record.product_id, statusVal)}
+                    >
+                        {isActive ? 'Hoạt động' : 'Ngừng hoạt động'}
+                    </Tag>
+                );
             }
         },
         {

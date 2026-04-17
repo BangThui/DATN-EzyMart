@@ -9,5 +9,6 @@ export const productService = {
     // Admin
     create: (formData) => axiosClient.post('/products', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
     update: (id, formData) => axiosClient.put(`/products/${id}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+    updateStatus: (id, status) => axiosClient.patch(`/products/${id}/status`, { status }),
     delete: (id) => axiosClient.delete(`/products/${id}`),
 };

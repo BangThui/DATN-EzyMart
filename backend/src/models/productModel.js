@@ -11,6 +11,7 @@ const PRODUCT_SELECT = `
     p.product_name,
     p.product_details,
     p.product_description,
+    p.product_active,
     p.product_active AS product_acitve,
     p.product_hot,
     p.product_image,
@@ -110,7 +111,7 @@ const ProductModel = {
       } = data;
 
       const [result] = await connection.query(
-        "INSERT INTO products (product_name, product_image, product_details, product_description, category_id) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO products (product_name, product_image, product_details, product_description, category_id, product_active) VALUES (?, ?, ?, ?, ?, 1)",
         [
           product_name,
           product_image,
@@ -226,14 +227,29 @@ const ProductModel = {
     }
   },
 
-  delete: id => {
-    return db.query("DELETE FROM products WHERE product_id = ?", [id]);
+  delete: async id => {
+    const connection = await db.getConnection();
+    try {
+      await connection.beginTransaction();
+      await connection.query("DELETE FROM product_variants WHERE product_id = ?", [id]);
+      await connection.query("DELETE FROM products WHERE product_id = ?", [id]);
+      await connection.commit();
+    } catch (err) {
+      await connection.rollback();
+      throw err;
+    } finally {
+      connection.release();
+    }
   },
 
   existsById: id => {
     return db.query("SELECT product_id FROM products WHERE product_id = ?", [
       id,
     ]);
+  },
+
+  updateStatus: (id, status) => {
+    return db.query("UPDATE products SET product_active = ? WHERE product_id = ?", [status, id]);
   },
 };
 

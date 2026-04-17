@@ -103,3 +103,16 @@ exports.deleteProduct = async (req, res) => {
         res.status(500).json({ error: 'Lỗi xóa sản phẩm' });
     }
 };
+
+// [ADMIN] Cập nhật trạng thái
+exports.updateProductStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+        await ProductModel.updateStatus(id, status);
+        res.json({ message: 'Cập nhật trạng thái thành công' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Lỗi cập nhật trạng thái' });
+    }
+};
