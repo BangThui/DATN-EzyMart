@@ -12,6 +12,7 @@ import {
 import { productService } from '../../services/productService';
 import { cartService } from '../../services/cartService';
 import { useAuth } from '../../context/AuthContext';
+import { formatCurrency } from '../../utils';
 import ProductCard from '../../components/product/ProductCard';
 import './ProductDetail.css';
 
@@ -167,15 +168,15 @@ const ProductDetail = () => {
                             {/* Price */}
                             <div className="detail-price-block">
                                 <Title level={1} className="detail-price-current">
-                                    {Number(displayPrice || 0).toLocaleString('vi-VN')}vnd
+                                    {formatCurrency(displayPrice)}
                                 </Title>
                                 {hasDiscount && (
                                     <>
                                         <Text delete className="detail-price-old">
-                                            Giá gốc: {Number(price || 0).toLocaleString('vi-VN')}vnd
+                                            Giá gốc: {formatCurrency(price)}
                                         </Text>
                                         <div className="detail-save-badge">
-                                            🎉 Tiết kiệm {Number(price - discountPrice).toLocaleString('vi-VN')}vnd
+                                            🎉 Tiết kiệm {formatCurrency(price - discountPrice)}
                                         </div>
                                     </>
                                 )}

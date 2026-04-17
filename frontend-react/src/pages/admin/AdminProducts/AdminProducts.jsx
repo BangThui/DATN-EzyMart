@@ -6,6 +6,7 @@ import {
 import { PlusOutlined, EditOutlined, DeleteOutlined, UploadOutlined, MinusCircleOutlined } from '@ant-design/icons';
 import { productService } from '../../../services/productService';
 import { categoryService } from '../../../services/categoryService';
+import { formatCurrency } from '../../../utils';
 import '../Admin.css';
 
 const { Title } = Typography;
@@ -114,17 +115,17 @@ const AdminProducts = () => {
                     const min = Math.min(...prices);
                     const max = Math.max(...prices);
                     if (min === max) {
-                        return `${min.toLocaleString('vi-VN')}đ`;
+                        return formatCurrency(min);
                     }
-                    return `${min.toLocaleString('vi-VN')}đ - ${max.toLocaleString('vi-VN')}đ`;
+                    return `${formatCurrency(min)} - ${formatCurrency(max)}`;
                 }
                 const minPrice = Number(record.min_price);
                 const maxPrice = Number(record.max_price);
                 if (!isNaN(minPrice) && !isNaN(maxPrice) && maxPrice > 0) {
-                    if (minPrice === maxPrice) return `${minPrice.toLocaleString('vi-VN')}đ`;
-                    return `${minPrice.toLocaleString('vi-VN')}đ - ${maxPrice.toLocaleString('vi-VN')}đ`;
+                    if (minPrice === maxPrice) return formatCurrency(minPrice);
+                    return `${formatCurrency(minPrice)} - ${formatCurrency(maxPrice)}`;
                 }
-                return `${Number(record.product_price || 0).toLocaleString('vi-VN')}đ`;
+                return formatCurrency(record.product_price);
             }
         },
         { 
@@ -135,12 +136,12 @@ const AdminProducts = () => {
                     const min = Math.min(...discounts);
                     const max = Math.max(...discounts);
                     if (max > 0) {
-                        if (min === max) return <span className="admin-price-discount">{min.toLocaleString('vi-VN')}đ</span>;
-                        return <span className="admin-price-discount">{min.toLocaleString('vi-VN')}đ - {max.toLocaleString('vi-VN')}đ</span>;
+                        if (min === max) return <span className="admin-price-discount">{formatCurrency(min)}</span>;
+                        return <span className="admin-price-discount">{formatCurrency(min)} - {formatCurrency(max)}</span>;
                     }
                 }
                 const discount = Number(record.product_discount || 0);
-                return <span className="admin-price-discount">{discount ? discount.toLocaleString('vi-VN') : 0}đ</span>;
+                return <span className="admin-price-discount">{discount ? formatCurrency(discount) : formatCurrency(0)}</span>;
             }
         },
         {

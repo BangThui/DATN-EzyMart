@@ -7,6 +7,7 @@ import { useAuth } from "../../context/AuthContext";
 import "./ProductCard.css";
 
 const { Text } = Typography;
+import { formatCurrency } from "../../utils";
 const IMAGE_BASE = "/images/";
 const UPLOAD_BASE = "http://localhost:5000/uploads/";
 
@@ -93,11 +94,11 @@ const ProductCard = ({ product }) => {
           <div className="product-card-footer">
             <div className="product-card-prices">
               <span className="product-card-price">
-                {Number(displayPrice || 0).toLocaleString("vi-VN")}đ
+                {formatCurrency(displayPrice)}
               </span>
               {hasDiscount && (
                 <span className="product-card-original">
-                  {Number(price || 0).toLocaleString("vi-VN")}đ
+                  {formatCurrency(price)}
                 </span>
               )}
             </div>

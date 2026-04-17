@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { cartService } from '../../services/cartService';
 import { orderService } from '../../services/orderService';
 import { useAuth } from '../../context/AuthContext';
+import { formatCurrency } from '../../utils';
 import './Checkout.css';
 
 const { Title, Text } = Typography;
@@ -145,7 +146,7 @@ const Checkout = () => {
                                         </div>
                                     </div>
                                     <Text strong className="checkout-order-price">
-                                        {Number(getItemPrice(item) * item.product_quantity).toLocaleString('vi-VN')}vnd
+                                        {formatCurrency(getItemPrice(item) * item.product_quantity)}
                                     </Text>
                                 </div>
                             ))}
@@ -156,7 +157,7 @@ const Checkout = () => {
                         </div>
                         <div className="checkout-total-row--mt">
                             <Text strong className="checkout-total-label">Tổng thanh toán:</Text>
-                            <Text strong className="checkout-total-value">{Number(total || 0).toLocaleString('vi-VN')}vnd</Text>
+                            <Text strong className="checkout-total-value">{formatCurrency(total)}</Text>
                         </div>
                     </Card>
                     <div className="checkout-back-btn-wrap">

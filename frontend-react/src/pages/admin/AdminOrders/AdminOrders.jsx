@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Tag, Select, Typography, message } from 'antd';
 import { orderService } from '../../../services/orderService';
+import { formatCurrency } from '../../../utils';
 import '../Admin.css';
 
 const { Title } = Typography;
@@ -48,7 +49,7 @@ const AdminOrders = () => {
         { title: 'Số lượng', dataIndex: 'soluong' },
         {
             title: 'Tổng tiền', dataIndex: 'tongDoanhThu',
-            render: v => <span className="admin-price-discount">{Number(v).toLocaleString('vi-VN')}đ</span>
+            render: v => <span className="admin-price-discount">{formatCurrency(v)}</span>
         },
         {
             title: 'Ngày đặt', dataIndex: 'ngayDatHang',

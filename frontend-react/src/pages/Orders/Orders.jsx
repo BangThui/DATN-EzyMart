@@ -3,6 +3,7 @@ import { Table, Tag, Typography, Empty, Button, Spin } from 'antd';
 import { Link } from 'react-router-dom';
 import { orderService } from '../../services/orderService';
 import { useAuth } from '../../context/AuthContext';
+import { formatCurrency } from '../../utils';
 import './Orders.css';
 
 const { Title, Text } = Typography;
@@ -58,7 +59,7 @@ const Orders = () => {
         },
         {
             title: 'Tổng tiền', dataIndex: 'tongDoanhThu',
-            render: val => <Text strong className="order-total-price">{Number(val).toLocaleString('vi-VN')}vnd</Text>
+            render: val => <Text strong className="order-total-price">{formatCurrency(val)}</Text>
         },
         {
             title: 'Trạng thái', dataIndex: 'tinhtrang',

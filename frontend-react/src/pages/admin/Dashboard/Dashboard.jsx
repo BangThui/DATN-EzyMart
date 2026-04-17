@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Row, Col, Card, Statistic, Typography, Spin } from 'antd';
 import { ShoppingCartOutlined, DollarOutlined, TeamOutlined, CalendarOutlined, AppstoreOutlined } from '@ant-design/icons';
 import axiosClient from '../../../services/axiosClient';
+import { formatCurrency } from '../../../utils';
 import '../Admin.css';
 
 const { Title } = Typography;
@@ -40,7 +41,7 @@ const Dashboard = () => {
                                 suffix={card.suffix}
                                 valueStyle={{ color: card.color, fontWeight: 700 }}
                                 prefix={card.icon}
-                                formatter={val => Number(val).toLocaleString('vi-VN')}
+                                formatter={val => formatCurrency(val)}
                             />
                         </Card>
                     </Col>

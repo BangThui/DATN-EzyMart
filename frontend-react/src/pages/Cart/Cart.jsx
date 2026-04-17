@@ -7,6 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import './Cart.css';
 
 const { Title, Text } = Typography;
+import { formatCurrency } from '../../utils';
 const IMAGE_BASE = 'http://localhost:5000/uploads/';
 
 const Cart = () => {
@@ -81,7 +82,7 @@ const Cart = () => {
         {
             title: 'Đơn giá',
             key: 'price',
-            render: (_, record) => <Text type="danger">{Number(getItemPrice(record) || 0).toLocaleString('vi-VN')}vnd</Text>
+            render: (_, record) => <Text type="danger">{formatCurrency(getItemPrice(record))}</Text>
         },
         {
             title: 'Số lượng',
@@ -101,7 +102,7 @@ const Cart = () => {
             key: 'subtotal',
             render: (_, record) => (
                 <Text strong className="cart-subtotal-price">
-                    {Number(getItemPrice(record) * record.product_quantity).toLocaleString('vi-VN')}vnd
+                    {formatCurrency(getItemPrice(record) * record.product_quantity)}
                 </Text>
             )
         },
@@ -145,7 +146,7 @@ const Cart = () => {
                 <div className="cart-total-block">
                     <div className="cart-total-tag-wrap">
                         <Tag color="green" className="cart-total-tag">
-                            Tổng thanh toán: <strong>{Number(total || 0).toLocaleString('vi-VN')}vnd</strong>
+                            Tổng thanh toán: <strong>{formatCurrency(total)}</strong>
                         </Tag>
                     </div>
                     {user ? (
