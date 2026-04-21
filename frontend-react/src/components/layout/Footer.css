@@ -57,6 +57,65 @@
 }
 
 /* ================================================================
+   POLICY STRIP
+   ================================================================ */
+.footer-policy-strip {
+  background: #ffffff;
+  border-top: 1px solid var(--border);
+  padding: 30px 0;
+}
+
+.footer-policy-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+
+.policy-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.policy-icon {
+  font-size: 36px;
+  color: #4267b2; /* Professional blue matching the image */
+  display: flex;
+  align-items: center;
+}
+
+.policy-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.policy-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 4px;
+  letter-spacing: 0.3px;
+}
+
+.policy-desc {
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+@media (max-width: 768px) {
+  .footer-policy-inner {
+    justify-content: flex-start;
+  }
+  .policy-item {
+    width: 100%;
+  }
+}
+
+/* ================================================================
    FOOTER (Moved from index.css)
    ================================================================ */
 .footer-wrap {

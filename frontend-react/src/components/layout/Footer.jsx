@@ -10,6 +10,9 @@ import {
   MailOutlined,
   ClockCircleOutlined,
   RightOutlined,
+  ShoppingCartOutlined,
+  CarOutlined,
+  LikeOutlined,
 } from "@ant-design/icons";
 import "./Footer.css";
 
@@ -32,9 +35,43 @@ const Footer = () => {
   };
 
   return (
-    <footer className="footer-wrap">
-      <div className="footer-inner">
-        <div className="footer-grid">
+    <>
+      {/* Policy Strip */}
+      <div className="footer-policy-strip">
+        <div className="footer-policy-inner">
+          <div className="policy-item">
+            <div className="policy-icon">
+              <ShoppingCartOutlined />
+            </div>
+            <div className="policy-info">
+              <div className="policy-title">Miễn phí vận chuyển</div>
+              <div className="policy-desc">Đơn hàng trên 1 triệu</div>
+            </div>
+          </div>
+          <div className="policy-item">
+            <div className="policy-icon">
+              <CarOutlined />
+            </div>
+            <div className="policy-info">
+              <div className="policy-title">Chuyển phát nhanh</div>
+              <div className="policy-desc">Trên khắp Việt Nam</div>
+            </div>
+          </div>
+          <div className="policy-item">
+            <div className="policy-icon">
+              <LikeOutlined />
+            </div>
+            <div className="policy-info">
+              <div className="policy-title">Lựa chọn</div>
+              <div className="policy-desc">Nhiều sản phẩm</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer className="footer-wrap">
+        <div className="footer-inner">
+          <div className="footer-grid">
           {/* Brand col */}
           <div className="footer-brand-col">
             <div className="footer-brand-header">
@@ -136,7 +173,8 @@ const Footer = () => {
           </div>
         </div>
       </div>
-    </footer>
+      </footer>
+    </>
   );
 };
 

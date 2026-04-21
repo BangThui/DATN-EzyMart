@@ -26,6 +26,7 @@ import Search from "./pages/Search/Search";
 import UserProfile from "./pages/UserProfile/UserProfile";
 import NewsListPage from "./pages/News/NewsListPage";
 import NewsDetailPage from "./pages/News/NewsDetailPage";
+import AboutPage from "./pages/About/AboutPage";
 
 // Admin Pages
 import Dashboard from "./pages/admin/Dashboard/Dashboard";
@@ -134,6 +135,14 @@ function AppRoutes() {
           element={
             <MainLayout>
               <NewsDetailPage />
+            </MainLayout>
+          }
+        />
+        <Route
+          path="/about"
+          element={
+            <MainLayout>
+              <AboutPage />
             </MainLayout>
           }
         />
