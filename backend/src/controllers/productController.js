@@ -116,3 +116,36 @@ exports.updateProductStatus = async (req, res) => {
         res.status(500).json({ error: 'Lỗi cập nhật trạng thái' });
     }
 };
+
+// [ADMIN] Lấy thùng rác
+exports.getDeletedProducts = async (req, res) => {
+    try {
+        const [rows] = await ProductModel.getAll({ isdeleted: 1 });
+        res.json(rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Lỗi lấy danh sách thùng rác' });
+    }
+};
+
+// [ADMIN] Soft Delete
+exports.softDeleteProduct = async (req, res) => {
+    try {
+        await ProductModel.softDelete(req.params.id);
+        res.json({ message: 'Đưa vào thùng rác thành công' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Lỗi đưa vào thùng rác' });
+    }
+};
+
+// [ADMIN] Phục hồi
+exports.restoreProduct = async (req, res) => {
+    try {
+        await ProductModel.restore(req.params.id);
+        res.json({ message: 'Phục hồi thành công' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Lỗi phục hồi' });
+    }
+};

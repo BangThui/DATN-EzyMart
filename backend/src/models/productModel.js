@@ -1,9 +1,5 @@
 const db = require("../config/db");
 
-// ─── Adapter: qlbanhang_v2 → qlbanhang_final ───────────────────────────────
-// Bảng: product → products | tbl_category → categories
-// Alias: product_active AS product_acitve  (giữ lỗi chính tả của v2 cho FE)
-// ───────────────────────────────────────────────────────────────────────────
 
 const PRODUCT_SELECT = `
     p.product_id,
@@ -12,7 +8,8 @@ const PRODUCT_SELECT = `
     p.product_details,
     p.product_description,
     p.product_active,
-    p.product_active AS product_acitve,
+    p.is_deleted,
+    p.deleted_at,
     p.product_hot,
     p.product_image,
     c.category_name
@@ -20,7 +17,7 @@ const PRODUCT_SELECT = `
 
 const ProductModel = {
   getAll: async (filters = {}) => {
-    const { category, search, hot } = filters;
+    const { category, search, hot, isdeleted, admin } = filters;
     let query = `
             SELECT ${PRODUCT_SELECT},
                    MIN(v.variant_price) as min_price,
@@ -44,6 +41,18 @@ const ProductModel = {
     if (hot !== undefined) {
       conditions.push("p.product_hot = ?");
       params.push(hot);
+    }
+    
+    if (isdeleted !== undefined) {
+      conditions.push("p.is_deleted = ?");
+      params.push(Number(isdeleted));
+    } else {
+      conditions.push("p.is_deleted = 0");
+    }
+
+    // Lọc sản phẩm ngừng hoạt động cho User public interface
+    if (!admin && isdeleted === undefined) {
+      conditions.push("p.product_active = 1");
     }
 
     if (conditions.length > 0) {
@@ -82,7 +91,7 @@ const ProductModel = {
 
   getSimilar: async (category_id, current_id) => {
     const [products] = await db.query(
-      `SELECT ${PRODUCT_SELECT} FROM products p LEFT JOIN categories c ON p.category_id = c.category_id WHERE p.category_id = ? AND p.product_id != ? LIMIT 4`,
+      `SELECT ${PRODUCT_SELECT} FROM products p LEFT JOIN categories c ON p.category_id = c.category_id WHERE p.category_id = ? AND p.product_id != ? AND p.is_deleted = 0 AND p.product_active = 1 LIMIT 4`,
       [category_id, current_id],
     );
     if (products.length === 0) return [products];
@@ -240,6 +249,14 @@ const ProductModel = {
     } finally {
       connection.release();
     }
+  },
+
+  softDelete: id => {
+    return db.query("UPDATE products SET is_deleted = 1 WHERE product_id = ?", [id]);
+  },
+
+  restore: id => {
+    return db.query("UPDATE products SET is_deleted = 0 WHERE product_id = ?", [id]);
   },
 
   existsById: id => {

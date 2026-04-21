@@ -3,7 +3,7 @@ import {
     Table, Button, Modal, Form, Input, Select, InputNumber,
     Typography, Space, Popconfirm, message, Upload, Image, Row, Col, Tag
 } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, UploadOutlined, MinusCircleOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, UploadOutlined, MinusCircleOutlined, RestOutlined, UndoOutlined } from '@ant-design/icons';
 import { productService } from '../../../services/productService';
 import { categoryService } from '../../../services/categoryService';
 import { formatCurrency } from '../../../utils';
@@ -25,10 +25,14 @@ const AdminProducts = () => {
     const [form] = Form.useForm();
     const [fileList, setFileList] = useState([]);
 
+    const [trashVisible, setTrashVisible] = useState(false);
+    const [trashProducts, setTrashProducts] = useState([]);
+    const [loadingTrash, setLoadingTrash] = useState(false);
+
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [prods, cats] = await Promise.all([productService.getAll(), categoryService.getAll()]);
+            const [prods, cats] = await Promise.all([productService.getAll({ admin: true }), categoryService.getAll()]);
             setProducts(prods || []);
             setCategories(cats || []);
         } catch { message.error('Lỗi tải dữ liệu'); }
@@ -51,12 +55,38 @@ const AdminProducts = () => {
         setModalVisible(true);
     };
 
-    const handleDelete = async (id) => {
+    const handleSoftDelete = async (id) => {
         try {
-            await productService.delete(id);
-            message.success('Đã xóa sản phẩm');
+            await productService.softDelete(id);
+            message.success('Đã chuyển vào thùng rác');
             fetchData();
-        } catch { message.error('Xóa thất bại'); }
+        } catch { message.error('Chuyển vào thùng rác thất bại'); }
+    };
+
+    const fetchTrash = async () => {
+        setLoadingTrash(true);
+        try {
+            const data = await productService.getTrash();
+            setTrashProducts(data || []);
+        } catch { message.error('Lỗi tải thùng rác'); }
+        finally { setLoadingTrash(false); }
+    };
+
+    const handleRestore = async (id) => {
+        try {
+            await productService.restore(id);
+            message.success('Đã khôi phục sản phẩm');
+            fetchData();
+            fetchTrash();
+        } catch { message.error('Khôi phục thất bại'); }
+    };
+
+    const handleHardDelete = async (id) => {
+        try {
+            await productService.hardDelete(id);
+            message.success('Đã xóa vĩnh viễn');
+            fetchTrash();
+        } catch { message.error('Xóa vĩnh viễn thất bại'); }
     };
 
     const handleSubmit = async (values) => {
@@ -196,8 +226,36 @@ const AdminProducts = () => {
             render: (_, r) => (
                 <Space>
                     <Button icon={<EditOutlined />} size="small" onClick={() => openEdit(r)}>Sửa</Button>
-                    <Popconfirm title="Xóa sản phẩm này?" onConfirm={() => handleDelete(r.product_id)} okText="Xóa" cancelText="Hủy">
+                    <Popconfirm title="Chuyển sản phẩm này vào thùng rác?" onConfirm={() => handleSoftDelete(r.product_id)} okText="Đồng ý" cancelText="Hủy">
                         <Button icon={<DeleteOutlined />} size="small" danger>Xóa</Button>
+                    </Popconfirm>
+                </Space>
+            )
+        }
+    ];
+
+    const trashColumns = [
+        {
+            title: 'Ảnh', dataIndex: 'product_image',
+            render: img => <Image src={IMAGE_BASE + img} fallback={UPLOAD_BASE + img} width={50} height={50} className="admin-img-cell" />
+        },
+        { title: 'Tên sản phẩm', dataIndex: 'product_name', ellipsis: true },
+        { 
+            title: 'Ngày xóa', dataIndex: 'deleted_at',
+            render: (val) => {
+                if (!val) return '--';
+                const d = new Date(val);
+                const pad = (n) => n.toString().padStart(2, '0');
+                return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+            }
+        },
+        {
+            title: 'Thao tác',
+            render: (_, r) => (
+                <Space>
+                    <Button icon={<UndoOutlined />} size="small" onClick={() => handleRestore(r.product_id)}>Khôi phục</Button>
+                    <Popconfirm title="Xóa vĩnh viễn sản phẩm này? (Không thể hoàn tác)" onConfirm={() => handleHardDelete(r.product_id)} okText="Xóa luôn" cancelText="Hủy">
+                        <Button icon={<DeleteOutlined />} size="small" danger>Xóa vĩnh viễn</Button>
                     </Popconfirm>
                 </Space>
             )
@@ -208,9 +266,14 @@ const AdminProducts = () => {
         <div>
             <div className="admin-page-header">
                 <Title level={2}>🛍️ Quản lý sản phẩm</Title>
-                <Button type="primary" icon={<PlusOutlined />} onClick={openAdd} className="admin-btn-primary">
-                    Thêm sản phẩm
-                </Button>
+                <Space>
+                    <Button icon={<RestOutlined />} onClick={() => { setTrashVisible(true); fetchTrash(); }}>
+                        Thùng rác
+                    </Button>
+                    <Button type="primary" icon={<PlusOutlined />} onClick={openAdd} className="admin-btn-primary">
+                        Thêm sản phẩm
+                    </Button>
+                </Space>
             </div>
 
             <Table dataSource={products} columns={columns} loading={loading} rowKey="product_id" />
@@ -319,6 +382,22 @@ const AdminProducts = () => {
                         </Button>
                     </div>
                 </Form>
+            </Modal>
+
+            <Modal
+                title="Thùng rác - Sản phẩm đã xóa"
+                open={trashVisible}
+                onCancel={() => setTrashVisible(false)}
+                footer={null}
+                width={1000}
+            >
+                <Table 
+                    dataSource={trashProducts} 
+                    columns={trashColumns} 
+                    loading={loadingTrash} 
+                    rowKey="product_id"
+                    locale={{ emptyText: 'Thùng rác trống' }}
+                />
             </Modal>
         </div>
     );
