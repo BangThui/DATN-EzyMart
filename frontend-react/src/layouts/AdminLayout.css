@@ -54,3 +54,84 @@
     padding: 24px;
     min-height: 280px;
 }
+
+/* ================================================================
+   ADMIN LAYOUT (Moved from index.css)
+   ================================================================ */
+.admin-brand {
+  padding: 24px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.admin-brand-name {
+  font-size: 18px;
+  font-weight: 800;
+  color: #22c55e;
+}
+.admin-brand-sub {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 2px;
+}
+.admin-menu {
+  background: #0f172a !important;
+  border: none !important;
+  padding: 8px;
+}
+.admin-menu .ant-menu-item {
+  border-radius: 8px !important;
+  margin: 2px 0 !important;
+  font-size: 14px !important;
+  color: rgba(255, 255, 255, 0.65) !important;
+}
+.admin-menu .ant-menu-item:hover,
+.admin-menu .ant-menu-item-selected {
+  background: rgba(34, 197, 94, 0.15) !important;
+  color: #22c55e !important;
+}
+.admin-header {
+  background: #fff !important;
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px !important;
+  height: 64px !important;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: var(--shadow-sm);
+}
+.admin-content-inner {
+  padding: 24px;
+  background: #f8fafc;
+  min-height: calc(100vh - 64px);
+}
+.admin-page-title {
+  font-size: 22px !important;
+  font-weight: 800 !important;
+  color: var(--text-heading) !important;
+  margin-bottom: 24px !important;
+}
+.admin-card {
+  background: #fff !important;
+  border-radius: var(--radius-md) !important;
+  border: 1px solid var(--border) !important;
+}
+.admin-stat-card {
+  background: #fff !important;
+  border-radius: var(--radius-md) !important;
+  border: none !important;
+  box-shadow: var(--shadow-sm) !important;
+  overflow: hidden;
+}
+.admin-stat-card .ant-card-body {
+  padding: 24px !important;
+}
+.stat-icon-wrap {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  color: #fff;
+  margin-bottom: 16px;
+}

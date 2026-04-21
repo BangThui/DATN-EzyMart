@@ -10,3 +10,293 @@
 .home-category-section {
     margin-bottom: 60px;
 }
+
+/* ================================================================
+   HERO SLIDER / BANNER (Moved from index.css)
+   ================================================================ */
+.hero-slider {
+  position: relative;
+  overflow: hidden;
+}
+.hero-slide {
+  position: relative;
+  height: 500px;
+  background-size: cover !important;
+  background-position: center !important;
+  display: flex;
+  align-items: center;
+}
+.hero-slide::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to right,
+    rgba(0, 0, 0, 0.6) 0%,
+    rgba(0, 0, 0, 0.2) 60%,
+    transparent 100%
+  );
+}
+.hero-slide-1 {
+  background: url("/images/main_banner1.png") no-repeat center;
+  background-size: cover;
+}
+.hero-slide-2 {
+  background: url("/images/main_banner2.png") no-repeat center;
+  background-size: cover;
+}
+.hero-slide-3 {
+  background: url("/images/main_banner3.png") no-repeat center;
+  background-size: cover;
+}
+.hero-content {
+  position: relative;
+  z-index: 2;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 24px;
+  width: 100%;
+}
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(22, 163, 74, 0.9);
+  color: #fff;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  margin-bottom: 16px;
+}
+.hero-title {
+  font-size: clamp(36px, 5vw, 60px);
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -1px;
+  line-height: 1.1;
+  margin: 0 0 16px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+.hero-title span {
+  color: #86efac;
+}
+.hero-desc {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.6;
+  margin-bottom: 28px;
+  max-width: 500px;
+}
+.hero-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.hero-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, var(--green-primary), var(--green-light));
+  color: #fff;
+  padding: 13px 28px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none !important;
+  transition: 0.2s;
+  box-shadow: 0 4px 16px rgba(22, 163, 74, 0.4);
+  border: none;
+  cursor: pointer;
+}
+.hero-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(22, 163, 74, 0.5);
+  color: #fff;
+  opacity: 1;
+}
+.hero-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  padding: 13px 28px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  transition: 0.2s;
+  cursor: pointer;
+}
+.hero-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+  opacity: 1;
+}
+.hero-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #fff;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.hero-arrow:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+.hero-arrow-left {
+  left: 20px;
+}
+.hero-arrow-right {
+  right: 20px;
+}
+.hero-dots {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 10;
+}
+.hero-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  transition: 0.3s;
+}
+.hero-dot.active {
+  width: 24px;
+  background: #fff;
+}
+
+/* ================================================================
+   FEATURES STRIP (Moved from index.css)
+   ================================================================ */
+.features-strip {
+  background: linear-gradient(135deg, #15803d 0%, #16a34a 50%, #22c55e 100%);
+  padding: 28px 0;
+}
+.features-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+}
+@media (max-width: 900px) {
+  .features-inner {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 480px) {
+  .features-inner {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: #fff;
+}
+.feature-icon {
+  font-size: 28px;
+  width: 52px;
+  height: 52px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.feature-title {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+.feature-desc {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* ================================================================
+   HOME PAGE SECTIONS (Moved from index.css)
+   ================================================================ */
+.home-section {
+  padding: 48px 0;
+}
+.home-section-alt {
+  background: #fff;
+}
+
+/* Category Section */
+.category-section {
+  padding: 40px 0;
+}
+.category-section .section-title {
+  text-align: center;
+}
+.category-section .section-title::after {
+  left: 50%;
+  transform: translateX(-50%);
+}
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 16px;
+  margin-top: 32px;
+}
+.category-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 12px;
+  background: #fff;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border);
+  cursor: pointer;
+  transition: 0.25s;
+  text-decoration: none !important;
+}
+.category-item:hover {
+  border-color: var(--green-primary);
+  box-shadow: 0 6px 20px rgba(22, 163, 74, 0.1);
+  transform: translateY(-2px);
+}
+.category-item-icon {
+  font-size: 32px;
+}
+.category-item-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-heading);
+  text-align: center;
+}
+
+/* Products grid */
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 20px;
+}

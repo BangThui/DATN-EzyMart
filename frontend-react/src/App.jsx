@@ -24,6 +24,8 @@ import Checkout from "./pages/Checkout/Checkout";
 import Orders from "./pages/Orders/Orders";
 import Search from "./pages/Search/Search";
 import UserProfile from "./pages/UserProfile/UserProfile";
+import NewsListPage from "./pages/News/NewsListPage";
+import NewsDetailPage from "./pages/News/NewsDetailPage";
 
 // Admin Pages
 import Dashboard from "./pages/admin/Dashboard/Dashboard";
@@ -116,6 +118,22 @@ function AppRoutes() {
           element={
             <MainLayout>
               <UserProfile />
+            </MainLayout>
+          }
+        />
+        <Route
+          path="/news"
+          element={
+            <MainLayout>
+              <NewsListPage />
+            </MainLayout>
+          }
+        />
+        <Route
+          path="/news/:id"
+          element={
+            <MainLayout>
+              <NewsDetailPage />
             </MainLayout>
           }
         />

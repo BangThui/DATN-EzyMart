@@ -40,35 +40,35 @@ const Dashboard = () => {
       value: stats?.total_orders || 0,
       icon: <ShoppingCartOutlined />,
       color: "#3b82f6",
-      suffix: "",
+      isCurrency: false,
     },
     {
       title: "Tổng doanh thu",
       value: stats?.total_revenue || 0,
       icon: <DollarOutlined />,
       color: "#dc2626",
-      suffix: "đ",
+      isCurrency: true,
     },
     {
       title: "Khách hàng",
       value: stats?.total_customers || 0,
       icon: <TeamOutlined />,
       color: "#10b981",
-      suffix: "",
+      isCurrency: false,
     },
     {
       title: "Doanh thu tháng này",
       value: stats?.month_revenue || 0,
       icon: <CalendarOutlined />,
       color: "#f59e0b",
-      suffix: "đ",
+      isCurrency: true,
     },
     {
       title: "Tổng sản phẩm",
       value: stats?.total_products || 0,
       icon: <AppstoreOutlined />,
       color: "#8b5cf6",
-      suffix: "",
+      isCurrency: false,
     },
   ];
 
@@ -85,10 +85,9 @@ const Dashboard = () => {
               <Statistic
                 title={card.title}
                 value={card.value}
-                suffix={card.suffix}
                 valueStyle={{ color: card.color, fontWeight: 700 }}
                 prefix={card.icon}
-                formatter={val => formatCurrency(val)}
+                formatter={val => card.isCurrency ? formatCurrency(val) : val.toLocaleString('vi-VN')}
               />
             </Card>
           </Col>

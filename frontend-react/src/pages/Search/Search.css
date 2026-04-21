@@ -18,3 +18,18 @@
     text-align: center;
     padding: 60px;
 }
+
+/* ================================================================
+   MOVED FROM index.css
+   ================================================================ */
+.search-wrap {
+  max-width: 1280px;
+  margin: 40px auto;
+  padding: 0 24px 60px;
+}
+.search-header {
+  margin-bottom: 32px;
+}
+.search-keyword {
+  color: var(--green-primary);
+}
