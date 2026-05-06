@@ -53,3 +53,22 @@
 .dashboard-card {
     border-radius: 12px;
 }
+
+/* Main image upload badge fix */
+.main-image-badge .ant-upload-list-item {
+    border: 2px solid #52c41a !important;
+}
+
+/* Refactored inline styles from AdminProducts */
+.admin-img-wrapper { position: relative; display: inline-block; }
+.admin-text-secondary-sm { font-size: 12px; }
+.admin-price-col { display: flex; flex-direction: column; align-items: flex-end; }
+.admin-pointer { cursor: pointer; }
+.admin-badge-main .ant-badge-count { background-color: #52c41a; z-index: 10; }
+.admin-upload-add { margin-top: 6px; font-size: 12px; }
+.admin-hint-text { font-size: 12px; display: block; margin-top: 8px; }
+.admin-variant-row { display: flex; margin-bottom: 8px; align-items: start; }
+.admin-input-price { width: 120px; }
+.admin-input-qty { width: 100px; }
+.admin-icon-mr { margin-right: 6px; }
+.admin-icon-ml { margin-left: 8px; font-size: 12px; }

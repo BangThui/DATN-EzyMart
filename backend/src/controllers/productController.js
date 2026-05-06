@@ -11,7 +11,7 @@ exports.getProducts = async (req, res) => {
     }
 };
 
-// Lấy 1 sản phẩm theo ID
+// Lấy 1 sản phẩm theo ID (kèm danh sách ảnh)
 exports.getProductById = async (req, res) => {
     try {
         const [rows] = await ProductModel.getById(req.params.id);
@@ -35,23 +35,45 @@ exports.getSimilarProducts = async (req, res) => {
     }
 };
 
-// [ADMIN] Tạo sản phẩm mới
+// [ADMIN] Tạo sản phẩm mới (hỗ trợ nhiều ảnh)
 exports.createProduct = async (req, res) => {
     try {
-        const { product_name, product_details, product_description, category_id, variants } = req.body;
-        const product_image = req.file ? req.file.filename : '';
-        
+        const { product_name, product_details, product_description, category_id, variants, final_image_order } = req.body;
+
+        const files = req.files || [];
+        let finalImages = [];
+
+        if (final_image_order) {
+            let orderArray = [];
+            try { orderArray = JSON.parse(final_image_order); } catch (e) { }
+            let fileIndex = 0;
+            finalImages = orderArray.map(item => {
+                if (item === 'NEW_FILE') {
+                    const file = files[fileIndex++];
+                    return file ? file.filename : null;
+                }
+                return item;
+            }).filter(Boolean);
+        } else {
+            finalImages = files.map(f => f.filename);
+        }
+
+        const product_image = finalImages.length > 0 ? finalImages[0] : '';
+        const galleryImages = finalImages.length > 1 ? finalImages.slice(1) : [];
+
         let parsedVariants = [];
-        try { if (variants) parsedVariants = JSON.parse(variants); } 
+        try { if (variants) parsedVariants = JSON.parse(variants); }
         catch(e) { console.error("Lỗi parse variants", e); }
 
         if (!product_name || !category_id) {
             return res.status(400).json({ error: 'Tên sản phẩm và danh mục là bắt buộc' });
         }
 
-        const [result] = await ProductModel.createWithVariants({
-            product_name, product_image, product_details, product_description, category_id
-        }, parsedVariants);
+        const [result] = await ProductModel.createWithVariants(
+            { product_name, product_image, product_details, product_description, category_id },
+            parsedVariants,
+            galleryImages // chỉ lưu các ảnh phụ vào product_images
+        );
 
         res.status(201).json({ message: 'Thêm sản phẩm thành công', productId: result.insertId });
     } catch (err) {
@@ -60,27 +82,50 @@ exports.createProduct = async (req, res) => {
     }
 };
 
-// [ADMIN] Cập nhật sản phẩm
+// [ADMIN] Cập nhật sản phẩm (hỗ trợ thêm/xóa nhiều ảnh)
 exports.updateProduct = async (req, res) => {
     try {
         const { id } = req.params;
-        const fs = require('fs');
-        fs.appendFileSync('debug.log', JSON.stringify(req.body) + '\n');
-        const { product_name, product_details, product_description, category_id, variants } = req.body;
+        const { product_name, product_details, product_description, category_id, variants, final_image_order } = req.body;
 
         let parsedVariants = [];
-        try { if (variants) parsedVariants = JSON.parse(variants); } 
+        try { if (variants) parsedVariants = JSON.parse(variants); }
         catch(e) { console.error("Lỗi parse variants", e); }
 
         // Lấy thông tin cũ
         const [existing] = await ProductModel.getById(id);
         if (existing.length === 0) return res.status(404).json({ error: 'Không tìm thấy sản phẩm' });
 
-        const product_image = req.file ? req.file.filename : existing[0].product_image;
+        const files = req.files || [];
+        let finalImages = [];
 
-        await ProductModel.updateWithVariants(id, {
-            product_name, product_image, product_details, product_description, category_id
-        }, parsedVariants);
+        if (final_image_order) {
+            let orderArray = [];
+            try { orderArray = JSON.parse(final_image_order); } catch (e) { }
+            let fileIndex = 0;
+            finalImages = orderArray.map(item => {
+                if (item === 'NEW_FILE') {
+                    const file = files[fileIndex++];
+                    return file ? file.filename : null;
+                }
+                return item;
+            }).filter(Boolean);
+        } else {
+            // Fallback backward compatibility
+            finalImages = existing[0].product_image ? [existing[0].product_image] : [];
+            const existingGallery = existing[0].images ? existing[0].images.map(img => img.image_url) : [];
+            finalImages = [...finalImages, ...existingGallery, ...files.map(f => f.filename)];
+        }
+
+        const product_image = finalImages.length > 0 ? finalImages[0] : '';
+        const galleryImages = finalImages.length > 1 ? finalImages.slice(1) : [];
+
+        await ProductModel.updateWithVariants(
+            id,
+            { product_name, product_image, product_details, product_description, category_id },
+            parsedVariants,
+            galleryImages
+        );
 
         res.json({ message: 'Cập nhật sản phẩm thành công' });
     } catch (err) {
@@ -147,5 +192,20 @@ exports.restoreProduct = async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Lỗi phục hồi' });
+    }
+};
+
+// [ADMIN] Xóa 1 ảnh trong product_images
+exports.deleteProductImage = async (req, res) => {
+    try {
+        const { id, imageId } = req.params;
+        const [result] = await ProductModel.deleteImage(imageId, id);
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Không tìm thấy ảnh' });
+        }
+        res.json({ message: 'Xóa ảnh thành công' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Lỗi xóa ảnh' });
     }
 };

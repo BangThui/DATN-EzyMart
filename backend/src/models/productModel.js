@@ -1,6 +1,5 @@
 const db = require("../config/db");
 
-
 const PRODUCT_SELECT = `
     p.product_id,
     p.category_id,
@@ -42,7 +41,7 @@ const ProductModel = {
       conditions.push("p.product_hot = ?");
       params.push(hot);
     }
-    
+
     if (isdeleted !== undefined) {
       conditions.push("p.is_deleted = ?");
       params.push(Number(isdeleted));
@@ -63,13 +62,23 @@ const ProductModel = {
 
     const [products] = await db.query(query, params);
     if (products.length === 0) return [products];
+
     const pIds = products.map(p => p.product_id);
+
     const [variants] = await db.query(
       "SELECT * FROM product_variants WHERE product_id IN (?)",
       [pIds],
     );
+
+    // Lấy ảnh đầu tiên từ product_images cho mỗi sản phẩm (dùng cho card)
+    const [allImages] = await db.query(
+      "SELECT * FROM product_images WHERE product_id IN (?) ORDER BY image_id ASC",
+      [pIds],
+    );
+
     const formatted = products.map(p => {
       p.variants = variants.filter(v => v.product_id === p.product_id);
+      p.images = allImages.filter(img => img.product_id === p.product_id);
       return p;
     });
     return [formatted];
@@ -81,11 +90,20 @@ const ProductModel = {
       [id],
     );
     if (products.length === 0) return [products];
+
     const [variants] = await db.query(
       "SELECT * FROM product_variants WHERE product_id = ?",
       [id],
     );
+
+    // Lấy tất cả ảnh từ product_images
+    const [images] = await db.query(
+      "SELECT * FROM product_images WHERE product_id = ? ORDER BY image_id ASC",
+      [id],
+    );
+
     products[0].variants = variants;
+    products[0].images = images; // [{ image_id, product_id, image_url }]
     return [products];
   },
 
@@ -107,7 +125,7 @@ const ProductModel = {
     return [formatted];
   },
 
-  createWithVariants: async (data, variants = []) => {
+  createWithVariants: async (data, variants = [], imageFilenames = []) => {
     const connection = await db.getConnection();
     try {
       await connection.beginTransaction();
@@ -146,6 +164,14 @@ const ProductModel = {
         );
       }
 
+      // Lưu tất cả ảnh vào product_images
+      for (const filename of imageFilenames) {
+        await connection.query(
+          "INSERT INTO product_images (product_id, image_url) VALUES (?, ?)",
+          [newId, filename],
+        );
+      }
+
       await connection.commit();
       return [result];
     } catch (error) {
@@ -156,7 +182,7 @@ const ProductModel = {
     }
   },
 
-  updateWithVariants: async (id, data, variants = []) => {
+  updateWithVariants: async (id, data, variants = [], imageFilenames = []) => {
     const connection = await db.getConnection();
     try {
       await connection.beginTransaction();
@@ -227,6 +253,20 @@ const ProductModel = {
         }
       }
 
+      // Xóa TOÀN BỘ ảnh cũ trong product_images
+      await connection.query(
+        "DELETE FROM product_images WHERE product_id = ?",
+        [id],
+      );
+
+      // Thêm lại ảnh từ danh sách mới (từ vị trí 1 trở đi)
+      for (const filename of imageFilenames) {
+        await connection.query(
+          "INSERT INTO product_images (product_id, image_url) VALUES (?, ?)",
+          [id, filename],
+        );
+      }
+
       await connection.commit();
     } catch (error) {
       await connection.rollback();
@@ -236,10 +276,19 @@ const ProductModel = {
     }
   },
 
+  // Xóa 1 ảnh theo image_id (kiểm tra product_id để bảo mật)
+  deleteImage: (imageId, productId) => {
+    return db.query(
+      "DELETE FROM product_images WHERE image_id = ? AND product_id = ?",
+      [imageId, productId],
+    );
+  },
+
   delete: async id => {
     const connection = await db.getConnection();
     try {
       await connection.beginTransaction();
+      await connection.query("DELETE FROM product_images WHERE product_id = ?", [id]);
       await connection.query("DELETE FROM product_variants WHERE product_id = ?", [id]);
       await connection.query("DELETE FROM products WHERE product_id = ?", [id]);
       await connection.commit();

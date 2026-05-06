@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import {
     Table, Button, Modal, Form, Input, Select, InputNumber,
-    Typography, Space, Popconfirm, message, Upload, Image, Row, Col, Tag
+    Typography, Space, Popconfirm, message, Upload, Image, Row, Col, Tag, Tooltip, Badge
 } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, UploadOutlined, MinusCircleOutlined, RestOutlined, UndoOutlined } from '@ant-design/icons';
+import {
+    PlusOutlined, EditOutlined, DeleteOutlined, UploadOutlined,
+    MinusCircleOutlined, RestOutlined, UndoOutlined, PictureOutlined
+} from '@ant-design/icons';
 import { productService } from '../../../services/productService';
 import { categoryService } from '../../../services/categoryService';
 import { formatCurrency } from '../../../utils';
@@ -12,8 +15,15 @@ import '../Admin.css';
 const { Title } = Typography;
 const { Option } = Select;
 const { TextArea } = Input;
-const IMAGE_BASE = 'http://localhost:5000/uploads/';
 const UPLOAD_BASE = 'http://localhost:5000/uploads/';
+const IMAGE_BASE = '/images/';
+
+// Lấy src đầy đủ cho ảnh (hỗ trợ cả uploads và images/)
+const getImgSrc = (filename) => {
+    if (!filename) return '';
+    if (filename.startsWith('http')) return filename;
+    return `${UPLOAD_BASE}${filename}`;
+};
 
 const AdminProducts = () => {
     const [products, setProducts] = useState([]);
@@ -23,6 +33,8 @@ const AdminProducts = () => {
     const [editingRecord, setEditingRecord] = useState(null);
     const [saving, setSaving] = useState(false);
     const [form] = Form.useForm();
+
+    // Danh sách ảnh tổng hợp (cũ + mới)
     const [fileList, setFileList] = useState([]);
 
     const [trashVisible, setTrashVisible] = useState(false);
@@ -51,9 +63,36 @@ const AdminProducts = () => {
     const openEdit = (record) => {
         setEditingRecord(record);
         form.setFieldsValue(record);
-        setFileList([]);
+        const initialFiles = [];
+        if (record.product_image) {
+            initialFiles.push({
+                uid: 'main_img',
+                name: record.product_image,
+                status: 'done',
+                url: getImgSrc(record.product_image),
+                isExisting: true,
+                filename: record.product_image
+            });
+        }
+        if (record.images && record.images.length > 0) {
+            record.images.forEach(img => {
+                if (img.image_url !== record.product_image) {
+                    initialFiles.push({
+                        uid: `gallery_${img.image_id}`,
+                        name: img.image_url,
+                        status: 'done',
+                        url: getImgSrc(img.image_url),
+                        isExisting: true,
+                        filename: img.image_url
+                    });
+                }
+            });
+        }
+        setFileList(initialFiles);
         setModalVisible(true);
     };
+
+
 
     const handleSoftDelete = async (id) => {
         try {
@@ -93,19 +132,33 @@ const AdminProducts = () => {
         setSaving(true);
         try {
             const formData = new FormData();
-            Object.keys(values).forEach(k => { 
+
+            // Append các field thông thường
+            Object.keys(values).forEach(k => {
                 if (k === 'variants') {
                     if (values[k]) formData.append('variants', JSON.stringify(values[k]));
-                } else if (values[k] !== undefined) { 
-                    formData.append(k, values[k]); 
-                } 
+                } else if (values[k] !== undefined && k !== 'images') {
+                    formData.append(k, values[k]);
+                }
             });
+
             if (!editingRecord) {
                 formData.append('product_active', 1);
             }
-            if (fileList.length > 0 && fileList[0].originFileObj) {
-                formData.append('image', fileList[0].originFileObj);
-            }
+
+            // Tạo final_image_order và append file mới
+            const finalOrder = [];
+            fileList.forEach(file => {
+                if (file.isExisting) {
+                    finalOrder.push(file.filename);
+                } else {
+                    finalOrder.push('NEW_FILE');
+                    if (file.originFileObj) {
+                        formData.append('images', file.originFileObj);
+                    }
+                }
+            });
+            formData.append('final_image_order', JSON.stringify(finalOrder));
 
             if (editingRecord) {
                 await productService.update(editingRecord.product_id, formData);
@@ -133,16 +186,28 @@ const AdminProducts = () => {
 
     const columns = [
         {
-            title: 'Ảnh', dataIndex: 'product_image',
-            render: img => <Image src={IMAGE_BASE + img} fallback={UPLOAD_BASE + img} width={50} height={50} className="admin-img-cell" />
+            title: 'Ảnh', dataIndex: 'product_image', width: 70,
+            render: (img) => {
+                return (
+                    <div className="admin-img-wrapper">
+                        <Image
+                            src={getImgSrc(img)}
+                            fallback="/placeholder.png"
+                            width={50}
+                            height={50}
+                            className="admin-img-cell"
+                        />
+                    </div>
+                );
+            }
         },
         { title: 'Tên sản phẩm', dataIndex: 'product_name', ellipsis: true },
         {
             title: 'Danh mục', dataIndex: 'category_name',
             render: (name, record) => name || categories.find(c => c.category_id === record.category_id)?.category_name || '--'
         },
-        { 
-            title: 'Số lượng', 
+        {
+            title: 'Số lượng',
             align: 'right',
             render: (_, record) => {
                 if (record.variants && record.variants.length > 0) {
@@ -152,8 +217,8 @@ const AdminProducts = () => {
                 return !isNaN(total) && total > 0 ? total : (Number(record.product_quantity) || 0);
             }
         },
-        { 
-            title: 'Giá bán', 
+        {
+            title: 'Giá bán',
             align: 'right',
             render: (_, record) => {
                 if (record.variants && record.variants.length > 0) {
@@ -161,38 +226,38 @@ const AdminProducts = () => {
                     const min = Math.min(...prices);
                     const max = Math.max(...prices);
                     const priceRange = min === max ? formatCurrency(min) : `${formatCurrency(min)} - ${formatCurrency(max)}`;
-                    
+
                     const finalPrices = record.variants.map(v => Number(v.variant_discount) > 0 ? Number(v.variant_discount) : Number(v.variant_price));
                     const minF = Math.min(...finalPrices);
                     const maxF = Math.max(...finalPrices);
                     const finalRange = minF === maxF ? formatCurrency(minF) : `${formatCurrency(minF)} - ${formatCurrency(maxF)}`;
-                    
+
                     const hasDiscount = record.variants.some(v => Number(v.variant_discount) > 0);
-                    
+
                     if (hasDiscount) {
                         return (
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                                <Typography.Text delete type="secondary" style={{ fontSize: 12 }}>{priceRange}</Typography.Text>
+                            <div className="admin-price-col">
+                                <Typography.Text delete type="secondary" className="admin-text-secondary-sm">{priceRange}</Typography.Text>
                                 <Typography.Text type="danger" strong>{finalRange}</Typography.Text>
                             </div>
                         );
                     }
                     return <Typography.Text strong>{priceRange}</Typography.Text>;
                 }
-                
+
                 const minPrice = Number(record.min_price);
                 const maxPrice = Number(record.max_price);
                 if (!isNaN(minPrice) && !isNaN(maxPrice) && maxPrice > 0) {
-                     const pRange = minPrice === maxPrice ? formatCurrency(minPrice) : `${formatCurrency(minPrice)} - ${formatCurrency(maxPrice)}`;
-                     return <Typography.Text strong>{pRange}</Typography.Text>;
+                    const pRange = minPrice === maxPrice ? formatCurrency(minPrice) : `${formatCurrency(minPrice)} - ${formatCurrency(maxPrice)}`;
+                    return <Typography.Text strong>{pRange}</Typography.Text>;
                 }
-                
+
                 const price = Number(record.product_price || 0);
                 const discount = Number(record.product_discount || 0);
                 if (discount > 0 && discount < price) {
                     return (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                            <Typography.Text delete type="secondary" style={{ fontSize: 12 }}>{formatCurrency(price)}</Typography.Text>
+                        <div className="admin-price-col">
+                            <Typography.Text delete type="secondary" className="admin-text-secondary-sm">{formatCurrency(price)}</Typography.Text>
                             <Typography.Text type="danger" strong>{formatCurrency(discount)}</Typography.Text>
                         </div>
                     );
@@ -205,15 +270,13 @@ const AdminProducts = () => {
             dataIndex: 'product_active',
             align: 'center',
             render: (val, record) => {
-                // Hỗ trợ cả 2 tên đề phòng alias SQL cũ
                 let statusVal = val;
                 if (statusVal === undefined) statusVal = record.product_acitve;
-                
                 const isActive = (statusVal === 1 || statusVal === '1');
                 return (
-                    <Tag 
-                        color={isActive ? 'green' : 'red'} 
-                        style={{ cursor: 'pointer' }}
+                    <Tag
+                        color={isActive ? 'green' : 'red'}
+                        className="admin-pointer"
                         onClick={() => handleStatusChange(record.product_id, statusVal)}
                     >
                         {isActive ? 'Hoạt động' : 'Ngừng hoạt động'}
@@ -237,10 +300,10 @@ const AdminProducts = () => {
     const trashColumns = [
         {
             title: 'Ảnh', dataIndex: 'product_image',
-            render: img => <Image src={IMAGE_BASE + img} fallback={UPLOAD_BASE + img} width={50} height={50} className="admin-img-cell" />
+            render: img => <Image src={getImgSrc(img)} fallback={`${IMAGE_BASE}${img}`} width={50} height={50} className="admin-img-cell" />
         },
         { title: 'Tên sản phẩm', dataIndex: 'product_name', ellipsis: true },
-        { 
+        {
             title: 'Ngày xóa', dataIndex: 'deleted_at',
             render: (val) => {
                 if (!val) return '--';
@@ -278,42 +341,72 @@ const AdminProducts = () => {
 
             <Table dataSource={products} columns={columns} loading={loading} rowKey="product_id" />
 
+            {/* Modal Thêm/Sửa */}
             <Modal
                 title={editingRecord ? 'Cập nhật sản phẩm' : 'Thêm sản phẩm mới'}
                 open={modalVisible}
                 onCancel={() => setModalVisible(false)}
                 footer={null}
-                width={900}
+                width={960}
+                destroyOnClose
             >
                 <Form form={form} layout="vertical" onFinish={handleSubmit}>
                     <Form.Item label="Tên sản phẩm" name="product_name" rules={[{ required: true }]}>
                         <Input />
                     </Form.Item>
-                    <Form.Item label="Hình ảnh" name="image">
+
+                    {/* ===== Phần ảnh sản phẩm ===== */}
+                    <Form.Item label={
+                        <span>
+                            <PictureOutlined className="admin-icon-mr" />
+                            Hình ảnh sản phẩm
+                            <Typography.Text type="secondary" className="admin-text-secondary-sm admin-icon-ml">
+                                (Tối đa 10 ảnh, mỗi ảnh ≤ 2MB)
+                            </Typography.Text>
+                        </span>
+                    }>
+                        {/* Upload ảnh */}
                         <Upload
                             listType="picture-card"
                             fileList={fileList}
-                            onChange={({ fileList }) => setFileList(fileList)}
+                            onChange={({ fileList: newFileList }) => setFileList(newFileList)}
                             beforeUpload={() => false}
-                            maxCount={1}
+                            multiple
+                            accept="image/*"
+                            itemRender={(originNode, file, currFileList) => {
+                                const index = currFileList.indexOf(file);
+                                if (index === 0) {
+                                    return (
+                                        <Badge count="Ảnh chính" className="main-image-badge admin-badge-main">
+                                            {originNode}
+                                        </Badge>
+                                    );
+                                }
+                                return originNode;
+                            }}
                         >
-                            {fileList.length === 0 && <div><UploadOutlined /><div>Tải ảnh</div></div>}
+                            {fileList.length < 10 && (
+                                <div>
+                                    <PlusOutlined />
+                                    <div className="admin-upload-add">Thêm ảnh</div>
+                                </div>
+                            )}
                         </Upload>
-                        {editingRecord?.product_image && fileList.length === 0 && (
-                            <Image src={IMAGE_BASE + editingRecord.product_image} width={80} className="admin-preview-img" />
+                        {fileList.length > 0 && (
+                            <Typography.Text type="secondary" className="admin-hint-text">
+                                Gợi ý: Ảnh ở vị trí <b>đầu tiên</b> sẽ được chọn làm <b>ảnh đại diện chính</b>. Bạn có thể xóa ảnh đầu tiên để ảnh tiếp theo thay thế.
+                            </Typography.Text>
                         )}
                     </Form.Item>
+
+                    {/* Variants */}
                     <Typography.Text strong>Cấu hình biến thể (Variants)</Typography.Text>
                     <Form.List name="variants">
                         {(fields, { add, remove }) => (
                             <>
                                 {fields.map(({ key, name, ...restField }) => (
-                                    <Space key={key} style={{ display: 'flex', marginBottom: 8, alignItems: 'start' }} align="baseline">
-                                        <Form.Item
-                                            {...restField}
-                                            name={[name, 'variant_id']}
-                                            hidden
-                                        >
+                                    <Space key={key} className="admin-variant-row" align="baseline">
+                                        <Form.Item {...restField} name={[name, 'variant_id']} hidden>
                                             <Input />
                                         </Form.Item>
                                         <Form.Item
@@ -323,37 +416,19 @@ const AdminProducts = () => {
                                         >
                                             <Input placeholder="Tên biến thể (VD: Gói 65g)" />
                                         </Form.Item>
-                                        <Form.Item
-                                            {...restField}
-                                            name={[name, 'variant_price']}
-                                            rules={[{ required: true, message: 'Nhập giá' }]}
-                                        >
-                                            <InputNumber placeholder="Giá gốc" min={0} style={{ width: 120 }} />
+                                        <Form.Item {...restField} name={[name, 'variant_price']} rules={[{ required: true, message: 'Nhập giá' }]}>
+                                            <InputNumber placeholder="Giá gốc" min={0} className="admin-input-price" />
                                         </Form.Item>
-                                        <Form.Item
-                                            {...restField}
-                                            name={[name, 'variant_discount']}
-                                        >
-                                            <InputNumber placeholder="Giá KM" min={0} style={{ width: 120 }} />
+                                        <Form.Item {...restField} name={[name, 'variant_discount']}>
+                                            <InputNumber placeholder="Giá KM" min={0} className="admin-input-price" />
                                         </Form.Item>
-                                        <Form.Item
-                                            {...restField}
-                                            name={[name, 'variant_quantity']}
-                                        >
-                                            <InputNumber placeholder="Số lượng" min={0} style={{ width: 100 }} />
+                                        <Form.Item {...restField} name={[name, 'variant_quantity']}>
+                                            <InputNumber placeholder="Số lượng" min={0} className="admin-input-qty" />
                                         </Form.Item>
-                                        <Form.Item
-                                            {...restField}
-                                            name={[name, 'sku']}
-                                        >
-                                            <Input placeholder="SKU / Mã kho" style={{ width: 120 }} />
+                                        <Form.Item {...restField} name={[name, 'sku']}>
+                                            <Input placeholder="SKU / Mã kho" className="admin-input-price" />
                                         </Form.Item>
-                                        <Button 
-                                            type="text" 
-                                            icon={<DeleteOutlined />} 
-                                            danger 
-                                            onClick={() => remove(name)} 
-                                        />
+                                        <Button type="text" icon={<DeleteOutlined />} danger onClick={() => remove(name)} />
                                     </Space>
                                 ))}
                                 <Form.Item>
@@ -364,6 +439,7 @@ const AdminProducts = () => {
                             </>
                         )}
                     </Form.List>
+
                     <Form.Item label="Danh mục" name="category_id" rules={[{ required: true }]}>
                         <Select placeholder="Chọn danh mục">
                             {categories.map(c => <Option key={c.category_id} value={c.category_id}>{c.category_name}</Option>)}
@@ -375,6 +451,7 @@ const AdminProducts = () => {
                     <Form.Item label="Chi tiết" name="product_details">
                         <TextArea rows={4} />
                     </Form.Item>
+
                     <div className="admin-form-actions">
                         <Button onClick={() => setModalVisible(false)}>Hủy</Button>
                         <Button type="primary" htmlType="submit" loading={saving} className="admin-btn-primary">
@@ -384,6 +461,7 @@ const AdminProducts = () => {
                 </Form>
             </Modal>
 
+            {/* Modal Thùng rác */}
             <Modal
                 title="Thùng rác - Sản phẩm đã xóa"
                 open={trashVisible}
@@ -391,10 +469,10 @@ const AdminProducts = () => {
                 footer={null}
                 width={1000}
             >
-                <Table 
-                    dataSource={trashProducts} 
-                    columns={trashColumns} 
-                    loading={loadingTrash} 
+                <Table
+                    dataSource={trashProducts}
+                    columns={trashColumns}
+                    loading={loadingTrash}
                     rowKey="product_id"
                     locale={{ emptyText: 'Thùng rác trống' }}
                 />

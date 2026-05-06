@@ -14,4 +14,6 @@ export const productService = {
     softDelete: (id) => axiosClient.patch(`/products/${id}/soft-delete`),
     restore: (id) => axiosClient.patch(`/products/${id}/restore`),
     hardDelete: (id) => axiosClient.delete(`/products/${id}`),
+    // Xóa 1 ảnh trong product_images
+    deleteImage: (productId, imageId) => axiosClient.delete(`/products/${productId}/images/${imageId}`),
 };

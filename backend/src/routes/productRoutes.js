@@ -11,8 +11,14 @@ router.get('/:id', productController.getProductById);
 
 // Admin routes (require auth + admin role)
 router.get('/deleted/trash', authMiddleware, adminMiddleware, productController.getDeletedProducts);
-router.post('/', authMiddleware, adminMiddleware, upload.single('image'), productController.createProduct);
-router.put('/:id', authMiddleware, adminMiddleware, upload.single('image'), productController.updateProduct);
+
+// Dùng upload.array('images', 10) để cho phép upload tối đa 10 ảnh
+router.post('/', authMiddleware, adminMiddleware, upload.array('images', 10), productController.createProduct);
+router.put('/:id', authMiddleware, adminMiddleware, upload.array('images', 10), productController.updateProduct);
+
+// Xóa 1 ảnh trong product_images
+router.delete('/:id/images/:imageId', authMiddleware, adminMiddleware, productController.deleteProductImage);
+
 router.patch('/:id/soft-delete', authMiddleware, adminMiddleware, productController.softDeleteProduct);
 router.patch('/:id/restore', authMiddleware, adminMiddleware, productController.restoreProduct);
 router.patch('/:id/status', authMiddleware, adminMiddleware, productController.updateProductStatus);

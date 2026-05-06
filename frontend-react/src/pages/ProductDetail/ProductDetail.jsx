@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
     Row, Col, Typography, Button, Spin, Breadcrumb, Tag,
-    InputNumber, Divider, Tabs, Rate, message, Space, Badge, Radio
+    InputNumber, Divider, Tabs, Rate, message, Space, Radio, Image
 } from 'antd';
 import {
     ShoppingCartOutlined, ThunderboltOutlined, CheckCircleOutlined,
     ShareAltOutlined, HeartOutlined, SafetyOutlined, UndoOutlined,
-    CarOutlined, StarFilled
+    CarOutlined, ZoomInOutlined
 } from '@ant-design/icons';
 import { productService } from '../../services/productService';
 import { cartService } from '../../services/cartService';
@@ -20,6 +20,14 @@ const { Title, Text, Paragraph } = Typography;
 const IMAGE_BASE = '/images/';
 const UPLOAD_BASE = 'http://localhost:5000/uploads/';
 
+// Hàm lấy đường dẫn đầy đủ của ảnh (hỗ trợ cả 2 nguồn)
+const getImageSrc = (filename) => {
+    if (!filename) return '/placeholder.png';
+    if (filename.startsWith('http')) return filename;
+    // Thử uploads trước (ảnh upload qua admin), fallback sang images/
+    return `${UPLOAD_BASE}${filename}`;
+};
+
 const ProductDetail = () => {
     const { id } = useParams();
     const { user } = useAuth();
@@ -30,6 +38,11 @@ const ProductDetail = () => {
     const [addingCart, setAddingCart] = useState(false);
     const [selectedVariant, setSelectedVariant] = useState(null);
 
+    // Gallery state
+    const [mainImageIndex, setMainImageIndex] = useState(0);
+    const [previewVisible, setPreviewVisible] = useState(false);
+    const [previewIndex, setPreviewIndex] = useState(0);
+
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -37,6 +50,7 @@ const ProductDetail = () => {
                 const res = await productService.getById(id);
                 if (res) {
                     setProduct(res);
+                    setMainImageIndex(0);
                     if (res.variants && res.variants.length > 0) {
                         setSelectedVariant(res.variants[0]);
                     }
@@ -88,7 +102,28 @@ const ProductDetail = () => {
     const hasDiscount = discountPrice && Number(discountPrice) > 0 && Number(discountPrice) < Number(price);
     const displayPrice = hasDiscount ? discountPrice : price;
     const discountPercent = hasDiscount ? Math.round((1 - Number(discountPrice) / Number(price)) * 100) : 0;
-    const imgSrc = product.product_image ? `${IMAGE_BASE}${product.product_image}` : '/placeholder.png';
+
+    // Xây dựng danh sách ảnh: gộp ảnh gốc (product_image) + ảnh bổ sung (product_images)
+    const galleryImages = (() => {
+        const imgs = [];
+        // Ảnh đại diện từ bảng products luôn đứng đầu
+        if (product.product_image) {
+            imgs.push(product.product_image);
+        }
+        // Thêm ảnh từ bảng product_images (bỏ trùng với ảnh đại diện)
+        if (product.images && product.images.length > 0) {
+            product.images.forEach(img => {
+                if (!imgs.includes(img.image_url)) {
+                    imgs.push(img.image_url);
+                }
+            });
+        }
+        return imgs;
+    })();
+
+    const mainImageSrc = galleryImages.length > 0
+        ? getImageSrc(galleryImages[mainImageIndex])
+        : '/placeholder.png';
 
     const tabItems = [
         {
@@ -139,18 +174,84 @@ const ProductDetail = () => {
             <div className="detail-wrap">
                 <div className="detail-card">
                     <Row gutter={[48, 32]}>
-                        {/* Left: Image */}
+                        {/* Left: Gallery */}
                         <Col xs={24} md={10}>
-                            <div className="detail-img-container">
-                                {hasDiscount && (
-                                    <div className="product-badge detail-badge-pos">-{discountPercent}%</div>
+                            <div className="detail-gallery">
+                                {/* Ảnh chính hiển thị bằng thẻ img thường */}
+                                <div
+                                    className="detail-gallery-main"
+                                    onClick={() => {
+                                        setPreviewIndex(mainImageIndex);
+                                        setPreviewVisible(true);
+                                    }}
+                                >
+                                    {hasDiscount && (
+                                        <div className="product-badge detail-badge-pos">-{discountPercent}%</div>
+                                    )}
+
+                                    <img
+                                        className="detail-gallery-main-img"
+                                        src={mainImageSrc}
+                                        alt={product.product_name}
+                                        onError={e => {
+                                            // Fallback sang /images/ nếu /uploads/ không có
+                                            if (!e.target.src.includes('/images/')) {
+                                                e.target.src = `/images/${galleryImages[mainImageIndex]}`;
+                                            } else {
+                                                e.target.src = '/placeholder.png';
+                                            }
+                                        }}
+                                    />
+
+                                    {/* Overlay zoom icon */}
+                                    <div className="detail-gallery-zoom">
+                                        <ZoomInOutlined />
+                                    </div>
+                                </div>
+
+                                {/* Image.PreviewGroup ẩn - chỉ để handle popup phóng to với Next/Prev */}
+                                <Image.PreviewGroup
+                                    preview={{
+                                        open: previewVisible,
+                                        current: previewIndex,
+                                        onOpenChange: (vis) => setPreviewVisible(vis),
+                                        onChange: (current) => {
+                                            setPreviewIndex(current);
+                                            setMainImageIndex(current);
+                                        },
+                                    }}
+                                    items={galleryImages.map(img => ({
+                                        src: getImageSrc(img),
+                                    }))}
+                                >
+                                    {galleryImages.map((img, idx) => (
+                                        <Image
+                                            key={idx}
+                                            src={getImageSrc(img)}
+                                            style={{ display: 'none' }}
+                                            fallback="/placeholder.png"
+                                        />
+                                    ))}
+                                </Image.PreviewGroup>
+
+                                {/* Thumbnails */}
+                                {galleryImages.length > 1 && (
+                                    <div className="detail-gallery-thumbs">
+                                        {galleryImages.map((img, idx) => (
+                                            <div
+                                                key={idx}
+                                                className={`detail-gallery-thumb-item ${idx === mainImageIndex ? 'active' : ''}`}
+                                                onClick={() => setMainImageIndex(idx)}
+                                            >
+                                                <img
+                                                    src={getImageSrc(img)}
+                                                    alt={`Ảnh ${idx + 1}`}
+                                                    onError={e => { e.target.src = '/placeholder.png'; }}
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
                                 )}
-                                <img
-                                    className="detail-img"
-                                    src={imgSrc}
-                                    alt={product.product_name}
-                                    onError={e => { e.target.src = `${UPLOAD_BASE}${product.product_image}`; }}
-                                />
                             </div>
                         </Col>
 
