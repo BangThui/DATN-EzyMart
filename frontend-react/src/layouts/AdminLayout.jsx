@@ -41,6 +41,11 @@ const AdminLayout = () => {
       label: <Link to="/admin/categories">Danh mục</Link>,
     },
     {
+      key: "/admin/brands",
+      icon: <AppstoreOutlined />,
+      label: <Link to="/admin/brands">Thương hiệu</Link>,
+    },
+    {
       key: "/admin/orders",
       icon: <OrderedListOutlined />,
       label: <Link to="/admin/orders">Đơn hàng</Link>,

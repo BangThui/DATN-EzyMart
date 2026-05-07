@@ -11,6 +11,7 @@ const PRODUCT_SELECT = `
     p.deleted_at,
     p.product_hot,
     p.product_image,
+    p.brand_id,
     c.category_name
 `;
 
@@ -84,6 +85,84 @@ const ProductModel = {
     return [formatted];
   },
 
+  filterProducts: async (filters = {}) => {
+    const { category_id, brand_id, minPrice, maxPrice } = filters;
+    let query = `
+      SELECT p.product_id,
+             p.category_id,
+             p.product_name,
+             p.product_details,
+             p.product_description,
+             p.product_active,
+             p.is_deleted,
+             p.product_hot,
+             p.product_image,
+             p.brand_id,
+             c.category_name,
+             b.brand_name,
+             MIN(v.variant_price) as min_price,
+             MAX(v.variant_price) as max_price,
+             SUM(v.variant_quantity) as total_quantity
+      FROM products p
+      LEFT JOIN categories c ON p.category_id = c.category_id
+      LEFT JOIN brands b ON p.brand_id = b.brand_id
+      JOIN product_variants v ON p.product_id = v.product_id
+      WHERE p.product_active = 1 AND p.is_deleted = 0
+    `;
+    let params = [];
+
+    if (category_id) {
+      query += " AND p.category_id = ?";
+      params.push(category_id);
+    }
+
+    if (brand_id) {
+      query += " AND p.brand_id = ?";
+      params.push(brand_id);
+    }
+
+    query += " GROUP BY p.product_id";
+
+    // Logic giá: Lọc theo variant_price thấp nhất của sản phẩm.
+    let havingConditions = [];
+    if (minPrice !== undefined && minPrice !== '') {
+      havingConditions.push("min_price >= ?");
+      params.push(Number(minPrice));
+    }
+    if (maxPrice !== undefined && maxPrice !== '') {
+      havingConditions.push("min_price <= ?");
+      params.push(Number(maxPrice));
+    }
+
+    if (havingConditions.length > 0) {
+      query += " HAVING " + havingConditions.join(" AND ");
+    }
+
+    query += " ORDER BY p.product_id DESC";
+
+    const [products] = await db.query(query, params);
+    if (products.length === 0) return [products];
+
+    const pIds = products.map(p => p.product_id);
+
+    const [variants] = await db.query(
+      "SELECT * FROM product_variants WHERE product_id IN (?)",
+      [pIds],
+    );
+
+    const [allImages] = await db.query(
+      "SELECT * FROM product_images WHERE product_id IN (?) ORDER BY image_id ASC",
+      [pIds],
+    );
+
+    const formatted = products.map(p => {
+      p.variants = variants.filter(v => v.product_id === p.product_id);
+      p.images = allImages.filter(img => img.product_id === p.product_id);
+      return p;
+    });
+    return [formatted];
+  },
+
   getById: async id => {
     const [products] = await db.query(
       `SELECT ${PRODUCT_SELECT} FROM products p LEFT JOIN categories c ON p.category_id = c.category_id WHERE p.product_id = ?`,
@@ -135,16 +214,18 @@ const ProductModel = {
         product_details,
         product_description,
         category_id,
+        brand_id,
       } = data;
 
       const [result] = await connection.query(
-        "INSERT INTO products (product_name, product_image, product_details, product_description, category_id, product_active) VALUES (?, ?, ?, ?, ?, 1)",
+        "INSERT INTO products (product_name, product_image, product_details, product_description, category_id, brand_id, product_active) VALUES (?, ?, ?, ?, ?, ?, 1)",
         [
           product_name,
           product_image,
           product_details || "",
           product_description || "",
           category_id,
+          brand_id || null,
         ],
       );
 
@@ -192,16 +273,18 @@ const ProductModel = {
         product_details,
         product_description,
         category_id,
+        brand_id,
       } = data;
 
       await connection.query(
-        "UPDATE products SET product_name=?, product_image=?, product_details=?, product_description=?, category_id=? WHERE product_id=?",
+        "UPDATE products SET product_name=?, product_image=?, product_details=?, product_description=?, category_id=?, brand_id=? WHERE product_id=?",
         [
           product_name,
           product_image,
           product_details,
           product_description,
           category_id,
+          brand_id || null,
           id,
         ],
       );

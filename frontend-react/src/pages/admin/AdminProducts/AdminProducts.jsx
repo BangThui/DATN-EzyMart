@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
     Table, Button, Modal, Form, Input, Select, InputNumber,
-    Typography, Space, Popconfirm, message, Upload, Image, Row, Col, Tag, Tooltip, Badge
+    Typography, Space, Popconfirm, message, Upload, Image, Row, Col, Tag, Tooltip, Badge, TreeSelect
 } from 'antd';
 import {
     PlusOutlined, EditOutlined, DeleteOutlined, UploadOutlined,
@@ -9,6 +9,7 @@ import {
 } from '@ant-design/icons';
 import { productService } from '../../../services/productService';
 import { categoryService } from '../../../services/categoryService';
+import { brandService } from '../../../services/brandService';
 import { formatCurrency } from '../../../utils';
 import '../Admin.css';
 
@@ -28,6 +29,7 @@ const getImgSrc = (filename) => {
 const AdminProducts = () => {
     const [products, setProducts] = useState([]);
     const [categories, setCategories] = useState([]);
+    const [brands, setBrands] = useState([]);
     const [loading, setLoading] = useState(true);
     const [modalVisible, setModalVisible] = useState(false);
     const [editingRecord, setEditingRecord] = useState(null);
@@ -44,9 +46,14 @@ const AdminProducts = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [prods, cats] = await Promise.all([productService.getAll({ admin: true }), categoryService.getAll()]);
+            const [prods, cats, brs] = await Promise.all([
+                productService.getAll({ admin: true }), 
+                categoryService.getAll(),
+                brandService.getAll()
+            ]);
             setProducts(prods || []);
             setCategories(cats || []);
+            setBrands(brs || []);
         } catch { message.error('Lỗi tải dữ liệu'); }
         finally { setLoading(false); }
     };
@@ -440,10 +447,30 @@ const AdminProducts = () => {
                         )}
                     </Form.List>
 
-                    <Form.Item label="Danh mục" name="category_id" rules={[{ required: true }]}>
-                        <Select placeholder="Chọn danh mục">
-                            {categories.map(c => <Option key={c.category_id} value={c.category_id}>{c.category_name}</Option>)}
+                    <Form.Item label="Thương hiệu" name="brand_id">
+                        <Select placeholder="Chọn thương hiệu" allowClear>
+                            {brands.map(b => <Option key={b.brand_id} value={b.brand_id}>{b.brand_name}</Option>)}
                         </Select>
+                    </Form.Item>
+
+                    <Form.Item label="Danh mục" name="category_id" rules={[{ required: true }]}>
+                        <TreeSelect
+                            treeData={categories
+                                .filter(c => !c.parent_id)
+                                .map(c => ({
+                                    value: c.category_id,
+                                    title: c.category_name,
+                                    children: categories
+                                        .filter(child => child.parent_id === c.category_id)
+                                        .map(child => ({
+                                            value: child.category_id,
+                                            title: child.category_name
+                                        }))
+                                }))}
+                            placeholder="Chọn danh mục"
+                            treeDefaultExpandAll
+                            allowClear
+                        />
                     </Form.Item>
                     <Form.Item label="Mô tả" name="product_description">
                         <TextArea rows={3} />

@@ -31,6 +31,7 @@ import NewsDetailPage from "./pages/News/NewsDetailPage";
 import Dashboard from "./pages/admin/Dashboard/Dashboard";
 import AdminProducts from "./pages/admin/AdminProducts/AdminProducts";
 import AdminCategories from "./pages/admin/AdminCategories/AdminCategories";
+import AdminBrands from "./pages/admin/AdminBrands/AdminBrands";
 import AdminOrders from "./pages/admin/AdminOrders/AdminOrders";
 import AdminCustomers from "./pages/admin/AdminCustomers/AdminCustomers";
 import Login from "./pages/auth/Login";
@@ -150,6 +151,7 @@ function AppRoutes() {
             </AdminRoute>
           }
         >
+          <Route path="brands" element={<AdminBrands />} />
           <Route index element={<Dashboard />} />
           <Route path="products" element={<AdminProducts />} />
           <Route path="categories" element={<AdminCategories />} />

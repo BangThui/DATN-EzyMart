@@ -9,12 +9,12 @@ const CategoryModel = {
         return db.query('SELECT * FROM categories WHERE category_id = ?', [id]);
     },
 
-    create: (category_name) => {
-        return db.query('INSERT INTO categories (category_name) VALUES (?)', [category_name]);
+    create: (category_name, parent_id = null) => {
+        return db.query('INSERT INTO categories (category_name, parent_id) VALUES (?, ?)', [category_name, parent_id || null]);
     },
 
-    update: (id, category_name) => {
-        return db.query('UPDATE categories SET category_name = ? WHERE category_id = ?', [category_name, id]);
+    update: (id, category_name, parent_id = null) => {
+        return db.query('UPDATE categories SET category_name = ?, parent_id = ? WHERE category_id = ?', [category_name, parent_id || null, id]);
     },
 
     delete: (id) => {

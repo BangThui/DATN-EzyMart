@@ -11,6 +11,19 @@ exports.getProducts = async (req, res) => {
     }
 };
 
+// Lọc sản phẩm
+exports.filterProducts = async (req, res) => {
+    try {
+        const { category_id, brand_id, minPrice, maxPrice } = req.query;
+        const filters = { category_id, brand_id, minPrice, maxPrice };
+        const [rows] = await ProductModel.filterProducts(filters);
+        res.json(rows);
+    } catch (err) {
+        console.error("Lỗi lọc sản phẩm:", err);
+        res.status(500).json({ error: 'Lỗi Server khi lọc sản phẩm' });
+    }
+};
+
 // Lấy 1 sản phẩm theo ID (kèm danh sách ảnh)
 exports.getProductById = async (req, res) => {
     try {

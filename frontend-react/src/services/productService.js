@@ -2,6 +2,7 @@ import axiosClient from './axiosClient';
 
 export const productService = {
     getAll: (params) => axiosClient.get('/products', { params }),
+    filterProducts: (params) => axiosClient.get('/products/filter', { params }),
     getById: (id) => axiosClient.get(`/products/${id}`),
     getSimilar: (category_id, current_id) =>
         axiosClient.get('/products/similar', { params: { category_id, current_id } }),
