@@ -1,8 +1,19 @@
 const BrandModel = require('../models/brandModel');
+const CategoryModel = require('../models/categoryModel');
 
 exports.getBrands = async (req, res) => {
     try {
-        const [rows] = await BrandModel.getAll();
+        let { category_id } = req.query;
+        let filterId = category_id;
+
+        if (category_id) {
+            const childIds = await CategoryModel.getChildIds(category_id);
+            if (childIds && childIds.length > 0) {
+                filterId = [Number(category_id), ...childIds];
+            }
+        }
+
+        const [rows] = await BrandModel.getAll(filterId);
         res.json(rows);
     } catch (err) {
         console.error(err);

@@ -1,8 +1,19 @@
 const db = require('../config/db');
 
 const BrandModel = {
-    getAll: () => {
-        return db.query('SELECT * FROM brands ORDER BY brand_id ASC');
+    getAll: (categoryId = null) => {
+        let query = 'SELECT * FROM brands';
+        let params = [];
+        if (categoryId) {
+            if (Array.isArray(categoryId)) {
+                query += ' WHERE category_id IN (?)';
+            } else {
+                query += ' WHERE category_id = ?';
+            }
+            params.push(categoryId);
+        }
+        query += ' ORDER BY brand_id ASC';
+        return db.query(query, params);
     },
 
     getById: (id) => {

@@ -24,24 +24,35 @@ const ProductSidebarFilter = () => {
     const maxPrice = searchParams.get('maxPrice') ? Number(searchParams.get('maxPrice')) : 5000000;
     const [priceRange, setPriceRange] = useState([minPrice, maxPrice]);
 
+    // Lấy danh mục 1 lần khi mount
     useEffect(() => {
-        const fetchFilters = async () => {
+        const fetchCategories = async () => {
+            try {
+                const cats = await categoryService.getTree();
+                setCategories(cats || []);
+            } catch (error) {
+                console.error("Failed to load categories", error);
+            }
+        };
+        fetchCategories();
+    }, []);
+
+    // Lấy thương hiệu mỗi khi thay đổi danh mục
+    useEffect(() => {
+        const fetchBrands = async () => {
             setLoading(true);
             try {
-                const [cats, brds] = await Promise.all([
-                    categoryService.getTree(),
-                    brandService.getAll()
-                ]);
-                setCategories(cats || []);
+                const params = currentCategoryId ? { category_id: currentCategoryId } : {};
+                const brds = await brandService.getAll(params);
                 setBrands(brds || []);
             } catch (error) {
-                console.error("Failed to load filters", error);
+                console.error("Failed to load brands", error);
             } finally {
                 setLoading(false);
             }
         };
-        fetchFilters();
-    }, []);
+        fetchBrands();
+    }, [currentCategoryId]);
 
     // Helper to format category tree for Antd Menu
     const formatMenu = (tree) => {
@@ -55,6 +66,20 @@ const ProductSidebarFilter = () => {
             }
             return item;
         });
+    };
+
+    // Tìm parent_id của một category trong cây
+    const findParentId = (tree, targetId, currentParentId = null) => {
+        for (const node of tree) {
+            if (node.category_id.toString() === targetId.toString()) {
+                return currentParentId;
+            }
+            if (node.children && node.children.length > 0) {
+                const found = findParentId(node.children, targetId, node.category_id);
+                if (found !== undefined) return found;
+            }
+        }
+        return undefined;
     };
 
     // Filter category tree to only show the relevant branch
@@ -84,10 +109,20 @@ const ProductSidebarFilter = () => {
     const openKeys = displayCategories.map(cat => cat.category_id.toString());
 
     const handleCategoryClick = ({ key }) => {
-        // Cập nhật URL path thay vì query param cho category để đẹp hơn
         const params = new URLSearchParams(searchParams);
-        params.delete('category_id'); // Xoá query param nếu có
-        navigate(`/category/${key}?${params.toString()}`);
+        params.delete('category_id'); 
+
+        // Nếu nhấn lại chính danh mục đang chọn -> quay về danh mục cha (hoặc tất cả sản phẩm nếu là gốc)
+        if (key === currentCategoryId.toString()) {
+            const parentId = findParentId(categories, key);
+            if (parentId) {
+                navigate(`/category/${parentId}?${params.toString()}`);
+            } else {
+                navigate(`/category?${params.toString()}`);
+            }
+        } else {
+            navigate(`/category/${key}?${params.toString()}`);
+        }
     };
 
     const handleBrandChange = (brandId) => {

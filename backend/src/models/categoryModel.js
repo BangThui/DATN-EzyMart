@@ -19,6 +19,11 @@ const CategoryModel = {
 
     delete: (id) => {
         return db.query('DELETE FROM categories WHERE category_id = ?', [id]);
+    },
+
+    getChildIds: async (parentId) => {
+        const [rows] = await db.query('SELECT category_id FROM categories WHERE parent_id = ?', [parentId]);
+        return rows.map(row => row.category_id);
     }
 };
 

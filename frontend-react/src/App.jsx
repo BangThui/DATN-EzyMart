@@ -75,6 +75,14 @@ function AppRoutes() {
           }
         />
         <Route
+          path="/category"
+          element={
+            <MainLayout>
+              <Category />
+            </MainLayout>
+          }
+        />
+        <Route
           path="/category/:categoryId"
           element={
             <MainLayout>

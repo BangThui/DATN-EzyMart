@@ -1,9 +1,17 @@
 const ProductModel = require('../models/productModel');
+const CategoryModel = require('../models/categoryModel');
 
 // Lấy tất cả sản phẩm (có thể lọc theo category)
 exports.getProducts = async (req, res) => {
     try {
-        const [rows] = await ProductModel.getAll(req.query);
+        let filters = { ...req.query };
+        if (filters.category) {
+            const childIds = await CategoryModel.getChildIds(filters.category);
+            if (childIds.length > 0) {
+                filters.category = [Number(filters.category), ...childIds];
+            }
+        }
+        const [rows] = await ProductModel.getAll(filters);
         res.json(rows);
     } catch (err) {
         console.error(err);
@@ -14,7 +22,15 @@ exports.getProducts = async (req, res) => {
 // Lọc sản phẩm
 exports.filterProducts = async (req, res) => {
     try {
-        const { category_id, brand_id, minPrice, maxPrice } = req.query;
+        let { category_id, brand_id, minPrice, maxPrice } = req.query;
+        
+        if (category_id) {
+            const childIds = await CategoryModel.getChildIds(category_id);
+            if (childIds.length > 0) {
+                category_id = [Number(category_id), ...childIds];
+            }
+        }
+
         const filters = { category_id, brand_id, minPrice, maxPrice };
         const [rows] = await ProductModel.filterProducts(filters);
         res.json(rows);
@@ -51,7 +67,7 @@ exports.getSimilarProducts = async (req, res) => {
 // [ADMIN] Tạo sản phẩm mới (hỗ trợ nhiều ảnh)
 exports.createProduct = async (req, res) => {
     try {
-        const { product_name, product_details, product_description, category_id, variants, final_image_order } = req.body;
+        const { product_name, product_details, product_description, category_id, brand_id, variants, final_image_order } = req.body;
 
         const files = req.files || [];
         let finalImages = [];
@@ -83,7 +99,7 @@ exports.createProduct = async (req, res) => {
         }
 
         const [result] = await ProductModel.createWithVariants(
-            { product_name, product_image, product_details, product_description, category_id },
+            { product_name, product_image, product_details, product_description, category_id, brand_id },
             parsedVariants,
             galleryImages // chỉ lưu các ảnh phụ vào product_images
         );
@@ -99,7 +115,7 @@ exports.createProduct = async (req, res) => {
 exports.updateProduct = async (req, res) => {
     try {
         const { id } = req.params;
-        const { product_name, product_details, product_description, category_id, variants, final_image_order } = req.body;
+        const { product_name, product_details, product_description, category_id, brand_id, variants, final_image_order } = req.body;
 
         let parsedVariants = [];
         try { if (variants) parsedVariants = JSON.parse(variants); }
@@ -135,7 +151,7 @@ exports.updateProduct = async (req, res) => {
 
         await ProductModel.updateWithVariants(
             id,
-            { product_name, product_image, product_details, product_description, category_id },
+            { product_name, product_image, product_details, product_description, category_id, brand_id },
             parsedVariants,
             galleryImages
         );

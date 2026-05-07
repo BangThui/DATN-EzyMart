@@ -1,7 +1,7 @@
 import axiosClient from './axiosClient';
 
 export const brandService = {
-    getAll: () => axiosClient.get('/brands'),
+    getAll: (params) => axiosClient.get('/brands', { params }),
     getById: (id) => axiosClient.get(`/brands/${id}`),
     create: (formData) => axiosClient.post('/brands', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }

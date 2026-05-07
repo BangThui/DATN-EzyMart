@@ -31,7 +31,11 @@ const ProductModel = {
     let conditions = [];
 
     if (category) {
-      conditions.push("p.category_id = ?");
+      if (Array.isArray(category)) {
+        conditions.push("p.category_id IN (?)");
+      } else {
+        conditions.push("p.category_id = ?");
+      }
       params.push(category);
     }
     if (search) {
@@ -112,7 +116,11 @@ const ProductModel = {
     let params = [];
 
     if (category_id) {
-      query += " AND p.category_id = ?";
+      if (Array.isArray(category_id)) {
+        query += " AND p.category_id IN (?)";
+      } else {
+        query += " AND p.category_id = ?";
+      }
       params.push(category_id);
     }
 

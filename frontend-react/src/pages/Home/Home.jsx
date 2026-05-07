@@ -188,11 +188,25 @@ const Home = () => {
               <Spin size="large" tip="Đang tải sản phẩm..." />
             </div>
           ) : (
-            categories.map(cat => {
-              const catProducts = products.filter(
-                p => p.category_id === cat.category_id,
-              );
-              if (catProducts.length === 0) return null;
+            categories
+              .filter(cat => !cat.parent_id) // Chỉ hiển thị danh mục gốc ở trang chủ
+              .map(cat => {
+                // Lấy tất cả ID của danh mục này và các danh mục con của nó
+                const getChildIds = (parentId) => {
+                  const children = categories.filter(c => c.parent_id === parentId);
+                  let ids = [parentId];
+                  children.forEach(child => {
+                    ids = [...ids, ...getChildIds(child.category_id)];
+                  });
+                  return ids;
+                };
+
+                const descendantIds = getChildIds(cat.category_id);
+                const catProducts = products.filter(p =>
+                  descendantIds.includes(p.category_id),
+                );
+
+                if (catProducts.length === 0) return null;
               return (
                 <div key={cat.category_id} className="home-category-section">
                   <div className="section-header">
