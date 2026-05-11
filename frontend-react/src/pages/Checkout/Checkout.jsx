@@ -8,9 +8,10 @@ import { useAuth } from '../../context/AuthContext';
 import { formatCurrency } from '../../utils';
 import './Checkout.css';
 
+import { getImageUrl } from '../../utils/imageHelper';
 const { Title, Text } = Typography;
 const { Option } = Select;
-const IMAGE_BASE = 'http://localhost:5000/uploads/';
+// const IMAGE_BASE = 'http://localhost:5000/uploads/'; // Replaced by getImageUrl
 
 const Checkout = () => {
     const { user } = useAuth();
@@ -137,7 +138,7 @@ const Checkout = () => {
                             {cartItems.map(item => (
                                 <div key={item.cart_id} className="checkout-order-item">
                                     <div className="checkout-order-item-left">
-                                        <img src={IMAGE_BASE + item.product_image} alt="" className="checkout-order-img" />
+                                        <img src={getImageUrl(item.product_image)} alt="" className="checkout-order-img" />
                                         <div>
                                             <div className="checkout-order-name">{item.product_name}</div>
                                             <Text type="secondary" style={{ fontSize: 12 }}>{item.variant_name}</Text>

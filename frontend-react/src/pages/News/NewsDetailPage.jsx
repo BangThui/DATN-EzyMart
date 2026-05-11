@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { Spin, Breadcrumb } from 'antd';
 import { CalendarOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import { newsService } from '../../services/newsService';
+import { getImageUrl } from '../../utils/imageHelper';
 import './News.css';
 
 /**
@@ -104,7 +105,7 @@ const NewsDetailPage = () => {
             {news.image && (
               <div className="news-detail-image-wrap">
                 <img
-                  src={`http://localhost:5000/uploads/${news.image}`}
+                   src={getImageUrl(news.image)}
                   alt={news.title}
                   className="news-detail-image"
                   onError={(e) => {

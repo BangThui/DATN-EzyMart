@@ -39,18 +39,17 @@ import { productService } from "../../../services/productService";
 import { categoryService } from "../../../services/categoryService";
 import { brandService } from "../../../services/brandService";
 import { formatCurrency, buildCategoryTree } from "../../../utils";
+import { getImageUrl } from "../../../utils/imageHelper";
 import "../Admin.css";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 const { TextArea } = Input;
-const UPLOAD_BASE = "http://localhost:5000/uploads/";
+// const UPLOAD_BASE = "http://localhost:5000/uploads/"; // Replaced by getImageUrl
 const IMAGE_BASE = "/images/";
 
 const getImgSrc = filename => {
-  if (!filename) return "";
-  if (filename.startsWith("http")) return filename;
-  return `${UPLOAD_BASE}${filename}`;
+  return getImageUrl(filename);
 };
 
 // ─── Helper: Tính tổng tồn kho của một sản phẩm ─────────────────────────────

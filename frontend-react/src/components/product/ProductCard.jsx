@@ -8,8 +8,9 @@ import "./ProductCard.css";
 
 const { Text } = Typography;
 import { formatCurrency } from "../../utils";
+import { getImageUrl } from "../../utils/imageHelper";
 const IMAGE_BASE = "/images/";
-const UPLOAD_BASE = "http://localhost:5000/uploads/";
+// const UPLOAD_BASE = "http://localhost:5000/uploads/"; // Replaced by getImageUrl
 
 const ProductCard = ({ product }) => {
   const { user } = useAuth();
@@ -51,10 +52,7 @@ const ProductCard = ({ product }) => {
   const targetImage = product.product_image || (product.images && product.images.length > 0 ? product.images[0].image_url : null);
 
   const getInitialImgSrc = (filename) => {
-    if (!filename) return "/placeholder.png";
-    if (filename.startsWith("http")) return filename;
-    // Thử UPLOAD_BASE trước (ảnh mới thêm), nếu lỗi sẽ fallback về IMAGE_BASE (ảnh seed)
-    return `${UPLOAD_BASE}${filename}`;
+    return getImageUrl(filename) || "/placeholder.png";
   };
 
   const imgSrc = getInitialImgSrc(targetImage);

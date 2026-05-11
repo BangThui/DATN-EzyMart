@@ -3,6 +3,7 @@ import { Layout, Menu, Slider, Typography, Spin, Checkbox, Space } from 'antd';
 import { useSearchParams, useNavigate, useParams } from 'react-router-dom';
 import { categoryService } from '../../services/categoryService';
 import { brandService } from '../../services/brandService';
+import { getImageUrl } from '../../utils/imageHelper';
 import './ProductSidebarFilter.css';
 
 const { Sider } = Layout;
@@ -179,7 +180,7 @@ const ProductSidebarFilter = () => {
                                 title={brand.brand_name}
                             >
                                 {brand.brand_logo ? (
-                                    <img src={`http://localhost:5000/uploads/${brand.brand_logo}`} alt={brand.brand_name} />
+                                    <img src={getImageUrl(brand.brand_logo)} alt={brand.brand_name} />
                                 ) : (
                                     <span>{brand.brand_name}</span>
                                 )}

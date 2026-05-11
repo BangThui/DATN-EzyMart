@@ -8,7 +8,8 @@ import './Cart.css';
 
 const { Title, Text } = Typography;
 import { formatCurrency } from '../../utils';
-const IMAGE_BASE = 'http://localhost:5000/uploads/';
+import { getImageUrl } from '../../utils/imageHelper';
+// const IMAGE_BASE = 'http://localhost:5000/uploads/'; // Replaced by getImageUrl
 
 const Cart = () => {
     const { user } = useAuth();
@@ -66,7 +67,7 @@ const Cart = () => {
             render: (_, record) => (
                 <Space>
                     <img
-                        src={IMAGE_BASE + record.product_image}
+                        src={getImageUrl(record.product_image)}
                         alt={record.product_name}
                         className="cart-img"
                         onError={e => { e.target.src = '/placeholder.png'; }}

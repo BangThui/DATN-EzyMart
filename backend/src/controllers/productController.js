@@ -91,13 +91,13 @@ exports.createProduct = async (req, res) => {
         .map(item => {
           if (item === "NEW_FILE") {
             const file = files[fileIndex++];
-            return file ? file.filename : null;
+            return file ? file.path : null; // Cloudinary URL
           }
           return item;
         })
         .filter(Boolean);
     } else {
-      finalImages = files.map(f => f.filename);
+      finalImages = files.map(f => f.path); // Cloudinary URL
     }
 
     const product_image = finalImages.length > 0 ? finalImages[0] : "";
@@ -178,7 +178,7 @@ exports.updateProduct = async (req, res) => {
         .map(item => {
           if (item === "NEW_FILE") {
             const file = files[fileIndex++];
-            return file ? file.filename : null;
+            return file ? file.path : null; // Cloudinary URL
           }
           return item;
         })
@@ -192,7 +192,7 @@ exports.updateProduct = async (req, res) => {
       finalImages = [
         ...finalImages,
         ...existingGallery,
-        ...files.map(f => f.filename),
+        ...files.map(f => f.path), // Cloudinary URL
       ];
     }
 

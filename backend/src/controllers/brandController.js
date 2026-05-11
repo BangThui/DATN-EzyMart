@@ -37,7 +37,7 @@ exports.createBrand = async (req, res) => {
         const { brand_name, category_id } = req.body;
         if (!brand_name) return res.status(400).json({ error: 'Tên thương hiệu là bắt buộc' });
 
-        const brand_logo = req.file ? req.file.filename : null;
+        const brand_logo = req.file ? req.file.path : null;
 
         const [result] = await BrandModel.create(brand_name, brand_logo, category_id || null);
         res.status(201).json({ message: 'Thêm thương hiệu thành công', brand_id: result.insertId });
@@ -52,7 +52,7 @@ exports.updateBrand = async (req, res) => {
         const { id } = req.params;
         const { brand_name, category_id } = req.body;
         
-        const brand_logo = req.file ? req.file.filename : null;
+        const brand_logo = req.file ? req.file.path : null;
 
         await BrandModel.update(id, brand_name, brand_logo, category_id || null);
         res.json({ message: 'Cập nhật thương hiệu thành công' });

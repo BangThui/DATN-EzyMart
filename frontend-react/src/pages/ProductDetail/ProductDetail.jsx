@@ -14,18 +14,16 @@ import { cartService } from '../../services/cartService';
 import { useAuth } from '../../context/AuthContext';
 import { formatCurrency } from '../../utils';
 import ProductCard from '../../components/product/ProductCard';
+import { getImageUrl } from '../../utils/imageHelper';
 import './ProductDetail.css';
 
 const { Title, Text, Paragraph } = Typography;
 const IMAGE_BASE = '/images/';
-const UPLOAD_BASE = 'http://localhost:5000/uploads/';
+// const UPLOAD_BASE = 'http://localhost:5000/uploads/'; // Replaced by getImageUrl
 
 // Hàm lấy đường dẫn đầy đủ của ảnh (hỗ trợ cả 2 nguồn)
 const getImageSrc = (filename) => {
-    if (!filename) return '/placeholder.png';
-    if (filename.startsWith('http')) return filename;
-    // Thử uploads trước (ảnh upload qua admin), fallback sang images/
-    return `${UPLOAD_BASE}${filename}`;
+    return getImageUrl(filename);
 };
 
 const ProductDetail = () => {

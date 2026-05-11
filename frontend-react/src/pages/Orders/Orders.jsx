@@ -4,10 +4,11 @@ import { Link } from 'react-router-dom';
 import { orderService } from '../../services/orderService';
 import { useAuth } from '../../context/AuthContext';
 import { formatCurrency } from '../../utils';
+import { getImageUrl } from '../../utils/imageHelper';
 import './Orders.css';
 
 const { Title, Text } = Typography;
-const IMAGE_BASE = 'http://localhost:5000/uploads/';
+// const IMAGE_BASE = 'http://localhost:5000/uploads/'; // Replaced by getImageUrl
 
 const Orders = () => {
     const { user } = useAuth();
@@ -50,7 +51,7 @@ const Orders = () => {
                 <div className="order-items-flex">
                     {record.items.map((item, idx) => (
                         <div key={idx} className="order-item-chip">
-                            <img src={IMAGE_BASE + item.product_image} alt="" className="order-item-img" />
+                             <img src={getImageUrl(item.product_image)} alt="" className="order-item-img" />
                             <span className="order-item-name">{item.product_name} x{item.soluong}</span>
                         </div>
                     ))}

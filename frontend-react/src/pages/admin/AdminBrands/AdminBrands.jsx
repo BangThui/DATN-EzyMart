@@ -23,11 +23,12 @@ import { brandService } from "../../../services/brandService";
 import { categoryService } from "../../../services/categoryService";
 import { Typography } from "antd";
 import { buildCategoryTree } from "../../../utils";
+import { getImageUrl } from "../../../utils/imageHelper";
 import "../Admin.css";
 
 const { Title, Text } = Typography;
 
-const UPLOAD_BASE = "http://localhost:5000/uploads/";
+// const UPLOAD_BASE = "http://localhost:5000/uploads/"; // Replaced by getImageUrl
 
 const AdminBrands = () => {
   const [brands, setBrands] = useState([]);
@@ -72,7 +73,7 @@ const AdminBrands = () => {
             uid: "-1",
             name: record.brand_logo,
             status: "done",
-            url: `${UPLOAD_BASE}${record.brand_logo}`,
+            url: getImageUrl(record.brand_logo),
           },
         ]);
       } else {
@@ -149,7 +150,7 @@ const AdminBrands = () => {
       render: text =>
         text ? (
           <Image
-            src={`${UPLOAD_BASE}${text}`}
+            src={getImageUrl(text)}
             alt="logo"
             width={50}
             height={50}
