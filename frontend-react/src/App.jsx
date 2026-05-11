@@ -34,6 +34,7 @@ import AdminCategories from "./pages/admin/AdminCategories/AdminCategories";
 import AdminBrands from "./pages/admin/AdminBrands/AdminBrands";
 import AdminOrders from "./pages/admin/AdminOrders/AdminOrders";
 import AdminCustomers from "./pages/admin/AdminCustomers/AdminCustomers";
+import AdminStock from "./pages/admin/AdminStock/AdminStock";
 import Login from "./pages/auth/Login";
 
 // Admin Route Guard
@@ -165,6 +166,7 @@ function AppRoutes() {
           <Route path="categories" element={<AdminCategories />} />
           <Route path="orders" element={<AdminOrders />} />
           <Route path="customers" element={<AdminCustomers />} />
+          <Route path="stock" element={<AdminStock />} />
         </Route>
       </Routes>
     </Router>

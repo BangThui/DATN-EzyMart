@@ -71,7 +71,16 @@ const ProductModel = {
     const pIds = products.map(p => p.product_id);
 
     const [variants] = await db.query(
-      "SELECT * FROM product_variants WHERE product_id IN (?)",
+      `SELECT pv.*,
+              srd.import_price AS last_import_price
+       FROM product_variants pv
+       LEFT JOIN stock_receipt_details srd
+         ON srd.detail_id = (
+           SELECT detail_id FROM stock_receipt_details
+           WHERE variant_id = pv.variant_id
+           ORDER BY detail_id DESC LIMIT 1
+         )
+       WHERE pv.product_id IN (?)`,
       [pIds],
     );
 
@@ -179,7 +188,16 @@ const ProductModel = {
     if (products.length === 0) return [products];
 
     const [variants] = await db.query(
-      "SELECT * FROM product_variants WHERE product_id = ?",
+      `SELECT pv.*,
+              srd.import_price AS last_import_price
+       FROM product_variants pv
+       LEFT JOIN stock_receipt_details srd
+         ON srd.detail_id = (
+           SELECT detail_id FROM stock_receipt_details
+           WHERE variant_id = pv.variant_id
+           ORDER BY detail_id DESC LIMIT 1
+         )
+       WHERE pv.product_id = ?`,
       [id],
     );
 

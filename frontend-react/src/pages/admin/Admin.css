@@ -138,3 +138,154 @@
     color: #16a34a !important;
     border-color: #16a34a !important;
 }
+
+/* ── AdminProducts: VariantSubTable ── */
+.admin-subtable {
+  margin: 0 48px;
+  border-radius: 8px;
+}
+
+/* ── AdminProducts: Status Tag ── */
+.admin-tag-status {
+  font-weight: 600;
+}
+.admin-tag-status--clickable {
+  cursor: pointer;
+}
+.admin-tag-status--static {
+  cursor: default;
+}
+
+/* ── AdminProducts: Old price text in subtable ── */
+.admin-variant-old-price {
+  margin-right: 6px;
+  font-size: 12px;
+}
+
+/* ── AdminProducts: Filter Tabs & badge ── */
+.admin-tabs-filter {
+  margin-bottom: 0;
+}
+.admin-badge-count {
+  font-size: 11px;
+}
+
+/* ── AdminProducts: Variant section header ── */
+.admin-variant-header {
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* ── AdminProducts: Form.Item helpers ── */
+.admin-fi-no-mb {
+  margin-bottom: 0;
+}
+.admin-fi-discount-inner {
+  display: inline-block;
+  margin-bottom: 4px;
+}
+
+/* ── AdminProducts: Import cost warning label ── */
+.admin-cost-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  margin-left: 6px;
+  white-space: nowrap;
+}
+.admin-cost-label--ok {
+  background: #f6ffed;
+  border: 1px solid #b7eb8f;
+}
+.admin-cost-label--warn {
+  background: #fff1f0;
+  border: 1px solid #ffccc7;
+}
+.admin-cost-warn-text {
+  color: #cf1322;
+  font-weight: 600;
+}
+.admin-cost-ok-text {
+  color: #389e0d;
+}
+
+/* ── AdminProducts: Disabled quantity input ── */
+.admin-qty-disabled {
+  background-color: #f5f5f5 !important;
+  cursor: not-allowed !important;
+  color: #000 !important;
+}
+
+/* ── AdminProducts: Help icon ── */
+.admin-help-icon {
+  color: #8c8c8c;
+  cursor: help;
+}
+
+/* ── AdminProducts: Stock warning banner ── */
+.admin-stock-warning-banner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  padding: 6px 12px;
+  background: #fff1f0;
+  border: 1px solid #ffccc7;
+  border-radius: 6px;
+}
+.admin-warning-icon {
+  color: #ff4d4f;
+}
+.admin-stock-warning-text {
+  color: #ff4d4f;
+  font-size: 13px;
+}
+
+/* ── AdminStock: Page wrapper ── */
+.admin-stock-page {
+  padding: 24px;
+  background: #fff;
+  min-height: 100%;
+  border-radius: 8px;
+}
+
+/* ── AdminStock: Item row in Form.List ── */
+.admin-stock-item-row {
+  display: flex;
+  margin-bottom: 8px;
+}
+
+/* ── AdminStock: Variant select Form.Item ── */
+.admin-fi-variant-select {
+  width: 350px;
+}
+
+/* ── AdminStock: Import price input ── */
+.admin-input-import-price {
+  width: 150px;
+}
+
+/* ── AdminStock: Remove item icon ── */
+.admin-remove-icon {
+  color: #ff4d4f;
+  cursor: pointer;
+}
+
+/* ── AdminStock: Section / receipt label ── */
+.admin-section-label {
+  margin-bottom: 16px;
+}
+.admin-receipt-info {
+  margin-bottom: 16px;
+}
+
+/* ── AdminStock: Form actions with top margin ── */
+.admin-form-actions--mt {
+  margin-top: 24px;
+}
+

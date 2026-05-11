@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Table,
   Button,
@@ -19,6 +19,7 @@ import {
   Tooltip,
   Badge,
   TreeSelect,
+  Tabs,
 } from "antd";
 import {
   PlusOutlined,
@@ -29,6 +30,10 @@ import {
   RestOutlined,
   UndoOutlined,
   PictureOutlined,
+  WarningOutlined,
+  CheckCircleOutlined,
+  StopOutlined,
+  QuestionCircleOutlined,
 } from "@ant-design/icons";
 import { productService } from "../../../services/productService";
 import { categoryService } from "../../../services/categoryService";
@@ -36,19 +41,135 @@ import { brandService } from "../../../services/brandService";
 import { formatCurrency, buildCategoryTree } from "../../../utils";
 import "../Admin.css";
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 const { Option } = Select;
 const { TextArea } = Input;
 const UPLOAD_BASE = "http://localhost:5000/uploads/";
 const IMAGE_BASE = "/images/";
 
-// Lấy src đầy đủ cho ảnh (hỗ trợ cả uploads và images/)
 const getImgSrc = filename => {
   if (!filename) return "";
   if (filename.startsWith("http")) return filename;
   return `${UPLOAD_BASE}${filename}`;
 };
 
+// ─── Helper: Tính tổng tồn kho của một sản phẩm ─────────────────────────────
+const getTotalStock = record => {
+  if (record.variants && record.variants.length > 0) {
+    return record.variants.reduce(
+      (sum, v) => sum + Number(v.variant_quantity || 0),
+      0,
+    );
+  }
+  const total = Number(record.total_quantity);
+  return !isNaN(total) && total > 0
+    ? total
+    : Number(record.product_quantity) || 0;
+};
+
+// ─── Helper: Badge cảnh báo tồn kho ─────────────────────────────────────────
+const StockBadge = ({ qty }) => {
+  const num = Number(qty);
+  if (num === 0) {
+    return (
+      <Tag icon={<StopOutlined />} color="error" className="admin-tag-status">
+        Hết hàng ({num})
+      </Tag>
+    );
+  }
+  if (num < 10) {
+    return (
+      <Tag
+        icon={<WarningOutlined />}
+        color="warning"
+        className="admin-tag-status"
+      >
+        Sắp hết ({num})
+      </Tag>
+    );
+  }
+  return (
+    <Tag
+      icon={<CheckCircleOutlined />}
+      color="success"
+      className="admin-tag-status"
+    >
+      Còn hàng ({num})
+    </Tag>
+  );
+};
+
+// ─── Bảng con – Danh sách biến thể ─────────────────────────────────────────
+const VariantSubTable = ({ variants }) => {
+  const variantColumns = [
+    {
+      title: "SKU",
+      dataIndex: "sku",
+      key: "sku",
+      width: 160,
+      render: val =>
+        val ? (
+          <Text code copyable={{ tooltips: ["Sao chép SKU", "Đã sao chép!"] }}>
+            {val}
+          </Text>
+        ) : (
+          <Text type="secondary">---</Text>
+        ),
+    },
+    {
+      title: "Tên biến thể",
+      dataIndex: "variant_name",
+      key: "variant_name",
+      render: val => val || "---",
+    },
+    {
+      title: "Giá bán",
+      key: "price",
+      align: "right",
+      render: (_, v) => {
+        const price = Number(v.variant_price || 0);
+        const discount = Number(v.variant_discount || 0);
+        if (discount > 0 && discount < price) {
+          return (
+            <span>
+              <Text
+                delete
+                type="secondary"
+                className="admin-text-secondary-sm admin-variant-old-price"
+              >
+                {formatCurrency(price)}
+              </Text>
+              <Text type="danger" strong>
+                {formatCurrency(discount)}
+              </Text>
+            </span>
+          );
+        }
+        return <Text strong>{formatCurrency(price)}</Text>;
+      },
+    },
+    {
+      title: "Tồn kho",
+      dataIndex: "variant_quantity",
+      key: "variant_quantity",
+      align: "center",
+      render: qty => <StockBadge qty={qty} />,
+    },
+  ];
+
+  return (
+    <Table
+      columns={variantColumns}
+      dataSource={variants || []}
+      rowKey="variant_id"
+      pagination={false}
+      size="small"
+      className="admin-subtable"
+    />
+  );
+};
+
+// ─── Component chính ─────────────────────────────────────────────────────────
 const AdminProducts = () => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -58,13 +179,33 @@ const AdminProducts = () => {
   const [editingRecord, setEditingRecord] = useState(null);
   const [saving, setSaving] = useState(false);
   const [form] = Form.useForm();
-
-  // Danh sách ảnh tổng hợp (cũ + mới)
   const [fileList, setFileList] = useState([]);
+  const [activeTab, setActiveTab] = useState("all");
 
   const [trashVisible, setTrashVisible] = useState(false);
   const [trashProducts, setTrashProducts] = useState([]);
   const [loadingTrash, setLoadingTrash] = useState(false);
+
+  // ─── Computed: danh sách đã lọc theo tab ─────────────────────────────
+  const lowStockProducts = useMemo(
+    () => products.filter(p => getTotalStock(p) < 10),
+    [products],
+  );
+  const displayedProducts = activeTab === "low" ? lowStockProducts : products;
+
+  // Refresh mỗi khi tab được focus lại (sau khi nhập kho ở tab khác)
+  useEffect(() => {
+    fetchData();
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        fetchData();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibility);
+  }, []);
 
   const fetchData = async () => {
     setLoading(true);
@@ -84,10 +225,6 @@ const AdminProducts = () => {
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
   const openAdd = () => {
     setEditingRecord(null);
     form.resetFields();
@@ -97,15 +234,13 @@ const AdminProducts = () => {
 
   const openEdit = record => {
     setEditingRecord(record);
-
-    // Đảm bảo ép kiểu Number cho các ID để Select của Ant Design hiển thị đúng tên
     const formattedRecord = {
       ...record,
       brand_id: record.brand_id ? Number(record.brand_id) : undefined,
       category_id: record.category_id ? Number(record.category_id) : undefined,
     };
-
     form.setFieldsValue(formattedRecord);
+
     const initialFiles = [];
     if (record.product_image) {
       initialFiles.push({
@@ -182,11 +317,15 @@ const AdminProducts = () => {
     setSaving(true);
     try {
       const formData = new FormData();
-
-      // Append các field thông thường
       Object.keys(values).forEach(k => {
         if (k === "variants") {
-          if (values[k]) formData.append("variants", JSON.stringify(values[k]));
+          if (values[k]) {
+            // Lọc bỏ last_import_price (chỉ dùng để hiển thị UI, không gửi lên backend)
+            const cleanVariants = values[k].map(
+              ({ last_import_price, ...rest }) => rest,
+            );
+            formData.append("variants", JSON.stringify(cleanVariants));
+          }
         } else if (values[k] !== undefined && k !== "images") {
           formData.append(k, values[k]);
         }
@@ -196,7 +335,6 @@ const AdminProducts = () => {
         formData.append("product_active", 1);
       }
 
-      // Tạo final_image_order và append file mới
       const finalOrder = [];
       fileList.forEach(file => {
         if (file.isExisting) {
@@ -237,26 +375,30 @@ const AdminProducts = () => {
     }
   };
 
+  // ─── Columns chính ────────────────────────────────────────────────────────
   const columns = [
     {
       title: "Ảnh",
       dataIndex: "product_image",
       width: 70,
-      render: img => {
-        return (
-          <div className="admin-img-wrapper">
-            <Image
-              src={getImgSrc(img)}
-              fallback="/placeholder.png"
-              width={50}
-              height={50}
-              className="admin-img-cell"
-            />
-          </div>
-        );
-      },
+      render: img => (
+        <div className="admin-img-wrapper">
+          <Image
+            src={getImgSrc(img)}
+            fallback="/placeholder.png"
+            width={50}
+            height={50}
+            className="admin-img-cell"
+          />
+        </div>
+      ),
     },
-    { title: "Tên sản phẩm", dataIndex: "product_name", ellipsis: true },
+    {
+      title: "Tên sản phẩm",
+      dataIndex: "product_name",
+      ellipsis: true,
+      render: name => <Text strong>{name}</Text>,
+    },
     {
       title: "Danh mục",
       dataIndex: "category_name",
@@ -267,19 +409,11 @@ const AdminProducts = () => {
         "--",
     },
     {
-      title: "Số lượng",
-      align: "right",
+      title: "Tổng tồn kho",
+      align: "center",
       render: (_, record) => {
-        if (record.variants && record.variants.length > 0) {
-          return record.variants.reduce(
-            (sum, v) => sum + Number(v.variant_quantity || 0),
-            0,
-          );
-        }
-        const total = Number(record.total_quantity);
-        return !isNaN(total) && total > 0
-          ? total
-          : Number(record.product_quantity) || 0;
+        const total = getTotalStock(record);
+        return <StockBadge qty={total} />;
       },
     },
     {
@@ -293,7 +427,7 @@ const AdminProducts = () => {
           const priceRange =
             min === max
               ? formatCurrency(min)
-              : `${formatCurrency(min)} - ${formatCurrency(max)}`;
+              : `${formatCurrency(min)} – ${formatCurrency(max)}`;
 
           const finalPrices = record.variants.map(v =>
             Number(v.variant_discount) > 0
@@ -305,7 +439,7 @@ const AdminProducts = () => {
           const finalRange =
             minF === maxF
               ? formatCurrency(minF)
-              : `${formatCurrency(minF)} - ${formatCurrency(maxF)}`;
+              : `${formatCurrency(minF)} – ${formatCurrency(maxF)}`;
 
           const hasDiscount = record.variants.some(
             v => Number(v.variant_discount) > 0,
@@ -336,7 +470,7 @@ const AdminProducts = () => {
           const pRange =
             minPrice === maxPrice
               ? formatCurrency(minPrice)
-              : `${formatCurrency(minPrice)} - ${formatCurrency(maxPrice)}`;
+              : `${formatCurrency(minPrice)} – ${formatCurrency(maxPrice)}`;
           return <Typography.Text strong>{pRange}</Typography.Text>;
         }
 
@@ -371,13 +505,43 @@ const AdminProducts = () => {
         let statusVal = val;
         if (statusVal === undefined) statusVal = record.product_acitve;
         const isActive = statusVal === 1 || statusVal === "1";
+        const totalStock = getTotalStock(record);
+
+        // ── Tầng 1: Admin chủ động tắt sản phẩm ──────────────────────────
+        if (!isActive) {
+          return (
+            <Tag
+              color="error"
+              className="admin-pointer admin-tag-status admin-tag-status--clickable"
+              onClick={() => handleStatusChange(record.product_id, statusVal)}
+            >
+              Ngừng hoạt động
+            </Tag>
+          );
+        }
+
+        // ── Tầng 2: Đang bật nhưng kho trống ─────────────────────────────
+        if (totalStock === 0) {
+          return (
+            <Tooltip title="Sản phẩm đã hoàn tất thông tin, đang đợi nhập kho để chính thức mở bán">
+              <Tag
+                color="warning"
+                className="admin-pointer admin-tag-status admin-tag-status--static"
+              >
+                Chờ nhập hàng
+              </Tag>
+            </Tooltip>
+          );
+        }
+
+        // ── Tầng 3: Hoạt động bình thường ────────────────────────────────
         return (
           <Tag
-            color={isActive ? "green" : "red"}
-            className="admin-pointer"
+            color="success"
+            className="admin-pointer admin-tag-status admin-tag-status--clickable"
             onClick={() => handleStatusChange(record.product_id, statusVal)}
           >
-            {isActive ? "Hoạt động" : "Ngừng hoạt động"}
+            Hoạt động
           </Tag>
         );
       },
@@ -408,6 +572,7 @@ const AdminProducts = () => {
     },
   ];
 
+  // ─── Columns thùng rác ───────────────────────────────────────────────────
   const trashColumns = [
     {
       title: "Ảnh",
@@ -459,6 +624,14 @@ const AdminProducts = () => {
     },
   ];
 
+  // ─── Expandable config ───────────────────────────────────────────────────
+  const expandable = {
+    expandedRowRender: record => (
+      <VariantSubTable variants={record.variants || []} />
+    ),
+    rowExpandable: record => record.variants && record.variants.length > 0,
+  };
+
   return (
     <div>
       <div className="admin-page-header">
@@ -484,14 +657,44 @@ const AdminProducts = () => {
         </Space>
       </div>
 
+      {/* ─── Tabs bộ lọc tồn kho ────────────────────────────────────── */}
+      <Tabs
+        activeKey={activeTab}
+        onChange={setActiveTab}
+        className="admin-tabs-filter"
+        items={[
+          {
+            key: "all",
+            label: `Tất cả (${products.length})`,
+          },
+          {
+            key: "low",
+            label: (
+              <span>
+                Sắp hết hàng&nbsp;
+                <Badge
+                  count={lowStockProducts.length}
+                  showZero
+                  color={lowStockProducts.length > 0 ? "#fa8c16" : "#52c41a"}
+                  className="admin-badge-count"
+                />
+              </span>
+            ),
+          },
+        ]}
+      />
+
+      {/* ─── Bảng chính có Expandable Row ─────────────────────────────── */}
       <Table
-        dataSource={products}
+        dataSource={displayedProducts}
         columns={columns}
         loading={loading}
         rowKey="product_id"
+        expandable={expandable}
+        pagination={{ pageSize: 10, showSizeChanger: true }}
       />
 
-      {/* Modal Thêm/Sửa */}
+      {/* ─── Modal Thêm / Sửa sản phẩm ────────────────────────────────── */}
       <Modal
         title={editingRecord ? "Cập nhật sản phẩm" : "Thêm sản phẩm mới"}
         open={modalVisible}
@@ -509,7 +712,7 @@ const AdminProducts = () => {
             <Input />
           </Form.Item>
 
-          {/* ===== Phần ảnh sản phẩm ===== */}
+          {/* ── Phần ảnh sản phẩm ──────────────────────────────────────── */}
           <Form.Item
             label={
               <span>
@@ -524,7 +727,6 @@ const AdminProducts = () => {
               </span>
             }
           >
-            {/* Upload ảnh */}
             <Upload
               listType="picture-card"
               fileList={fileList}
@@ -563,8 +765,13 @@ const AdminProducts = () => {
             )}
           </Form.Item>
 
-          {/* Variants */}
-          <Typography.Text strong>Cấu hình biến thể (Variants)</Typography.Text>
+          {/* ── Biến thể ───────────────────────────────────────────────── */}
+          <div className="admin-variant-header">
+            <Typography.Text strong>
+              Cấu hình biến thể (Variants)
+            </Typography.Text>
+          </div>
+
           <Form.List name="variants">
             {(fields, { add, remove }) => (
               <>
@@ -573,7 +780,9 @@ const AdminProducts = () => {
                     key={key}
                     className="admin-variant-row"
                     align="baseline"
+                    wrap
                   >
+                    {/* Hidden field giữ variant_id để backend biết update hay insert */}
                     <Form.Item
                       {...restField}
                       name={[name, "variant_id"]}
@@ -581,6 +790,7 @@ const AdminProducts = () => {
                     >
                       <Input />
                     </Form.Item>
+
                     <Form.Item
                       {...restField}
                       name={[name, "variant_name"]}
@@ -588,6 +798,7 @@ const AdminProducts = () => {
                     >
                       <Input placeholder="Tên biến thể (VD: Gói 65g)" />
                     </Form.Item>
+
                     <Form.Item
                       {...restField}
                       name={[name, "variant_price"]}
@@ -599,26 +810,93 @@ const AdminProducts = () => {
                         className="admin-input-price"
                       />
                     </Form.Item>
-                    <Form.Item {...restField} name={[name, "variant_discount"]}>
-                      <InputNumber
-                        placeholder="Giá KM"
-                        min={0}
-                        className="admin-input-price"
-                      />
+
+                    {/* ── Giá khuyến mãi + cảnh báo giá vốn ── */}
+                    <Form.Item className="admin-fi-no-mb">
+                      <Form.Item
+                        {...restField}
+                        name={[name, "variant_discount"]}
+                        className="admin-fi-discount-inner"
+                      >
+                        <InputNumber
+                          placeholder="Giá KM"
+                          min={0}
+                          className="admin-input-price"
+                        />
+                      </Form.Item>
+
+                      {/* Nhãn cảnh báo giá vốn – chỉ hiện khi đang sửa và biến thể đã có last_import_price */}
+                      <Form.Item shouldUpdate className="admin-fi-no-mb">
+                        {({ getFieldValue }) => {
+                          const variants = getFieldValue("variants") || [];
+                          const currentVariant = variants[name] || {};
+                          const lastImport = Number(
+                            currentVariant.last_import_price || 0,
+                          );
+                          if (!lastImport) return null;
+
+                          const discount = Number(
+                            currentVariant.variant_discount || 0,
+                          );
+                          const price = Number(
+                            currentVariant.variant_price || 0,
+                          );
+                          const effectivePrice =
+                            discount > 0 && discount < price ? discount : price;
+                          const isBelowCost =
+                            effectivePrice > 0 && effectivePrice < lastImport;
+
+                          return (
+                            <div
+                              className={`admin-cost-label ${
+                                isBelowCost
+                                  ? "admin-cost-label--warn"
+                                  : "admin-cost-label--ok"
+                              }`}
+                            >
+                              {isBelowCost ? (
+                                <span className="admin-cost-warn-text">
+                                  ⚠️ Cảnh báo: Thấp hơn giá nhập (
+                                  {formatCurrency(lastImport)})!
+                                </span>
+                              ) : (
+                                <span className="admin-cost-ok-text">
+                                  Giá nhập gần nhất:{" "}
+                                  {formatCurrency(lastImport)}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        }}
+                      </Form.Item>
                     </Form.Item>
-                    <Form.Item {...restField} name={[name, "variant_quantity"]}>
-                      <InputNumber
-                        placeholder="Số lượng"
-                        min={0}
-                        className="admin-input-qty"
-                      />
-                    </Form.Item>
+
+                    {/* ── Số lượng: Luôn Disabled, cập nhật qua Nhập kho ── */}
+                    <Space size={4} align="center">
+                      <Form.Item
+                        {...restField}
+                        name={[name, "variant_quantity"]}
+                        className="admin-fi-no-mb"
+                      >
+                        <InputNumber
+                          placeholder="Số lượng"
+                          min={0}
+                          className="admin-input-qty admin-qty-disabled"
+                          disabled={true}
+                        />
+                      </Form.Item>
+                      <Tooltip title="Số lượng được cập nhật tự động từ Module Nhập kho">
+                        <QuestionCircleOutlined className="admin-help-icon" />
+                      </Tooltip>
+                    </Space>
+
                     <Form.Item {...restField} name={[name, "sku"]}>
                       <Input
                         placeholder="SKU / Mã kho"
                         className="admin-input-price"
                       />
                     </Form.Item>
+
                     <Button
                       type="text"
                       icon={<DeleteOutlined />}
@@ -627,10 +905,22 @@ const AdminProducts = () => {
                     />
                   </Space>
                 ))}
+
+                {/* Ghi chú khi đang ở chế độ chỉnh sửa */}
+                {editingRecord && (
+                  <div className="admin-stock-warning-banner">
+                    <WarningOutlined className="admin-warning-icon" />
+                    <Text className="admin-stock-warning-text">
+                      Số lượng chỉ được cập nhật tự động thông qua{" "}
+                      <b>Phiếu nhập kho</b>. Vui lòng không chỉnh sửa thủ công.
+                    </Text>
+                  </div>
+                )}
+
                 <Form.Item>
                   <Button
                     type="dashed"
-                    onClick={() => add()}
+                    onClick={() => add({ variant_quantity: 0 })}
                     block
                     icon={<PlusOutlined />}
                   >
@@ -668,6 +958,7 @@ const AdminProducts = () => {
               treeNodeFilterProp="title"
             />
           </Form.Item>
+
           <Form.Item label="Mô tả" name="product_description">
             <TextArea rows={3} />
           </Form.Item>
@@ -689,7 +980,7 @@ const AdminProducts = () => {
         </Form>
       </Modal>
 
-      {/* Modal Thùng rác */}
+      {/* ─── Modal Thùng rác ─────────────────────────────────────────────── */}
       <Modal
         title="Thùng rác - Sản phẩm đã xóa"
         open={trashVisible}

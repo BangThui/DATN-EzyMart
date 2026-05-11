@@ -1,0 +1,11 @@
+const express = require('express');
+const router = express.Router();
+const stockController = require('../controllers/stockController');
+const { authMiddleware, adminMiddleware } = require('../middleware/authMiddleware');
+
+// Tất cả đều yêu cầu đăng nhập + quyền admin
+router.get('/', authMiddleware, adminMiddleware, stockController.getReceipts);
+router.get('/:id', authMiddleware, adminMiddleware, stockController.getReceiptById);
+router.post('/import', authMiddleware, adminMiddleware, stockController.importStock);
+
+module.exports = router;

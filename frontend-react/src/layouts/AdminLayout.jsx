@@ -10,6 +10,7 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   HomeOutlined,
+  InboxOutlined,
 } from "@ant-design/icons";
 import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -54,6 +55,11 @@ const AdminLayout = () => {
       key: "/admin/customers",
       icon: <TeamOutlined />,
       label: <Link to="/admin/customers">Khách hàng</Link>,
+    },
+    {
+      key: "/admin/stock",
+      icon: <InboxOutlined />,
+      label: <Link to="/admin/stock">Nhập kho</Link>,
     },
   ];
 

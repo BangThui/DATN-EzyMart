@@ -47,9 +47,17 @@ const ProductCard = ({ product }) => {
     ? Math.round((1 - Number(discountPrice) / Number(price)) * 100)
     : 0;
 
-  const imgSrc = product.product_image
-    ? `${IMAGE_BASE}${product.product_image}`
-    : "/placeholder.png";
+  // Xác định tên file ảnh (ưu tiên product_image, nếu không có thì lấy ảnh đầu tiên trong mảng images)
+  const targetImage = product.product_image || (product.images && product.images.length > 0 ? product.images[0].image_url : null);
+
+  const getInitialImgSrc = (filename) => {
+    if (!filename) return "/placeholder.png";
+    if (filename.startsWith("http")) return filename;
+    // Thử UPLOAD_BASE trước (ảnh mới thêm), nếu lỗi sẽ fallback về IMAGE_BASE (ảnh seed)
+    return `${UPLOAD_BASE}${filename}`;
+  };
+
+  const imgSrc = getInitialImgSrc(targetImage);
 
   return (
     <div className="product-card-wrap">
@@ -69,9 +77,17 @@ const ProductCard = ({ product }) => {
                 src={imgSrc}
                 alt={product.product_name}
                 onError={e => {
-                  if (!e.target.src.includes("localhost")) {
-                    e.target.src = `${UPLOAD_BASE}${product.product_image}`;
+                  if (!targetImage) return; // Nếu không có ảnh, để nguyên (sẽ hiển thị broken image hoặc fallback của browser)
+                  
+                  // Dùng dataset để đánh dấu đã thử fallback, tránh lặp vô hạn
+                  if (e.target.dataset.fallbackTried) {
+                     if (!e.target.src.includes("placeholder")) {
+                         e.target.src = "/placeholder.png";
+                     }
+                     return;
                   }
+                  e.target.dataset.fallbackTried = "true";
+                  e.target.src = `${IMAGE_BASE}${targetImage}`;
                 }}
               />
             </Link>
