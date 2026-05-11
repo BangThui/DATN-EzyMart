@@ -12,9 +12,16 @@ import {
   Space,
   Row,
   Col,
+  Tooltip,
 } from "antd";
-import { PlusOutlined, MinusCircleOutlined, EyeOutlined } from "@ant-design/icons";
+import {
+  PlusOutlined,
+  MinusCircleOutlined,
+  EyeOutlined,
+  PlusCircleOutlined,
+} from "@ant-design/icons";
 import { stockService } from "../../../services/stockService";
+import { supplierService } from "../../../services/supplierService";
 import { productService } from "../../../services/productService";
 import dayjs from "dayjs";
 import "../Admin.css";
@@ -25,11 +32,15 @@ const { Option } = Select;
 const AdminStock = () => {
   const [receipts, setReceipts] = useState([]);
   const [products, setProducts] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [quickAddModalVisible, setQuickAddModalVisible] = useState(false);
   const [currentReceipt, setCurrentReceipt] = useState(null);
+  const [quickAddSubmitting, setQuickAddSubmitting] = useState(false);
   const [form] = Form.useForm();
+  const [quickAddForm] = Form.useForm();
 
   useEffect(() => {
     fetchData();
@@ -58,11 +69,22 @@ const AdminStock = () => {
     }
   };
 
+  const fetchSuppliers = async () => {
+    try {
+      const data = await supplierService.getAll();
+      setSuppliers(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Lỗi lấy nhà cung cấp:", error);
+      message.error("Không thể tải danh sách nhà cung cấp!");
+    }
+  };
+
   const handleOpenModal = () => {
     form.resetFields();
     form.setFieldsValue({
       items: [{ variant_id: null, quantity: 1, import_price: 0 }],
     });
+    fetchSuppliers(); // Fetch khi mở modal
     setModalVisible(true);
   };
 
@@ -73,12 +95,10 @@ const AdminStock = () => {
 
   const handleFinish = async (values) => {
     try {
-      // Validate items
       if (!values.items || values.items.length === 0) {
         message.error("Vui lòng thêm ít nhất một sản phẩm để nhập kho");
         return;
       }
-
       await stockService.importStock(values);
       message.success("Tạo phiếu nhập kho thành công!");
       handleCancel();
@@ -100,6 +120,35 @@ const AdminStock = () => {
     }
   };
 
+  // === Quick Add Supplier ===
+  const handleOpenQuickAdd = () => {
+    quickAddForm.resetFields();
+    setQuickAddModalVisible(true);
+  };
+
+  const handleQuickAddCancel = () => {
+    setQuickAddModalVisible(false);
+    quickAddForm.resetFields();
+  };
+
+  const handleQuickAddFinish = async (values) => {
+    setQuickAddSubmitting(true);
+    try {
+      const result = await supplierService.create(values);
+      message.success(`Đã thêm nhà cung cấp "${values.supplier_name}"!`);
+      // Refresh danh sách và tự chọn NCC vừa thêm
+      await fetchSuppliers();
+      form.setFieldValue("supplier_id", result.supplier_id);
+      setQuickAddModalVisible(false);
+      quickAddForm.resetFields();
+    } catch (err) {
+      console.error("Lỗi thêm NCC nhanh:", err);
+      message.error(err?.response?.data?.error || "Lỗi khi thêm nhà cung cấp!");
+    } finally {
+      setQuickAddSubmitting(false);
+    }
+  };
+
   const columns = [
     {
       title: "Mã phiếu",
@@ -112,7 +161,7 @@ const AdminStock = () => {
       title: "Nhà cung cấp",
       dataIndex: "supplier_name",
       key: "supplier_name",
-      render: (text) => text || "---",
+      render: (text) => text || <Text type="secondary">---</Text>,
     },
     {
       title: "Tổng tiền",
@@ -139,7 +188,7 @@ const AdminStock = () => {
       title: "Ghi chú",
       dataIndex: "note",
       key: "note",
-      render: (text) => text || "---",
+      render: (text) => text || <Text type="secondary">---</Text>,
     },
     {
       title: "Thao tác",
@@ -218,6 +267,7 @@ const AdminStock = () => {
         pagination={{ pageSize: 10 }}
       />
 
+      {/* === Modal Tạo Phiếu Nhập === */}
       <Modal
         title="Tạo Phiếu Nhập Kho Mới"
         open={modalVisible}
@@ -229,8 +279,30 @@ const AdminStock = () => {
         <Form form={form} layout="vertical" onFinish={handleFinish}>
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item name="supplier_name" label="Nhà cung cấp">
-                <Input placeholder="Nhập tên nhà cung cấp (tuỳ chọn)" />
+              <Form.Item name="supplier_id" label="Nhà cung cấp">
+                <Space.Compact className="admin-w-full">
+                  <Select
+                    showSearch
+                    placeholder="Chọn nhà cung cấp"
+                    optionFilterProp="label"
+                    className="admin-flex-fill"
+                    allowClear
+                    filterOption={(input, option) =>
+                      (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                    }
+                    options={suppliers.map((s) => ({
+                      label: s.supplier_name,
+                      value: s.supplier_id,
+                    }))}
+                  />
+                  <Tooltip title="Thêm nhà cung cấp mới">
+                    <Button
+                      icon={<PlusCircleOutlined />}
+                      onClick={handleOpenQuickAdd}
+                      className="admin-flex-fixed"
+                    />
+                  </Tooltip>
+                </Space.Compact>
               </Form.Item>
             </Col>
             <Col span={12}>
@@ -325,6 +397,53 @@ const AdminStock = () => {
         </Form>
       </Modal>
 
+      {/* === Modal Quick Add Nhà Cung Cấp === */}
+      <Modal
+        title="➕ Thêm nhanh nhà cung cấp"
+        open={quickAddModalVisible}
+        onCancel={handleQuickAddCancel}
+        footer={null}
+        width={480}
+        destroyOnClose
+      >
+        <Form form={quickAddForm} layout="vertical" onFinish={handleQuickAddFinish}>
+          <Form.Item
+            name="supplier_name"
+            label="Tên nhà cung cấp"
+            rules={[{ required: true, message: "Vui lòng nhập tên nhà cung cấp" }]}
+          >
+            <Input placeholder="VD: Công ty TNHH XYZ" autoFocus />
+          </Form.Item>
+          <Form.Item name="supplier_phone" label="Số điện thoại">
+            <Input placeholder="VD: 0901234567" />
+          </Form.Item>
+          <Form.Item
+            name="supplier_email"
+            label="Email"
+            rules={[{ type: "email", message: "Email không hợp lệ" }]}
+          >
+            <Input placeholder="VD: contact@supplier.com" />
+          </Form.Item>
+          <Form.Item name="supplier_address" label="Địa chỉ">
+            <Input placeholder="VD: 123 Lê Lợi, Q.1, TP.HCM" />
+          </Form.Item>
+          <div className="admin-form-actions admin-form-actions--mt">
+            <Button onClick={handleQuickAddCancel} disabled={quickAddSubmitting}>
+              Hủy
+            </Button>
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={quickAddSubmitting}
+              className="admin-btn-primary"
+            >
+              Thêm & Chọn
+            </Button>
+          </div>
+        </Form>
+      </Modal>
+
+      {/* === Modal Chi Tiết Phiếu Nhập === */}
       <Modal
         title={
           currentReceipt ? `Chi tiết phiếu nhập #${currentReceipt.receipt_id}` : "Chi tiết"
@@ -342,7 +461,8 @@ const AdminStock = () => {
           <div>
             <div className="admin-receipt-info">
               <p>
-                <Text strong>Nhà cung cấp:</Text> {currentReceipt.supplier_name || "---"}
+                <Text strong>Nhà cung cấp:</Text>{" "}
+                {currentReceipt.supplier_name || <Text type="secondary">---</Text>}
               </p>
               <p>
                 <Text strong>Ngày nhập:</Text>{" "}

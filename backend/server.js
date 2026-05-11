@@ -29,6 +29,7 @@ const dashboardRoutes = require('./src/routes/dashboardRoutes');
 const newsRoutes = require('./src/routes/newsRoutes');
 const brandRoutes = require('./src/routes/brandRoutes');
 const stockRoutes = require('./src/routes/stockRoutes');
+const supplierRoutes = require('./src/routes/supplierRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
@@ -40,6 +41,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/news', newsRoutes);
 app.use('/api/brands', brandRoutes);
 app.use('/api/stock', stockRoutes);
+app.use('/api/suppliers', supplierRoutes);
 
 // Health check
 app.get('/', (req, res) => {

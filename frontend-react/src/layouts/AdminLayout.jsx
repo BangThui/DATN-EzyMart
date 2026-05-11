@@ -11,6 +11,7 @@ import {
   MenuUnfoldOutlined,
   HomeOutlined,
   InboxOutlined,
+  ShopOutlined,
 } from "@ant-design/icons";
 import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -61,6 +62,11 @@ const AdminLayout = () => {
       icon: <InboxOutlined />,
       label: <Link to="/admin/stock">Nhập kho</Link>,
     },
+    {
+      key: "/admin/suppliers",
+      icon: <ShopOutlined />,
+      label: <Link to="/admin/suppliers">Nhà cung cấp</Link>,
+    },
   ];
 
   const handleLogout = () => {
@@ -106,13 +112,13 @@ const AdminLayout = () => {
             <Avatar className="admin-avatar">
               {user?.user_name?.charAt(0)?.toUpperCase() || "A"}
             </Avatar>
-            <Text strong style={{ marginRight: 16 }}>
+            <Text strong className="admin-mr-md">
               {user?.user_name || "Admin"}
             </Text>
             <Button
               icon={<HomeOutlined />}
               onClick={() => window.open("/", "_blank")}
-              style={{ marginRight: 12 }}
+              className="admin-mr-sm"
             >
               Xem cửa hàng
             </Button>

@@ -289,3 +289,23 @@
   margin-top: 24px;
 }
 
+/* ── Utility Classes ── */
+.admin-w-full {
+  width: 100%;
+}
+.admin-flex-fill {
+  flex: 1;
+}
+.admin-flex-fixed {
+  flex-shrink: 0;
+}
+.admin-mr-sm {
+  margin-right: 12px;
+}
+.admin-mr-md {
+  margin-right: 16px;
+}
+.admin-icon-success {
+  color: #16a34a;
+}
+

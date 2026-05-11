@@ -135,3 +135,11 @@
   color: #fff;
   margin-bottom: 16px;
 }
+
+.admin-mr-md {
+    margin-right: 16px;
+}
+
+.admin-mr-sm {
+    margin-right: 12px;
+}

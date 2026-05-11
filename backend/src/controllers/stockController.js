@@ -2,7 +2,7 @@ const pool = require('../config/db');
 
 // [ADMIN] Tạo phiếu nhập kho (dùng transaction)
 exports.importStock = async (req, res) => {
-  const { supplier_name, note, items } = req.body;
+  const { supplier_id, note, items } = req.body;
 
   // --- Validation đầu vào ---
   if (!items || !Array.isArray(items) || items.length === 0) {
@@ -32,10 +32,22 @@ exports.importStock = async (req, res) => {
   try {
     await connection.beginTransaction();
 
-    // --- Hành động 1: Lưu phiếu nhập ---
+    // Kiểm tra supplier_id hợp lệ (nếu có cung cấp)
+    if (supplier_id) {
+      const [supplierRows] = await connection.execute(
+        `SELECT supplier_id FROM suppliers WHERE supplier_id = ? AND is_deleted = 0`,
+        [supplier_id]
+      );
+      if (supplierRows.length === 0) {
+        await connection.rollback();
+        return res.status(404).json({ error: 'Nhà cung cấp không tồn tại hoặc đã bị xóa' });
+      }
+    }
+
+    // --- Hành động 1: Lưu phiếu nhập (dùng supplier_id thay vì supplier_name) ---
     const [receiptResult] = await connection.execute(
-      `INSERT INTO stock_receipts (supplier_name, total_cost, note) VALUES (?, ?, ?)`,
-      [supplier_name || null, total_cost, note || null]
+      `INSERT INTO stock_receipts (supplier_id, total_cost, note) VALUES (?, ?, ?)`,
+      [supplier_id || null, total_cost, note || null]
     );
     const receipt_id = receiptResult.insertId;
 
@@ -85,15 +97,17 @@ exports.importStock = async (req, res) => {
   }
 };
 
-// [ADMIN] Lấy danh sách phiếu nhập
+// [ADMIN] Lấy danh sách phiếu nhập (JOIN với bảng suppliers để lấy supplier_name)
 exports.getReceipts = async (req, res) => {
   try {
     const [rows] = await pool.execute(
-      `SELECT sr.receipt_id, sr.supplier_name, sr.total_cost, sr.note, sr.created_at,
+      `SELECT sr.receipt_id, sr.supplier_id, s.supplier_name,
+              sr.total_cost, sr.note, sr.created_at,
               COUNT(srd.detail_id) AS item_count
        FROM stock_receipts sr
+       LEFT JOIN suppliers s ON sr.supplier_id = s.supplier_id AND s.is_deleted = 0
        LEFT JOIN stock_receipt_details srd ON sr.receipt_id = srd.receipt_id
-       GROUP BY sr.receipt_id
+       GROUP BY sr.receipt_id, sr.supplier_id, s.supplier_name, sr.total_cost, sr.note, sr.created_at
        ORDER BY sr.created_at DESC`
     );
     res.json(rows);
@@ -109,7 +123,11 @@ exports.getReceiptById = async (req, res) => {
     const { id } = req.params;
 
     const [receiptRows] = await pool.execute(
-      `SELECT * FROM stock_receipts WHERE receipt_id = ?`,
+      `SELECT sr.receipt_id, sr.supplier_id, s.supplier_name,
+              sr.total_cost, sr.note, sr.created_at
+       FROM stock_receipts sr
+       LEFT JOIN suppliers s ON sr.supplier_id = s.supplier_id AND s.is_deleted = 0
+       WHERE sr.receipt_id = ?`,
       [id]
     );
 
