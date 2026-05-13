@@ -7,6 +7,8 @@ const { authMiddleware, adminMiddleware } = require('../middleware/authMiddlewar
 router.post('/', orderController.createOrder);
 router.get('/user/:user_code', orderController.getOrdersByUserCode);
 router.get('/detail/:mahang', orderController.getOrderByMahang);
+router.patch('/:id/status', authMiddleware, orderController.customerUpdateOrderStatus);
+router.patch('/:id/cancel', authMiddleware, orderController.customerCancelOrder);
 
 // Admin
 router.get('/', authMiddleware, adminMiddleware, orderController.getAllOrders);

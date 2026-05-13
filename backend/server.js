@@ -13,8 +13,7 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Phục vụ file ảnh upload
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Phục vụ file ảnh upload (Đã chuyển sang Cloudinary, không dùng folder local nữa)
 // Phục vụ ảnh từ thư mục images gốc (backward compat)
 app.use('/images', express.static(path.join(__dirname, '../images')));
 

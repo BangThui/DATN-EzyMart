@@ -1,16 +1,15 @@
 /**
  * Helper to resolve image URL
- * Handles both absolute URLs (Cloudinary) and relative filenames (local storage)
+ * Handles both absolute URLs (Cloudinary) and local fallbacks
  */
-export const getImageUrl = (imagePath) => {
-  if (!imagePath) return "";
-  
-  // If it's already a full URL (starts with http), return as is
+export const getImageUrl = imagePath => {
+  if (!imagePath) return "/placeholder.png";
+
+  // Trường hợp 1: Ảnh từ Cloudinary (đã migration hoặc up mới)
   if (imagePath.startsWith("http")) {
     return imagePath;
   }
-  
-  // Otherwise, assume it's a local upload and prefix with backend upload path
-  const UPLOAD_BASE = "http://localhost:5000/uploads/";
-  return `${UPLOAD_BASE}${imagePath}`;
+
+  // Trường hợp 2: Nếu vẫn còn tên file cũ mà không tìm thấy trên Cloudinary
+  return "/placeholder.png";
 };

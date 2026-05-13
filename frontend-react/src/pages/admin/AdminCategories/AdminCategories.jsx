@@ -156,13 +156,19 @@ const AdminCategories = () => {
               icon={<PlusOutlined />}
               size="small"
               style={{ color: "#16a34a", borderColor: "#16a34a" }}
-              onClick={() => openAddChild(r.category_id)}
+              onClick={e => {
+                e.stopPropagation();
+                openAddChild(r.category_id);
+              }}
             />
           </Tooltip>
           <Button
             icon={<EditOutlined />}
             size="small"
-            onClick={() => openEdit(r)}
+            onClick={e => {
+              e.stopPropagation();
+              openEdit(r);
+            }}
           >
             Sửa
           </Button>
@@ -171,8 +177,14 @@ const AdminCategories = () => {
             onConfirm={() => handleDelete(r.category_id)}
             okText="Xóa"
             cancelText="Hủy"
+            onPopupClick={e => e.stopPropagation()}
           >
-            <Button icon={<DeleteOutlined />} size="small" danger>
+            <Button
+              icon={<DeleteOutlined />}
+              size="small"
+              danger
+              onClick={e => e.stopPropagation()}
+            >
               Xóa
             </Button>
           </Popconfirm>
@@ -181,82 +193,57 @@ const AdminCategories = () => {
     },
   ];
 
-  // Vùng mở rộng: Danh sách danh mục con + nút thêm con
+  // Vùng mở rộng: Danh sách danh mục con
   const expandedRowRender = parentRecord => {
     const children = getChildren(parentRecord.category_id);
     return (
       <div className="admin-expanded-row">
         {children.length > 0 ? (
-          <>
-            <List
-              size="small"
-              dataSource={children}
-              renderItem={child => (
-                <List.Item
-                  className="admin-child-item"
-                  actions={[
-                    <Button
-                      key="edit"
-                      icon={<EditOutlined />}
-                      size="small"
-                      onClick={() => openEdit(child)}
-                    >
-                      Sửa
-                    </Button>,
-                    <Popconfirm
-                      key="del"
-                      title="Xóa danh mục con này?"
-                      onConfirm={() => handleDelete(child.category_id)}
-                      okText="Xóa"
-                      cancelText="Hủy"
-                    >
-                      <Button icon={<DeleteOutlined />} size="small" danger>
-                        Xóa
-                      </Button>
-                    </Popconfirm>,
-                  ]}
-                >
-                  <Space align="center" size={12}>
-                    <Text
-                      type="secondary"
-                      style={{ fontSize: 12, minWidth: "40px" }}
-                    >
-                      ID: {child.category_id}
-                    </Text>
-                    <Text style={{ fontSize: 14, fontWeight: 400 }}>
-                      {child.category_name}
-                    </Text>
-                  </Space>
-                </List.Item>
-              )}
-            />
-            <Button
-              type="dashed"
-              icon={<PlusOutlined />}
-              size="small"
-              className="admin-add-child-btn"
-              onClick={() => openAddChild(parentRecord.category_id)}
-              style={{ marginTop: 12 }}
-            >
-              Thêm danh mục con
-            </Button>
-          </>
+          <List
+            size="small"
+            dataSource={children}
+            renderItem={child => (
+              <List.Item
+                className="admin-child-item"
+                actions={[
+                  <Button
+                    key="edit"
+                    icon={<EditOutlined />}
+                    size="small"
+                    onClick={() => openEdit(child)}
+                  >
+                    Sửa
+                  </Button>,
+                  <Popconfirm
+                    key="del"
+                    title="Xóa danh mục con này?"
+                    onConfirm={() => handleDelete(child.category_id)}
+                    okText="Xóa"
+                    cancelText="Hủy"
+                  >
+                    <Button icon={<DeleteOutlined />} size="small" danger>
+                      Xóa
+                    </Button>
+                  </Popconfirm>,
+                ]}
+              >
+                <Space align="center" size={12}>
+                  <Text
+                    type="secondary"
+                    style={{ fontSize: 12, minWidth: "40px" }}
+                  >
+                    ID: {child.category_id}
+                  </Text>
+                  <Text style={{ fontSize: 14, fontWeight: 400 }}>
+                    {child.category_name}
+                  </Text>
+                </Space>
+              </List.Item>
+            )}
+          />
         ) : (
           <div style={{ textAlign: "center", padding: "20px 0" }}>
-            <Text
-              type="secondary"
-              style={{ display: "block", marginBottom: 12 }}
-            >
-              Chưa có danh mục con nào.
-            </Text>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              className="admin-btn-primary"
-              onClick={() => openAddChild(parentRecord.category_id)}
-            >
-              Thêm danh mục con ngay
-            </Button>
+            <Text type="secondary">Chưa có danh mục con nào.</Text>
           </div>
         )}
       </div>
@@ -283,7 +270,9 @@ const AdminCategories = () => {
         loading={loading}
         rowKey="category_id"
         pagination={{ pageSize: 10 }}
+        rowClassName={() => "admin-pointer"}
         expandable={{
+          expandRowByClick: true,
           expandedRowKeys,
           onExpand: (expanded, record) => {
             setExpandedRowKeys(
@@ -303,7 +292,10 @@ const AdminCategories = () => {
                 type="text"
                 size="small"
                 icon={expanded ? <UpOutlined /> : <DownOutlined />}
-                onClick={e => onExpand(record, e)}
+                onClick={e => {
+                  e.stopPropagation();
+                  onExpand(record, e);
+                }}
               />
             );
           },

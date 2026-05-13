@@ -34,13 +34,15 @@ exports.createOrder = async (req, res) => {
 
         res.status(201).json({
             message: 'Đặt hàng thành công',
-            mahang: order_id,       // order_id dùng làm mahang cho FE
+            mahang: order_id,
             order_id,
             totalPayment: total_price
         });
     } catch (err) {
         console.error('Create order error:', err);
-        res.status(500).json({ error: 'Đặt hàng thất bại' });
+        // Trả về đúng status code nếu là lỗi tồn kho (statusCode 400)
+        const status = err.statusCode || 500;
+        res.status(status).json({ error: err.message || 'Đặt hàng thất bại' });
     }
 };
 
@@ -106,5 +108,40 @@ exports.updateOrderStatus = async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Lỗi cập nhật trạng thái đơn hàng' });
+    }
+};
+
+// [CUSTOMER] Khách hàng xác nhận đã nhận hàng
+exports.customerUpdateOrderStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const [rows] = await OrderModel.getByMahang(id);
+        if (rows.length === 0) return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
+        
+        const currentStatus = rows[0].order_status;
+        // Chỉ cho phép cập nhật khi đơn hàng đang giao (trạng thái: 'shipping' hoặc 2 đối với data cũ)
+        if (currentStatus !== 'shipping' && currentStatus !== 2) {
+            return res.status(400).json({ error: 'Chỉ có thể xác nhận khi đơn hàng đang được giao.' });
+        }
+        
+        await OrderModel.updateStatus(id, 'completed');
+        res.json({ message: 'Xác nhận nhận hàng thành công' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Lỗi xác nhận nhận hàng' });
+    }
+};
+
+// [CUSTOMER] Khách hàng hủy đơn hàng
+// Hủy trong transaction: kiểm tra trạng thái + hoàn kho cùng lúc
+exports.customerCancelOrder = async (req, res) => {
+    try {
+        const { id } = req.params;
+        await OrderModel.cancelOrderWithStockRestore(id);
+        res.json({ message: 'Hủy đơn hàng thành công' });
+    } catch (err) {
+        console.error(err);
+        const status = err.statusCode || 500;
+        res.status(status).json({ error: err.message || 'Lỗi hủy đơn hàng' });
     }
 };

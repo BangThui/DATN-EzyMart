@@ -16,6 +16,7 @@ import { useAuth } from "../../context/AuthContext";
 import { authService } from "../../services/authService";
 import { cartService } from "../../services/cartService";
 import { categoryService } from "../../services/categoryService";
+import { buildCategoryTree, buildMenuItems } from "../../utils";
 import "./Navbar.css";
 
 const Navbar = () => {
@@ -47,13 +48,7 @@ const Navbar = () => {
       .getAll()
       .then(data => {
         if (Array.isArray(data)) {
-          setCategories(
-            data.map(c => ({
-              label: c.category_name,
-              path: `/category/${c.category_id}`,
-              category_id: c.category_id,
-            })),
-          );
+          setCategories(data);
         }
       })
       .catch(() => {});
@@ -180,11 +175,17 @@ const Navbar = () => {
     },
   ];
 
-  const productCategories = categories;
+  const handleCategoryClick = (categoryId) => {
+    navigate(`/category/${categoryId}`);
+    setProductsOpen(false);
+  };
+
+  const categoryTree = buildCategoryTree(categories);
+  const categoryMenuItems = buildMenuItems(categoryTree, handleCategoryClick);
 
   const isActive = path => location.pathname === path;
   const isCategoryActive = () =>
-    productCategories.some(c => location.pathname === c.path);
+    categories.some(c => location.pathname === `/category/${c.category_id}`);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -327,41 +328,21 @@ const Navbar = () => {
             </Link>
 
             {/* Sản phẩm Dropdown */}
-            <div
-              className={`navbar-products-dropdown ${
-                isCategoryActive() ? "active" : ""
-              }`}
-              ref={productsDropdownRef}
+            <Dropdown
+              menu={{ items: categoryMenuItems }}
+              placement="bottomLeft"
+              trigger={["hover"]}
+              className={`navbar-products-dropdown ${isCategoryActive() ? "active" : ""}`}
             >
-              <button
+              <Link
+                to="/category"
                 className={`navbar-nav-link navbar-products-trigger ${
-                  productsOpen || isCategoryActive() ? "active" : ""
+                  isCategoryActive() ? "active" : ""
                 }`}
-                onClick={() => setProductsOpen(prev => !prev)}
-                aria-haspopup="true"
-                aria-expanded={productsOpen}
               >
                 Sản phẩm
-              </button>
-
-              {productsOpen && (
-                <div className="navbar-dropdown-menu">
-                  {productCategories.map(cat => (
-                    <Link
-                      key={cat.path}
-                      to={cat.path}
-                      className={`navbar-dropdown-item ${
-                        isActive(cat.path) ? "active" : ""
-                      }`}
-                      onClick={() => setProductsOpen(false)}
-                    >
-                      <span className="navbar-dropdown-icon">{cat.icon}</span>
-                      <span>{cat.label}</span>
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
+              </Link>
+            </Dropdown>
 
             {/* Tin tức */}
             <Link

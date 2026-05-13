@@ -7,4 +7,8 @@ export const orderService = {
     // Admin
     getAll: () => axiosClient.get('/orders'),
     updateStatus: (id, tinhtrang) => axiosClient.put(`/orders/${id}/status`, { tinhtrang }),
+
+    // Customer
+    customerUpdateStatus: (id) => axiosClient.patch(`/orders/${id}/status`),
+    customerCancelOrder: (id) => axiosClient.patch(`/orders/${id}/cancel`),
 };

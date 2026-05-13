@@ -1,4 +1,4 @@
-const db = require('../config/db');
+const db = require("../config/db");
 
 // ─── Adapter: qlbanhang_v2 → qlbanhang_final ───────────────────────────────
 // donhang + customer + giaodich → orders + order_items + users
@@ -16,13 +16,19 @@ const db = require('../config/db');
 
 // Map order_status ENUM → số (giống trangThai v2)
 const STATUS_MAP = {
-    pending:   0,
-    confirmed: 1,
-    shipping:  2,
-    completed: 3,
-    cancelled: 4
+  pending: 0,
+  confirmed: 1,
+  shipping: 2,
+  completed: 3,
+  cancelled: 4,
 };
-const STATUS_REVERSE = ['pending', 'confirmed', 'shipping', 'completed', 'cancelled'];
+const STATUS_REVERSE = [
+  "pending",
+  "confirmed",
+  "shipping",
+  "completed",
+  "cancelled",
+];
 
 // SQL CASE để alias trangThai dạng số
 const STATUS_CASE = `
@@ -37,50 +43,76 @@ const STATUS_CASE = `
 `;
 
 const OrderModel = {
-    /**
-     * Tạo đơn hàng: INSERT orders + N order_items
-     * Trả về { order_id } dùng làm mahang
-     */
-    createOrder: async (data) => {
-        const connection = await db.getConnection();
-        try {
-            await connection.beginTransaction();
-            const { user_id, cart_items, total_price } = data;
+  /**
+   * Tạo đơn hàng: INSERT orders + N order_items
+   * Trả về { order_id } dùng làm mahang
+   */
+  createOrder: async data => {
+    const connection = await db.getConnection();
+    try {
+      await connection.beginTransaction();
+      const { user_id, cart_items, total_price } = data;
 
-            // Tạo record orders
-            const [orderResult] = await connection.query(
-                'INSERT INTO orders (user_id, total_price, order_status) VALUES (?, ?, ?)',
-                [user_id || null, total_price, 'pending']
-            );
-            const order_id = orderResult.insertId;
-
-            // Tạo từng order_item
-            for (const item of cart_items) {
-                const price = (item.variant_discount && Number(item.variant_discount) > 0 && Number(item.variant_discount) < Number(item.variant_price))
-                    ? item.variant_discount
-                    : item.variant_price;
-                await connection.query(
-                    'INSERT INTO order_items (order_id, product_id, variant_id, quantity, price) VALUES (?, ?, ?, ?, ?)',
-                    [order_id, item.product_id, item.variant_id, item.product_quantity || item.quantity, price]
-                );
-            }
-
-            await connection.commit();
-            return order_id;
-        } catch (error) {
-            await connection.rollback();
-            throw error;
-        } finally {
-            connection.release();
+      // 1. Kiểm tra tồn kho trước khi tạo đơn
+      for (const item of cart_items) {
+        const qty = item.product_quantity || item.quantity || 1;
+        const [[variant]] = await connection.query(
+          "SELECT variant_quantity, variant_name FROM product_variants WHERE variant_id = ? FOR UPDATE",
+          [item.variant_id],
+        );
+        if (!variant || variant.variant_quantity < qty) {
+          throw Object.assign(
+            new Error(`Sản phẩm "${item.product_name || variant?.variant_name || 'N/A'}" đã hết hàng hoặc không đủ số lượng.`),
+            { statusCode: 400 }
+          );
         }
-    },
+      }
 
-    /**
-     * Lấy đơn hàng theo user_id (thay thế getByUserCode)
-     */
-    getByUserId: (user_id) => {
-        return db.query(
-            `SELECT
+      // 2. Tạo record orders
+      const [orderResult] = await connection.query(
+        "INSERT INTO orders (user_id, total_price, order_status) VALUES (?, ?, ?)",
+        [user_id || null, total_price, "pending"],
+      );
+      const order_id = orderResult.insertId;
+
+      // 3. Tạo từng order_item và trừ tồn kho
+      for (const item of cart_items) {
+        const qty = item.product_quantity || item.quantity || 1;
+        const price =
+          item.variant_discount &&
+          Number(item.variant_discount) > 0 &&
+          Number(item.variant_discount) < Number(item.variant_price)
+            ? item.variant_discount
+            : item.variant_price;
+
+        await connection.query(
+          "INSERT INTO order_items (order_id, product_id, variant_id, quantity, price) VALUES (?, ?, ?, ?, ?)",
+          [order_id, item.product_id, item.variant_id, qty, price],
+        );
+
+        // Trừ tồn kho
+        await connection.query(
+          "UPDATE product_variants SET variant_quantity = variant_quantity - ? WHERE variant_id = ?",
+          [qty, item.variant_id],
+        );
+      }
+
+      await connection.commit();
+      return order_id;
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  },
+
+  /**
+   * Lấy đơn hàng theo user_id (thay thế getByUserCode)
+   */
+  getByUserId: user_id => {
+    return db.query(
+      `SELECT
                 o.order_id AS mahang,
                 o.total_price AS tongDoanhThu,
                 o.order_date AS ngayDatHang,
@@ -97,7 +129,8 @@ const OrderModel = {
                 pv.variant_discount,
                 u.user_name AS customer_name,
                 u.user_phone AS customer_phone,
-                u.user_email AS customer_email
+                u.user_email AS customer_email,
+                u.user_address AS customer_address
              FROM orders o
              JOIN order_items oi ON o.order_id = oi.order_id
              JOIN products p ON oi.product_id = p.product_id
@@ -105,16 +138,16 @@ const OrderModel = {
              LEFT JOIN users u ON o.user_id = u.user_id
              WHERE o.user_id = ?
              ORDER BY o.order_id DESC`,
-            [user_id]
-        );
-    },
+      [user_id],
+    );
+  },
 
-    /**
-     * Lấy chi tiết 1 đơn hàng theo mahang (order_id)
-     */
-    getByMahang: (mahang) => {
-        return db.query(
-            `SELECT
+  /**
+   * Lấy chi tiết 1 đơn hàng theo mahang (order_id)
+   */
+  getByMahang: mahang => {
+    return db.query(
+      `SELECT
                 o.order_id AS mahang,
                 o.total_price AS tongDoanhThu,
                 o.order_date AS ngayDatHang,
@@ -139,16 +172,16 @@ const OrderModel = {
              JOIN product_variants pv ON oi.variant_id = pv.variant_id
              LEFT JOIN users u ON o.user_id = u.user_id
              WHERE o.order_id = ?`,
-            [mahang]
-        );
-    },
+      [mahang],
+    );
+  },
 
-    /**
-     * [ADMIN] Lấy tất cả đơn hàng
-     */
-    getAll: () => {
-        return db.query(
-            `SELECT
+  /**
+   * [ADMIN] Lấy tất cả đơn hàng
+   */
+  getAll: () => {
+    return db.query(
+      `SELECT
                 o.order_id AS mahang,
                 o.total_price AS tongDoanhThu,
                 o.order_date AS ngayDatHang,
@@ -171,21 +204,82 @@ const OrderModel = {
              JOIN products p ON oi.product_id = p.product_id
              JOIN product_variants pv ON oi.variant_id = pv.variant_id
              LEFT JOIN users u ON o.user_id = u.user_id
-             ORDER BY o.order_id DESC`
-        );
-    },
+             ORDER BY o.order_id DESC`,
+    );
+  },
 
-    /**
-     * Cập nhật trạng thái đơn hàng
-     * Nhận trangThai (số 0-4) hoặc chuỗi ENUM
-     */
-    updateStatus: (order_id, trangThai) => {
-        // Chấp nhận cả số (0-4) lẫn chuỗi enum
-        const statusStr = typeof trangThai === 'number'
-            ? (STATUS_REVERSE[trangThai] || 'pending')
-            : trangThai;
-        return db.query('UPDATE orders SET order_status = ? WHERE order_id = ?', [statusStr, order_id]);
+  /**
+   * Cập nhật trạng thái đơn hàng
+   * Nhận trangThai (số 0-4) hoặc chuỗi ENUM
+   */
+  updateStatus: (order_id, trangThai) => {
+    // Chấp nhận cả số (0-4) lẫn chuỗi enum
+    const statusStr =
+      typeof trangThai === "number"
+        ? STATUS_REVERSE[trangThai] || "pending"
+        : trangThai;
+    return db.query("UPDATE orders SET order_status = ? WHERE order_id = ?", [
+      statusStr,
+      order_id,
+    ]);
+  },
+
+  /**
+   * Hủy đơn hàng và hoàn trả tồn kho trong cùng 1 transaction
+   * - Kiểm tra trạng thái hiện tại có được phép hủy không
+   * - Chỉ hoàn kho nếu đơn chưa ở trạng thái 'cancelled'
+   */
+  cancelOrderWithStockRestore: async (order_id) => {
+    const connection = await db.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      // Lấy trạng thái hiện tại của đơn hàng (lóc để tránh race condition)
+      const [[order]] = await connection.query(
+        "SELECT order_status FROM orders WHERE order_id = ? FOR UPDATE",
+        [order_id],
+      );
+
+      if (!order) {
+        throw Object.assign(new Error('Không tìm thấy đơn hàng.'), { statusCode: 404 });
+      }
+
+      const cancellableStatuses = ['pending', 'confirmed', 0, 1];
+      if (!cancellableStatuses.includes(order.order_status)) {
+        throw Object.assign(
+          new Error('Không thể hủy đơn hàng đang trong quá trình vận chuyển hoặc đã hoàn thành.'),
+          { statusCode: 400 }
+        );
+      }
+
+      // Lấy danh sách sản phẩm trong đơn để hoàn kho
+      const [items] = await connection.query(
+        "SELECT variant_id, quantity FROM order_items WHERE order_id = ?",
+        [order_id],
+      );
+
+      // Hoàn trả tồn kho
+      for (const item of items) {
+        await connection.query(
+          "UPDATE product_variants SET variant_quantity = variant_quantity + ? WHERE variant_id = ?",
+          [item.quantity, item.variant_id],
+        );
+      }
+
+      // Cập nhật trạng thái đơn hàng sang hủy
+      await connection.query(
+        "UPDATE orders SET order_status = 'cancelled' WHERE order_id = ?",
+        [order_id],
+      );
+
+      await connection.commit();
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
     }
+  },
 };
 
 module.exports = OrderModel;

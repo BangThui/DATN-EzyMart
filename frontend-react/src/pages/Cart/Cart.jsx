@@ -69,7 +69,7 @@ const Cart = () => {
                     <img
                         src={getImageUrl(record.product_image)}
                         alt={record.product_name}
-                        className="cart-img"
+                        className="cart-product-img"
                         onError={e => { e.target.src = '/placeholder.png'; }}
                     />
                     <div>
