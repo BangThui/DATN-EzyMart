@@ -18,6 +18,7 @@ import { cartService } from "../../services/cartService";
 import { categoryService } from "../../services/categoryService";
 import { buildCategoryTree, buildMenuItems } from "../../utils";
 import "./Navbar.css";
+import NotificationBell from "./NotificationBell";
 
 const Navbar = () => {
   const { user, login, logout, isAdmin } = useAuth();
@@ -278,6 +279,9 @@ const Navbar = () => {
 
           {/* Actions */}
           <div className="navbar-actions">
+            {/* Notification */}
+            {user && <NotificationBell isAdmin={false} />}
+
             {/* Cart */}
             <Link to="/cart" className="navbar-action-btn navbar-cart-wrap">
               <ShoppingCartOutlined />

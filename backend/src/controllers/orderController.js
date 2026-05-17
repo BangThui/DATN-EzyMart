@@ -1,5 +1,6 @@
 const OrderModel = require('../models/orderModel');
 const CartModel = require('../models/cartModel');
+const { getIO } = require('../socket');
 
 // ─── Adapter: qlbanhang_v2 → qlbanhang_final ───────────────────────────────
 // createOrder: Bỏ customer/giaodich, dùng orders + order_items
@@ -38,9 +39,33 @@ exports.createOrder = async (req, res) => {
             order_id,
             totalPayment: total_price
         });
+
+        // --- SOCKET: Thông báo đơn mới cho Admin ---
+        try {
+            const io = getIO();
+            io.emit('new_order_alert', {
+                order_id,
+                customer_name: name || 'Khách vãng lai',
+                total_price,
+                created_at: new Date().toISOString(),
+            });
+
+            // --- SOCKET: Cập nhật tồn kho cho tất cả client ---
+            for (const item of cart_items) {
+                const [[variant]] = await OrderModel.getVariantStockById(item.variant_id);
+                if (variant) {
+                    io.emit('inventory_change', {
+                        variantId: item.variant_id,
+                        productId: item.product_id,
+                        newStock: variant.variant_quantity,
+                    });
+                }
+            }
+        } catch (socketErr) {
+            console.warn('[Socket] Emit error (non-critical):', socketErr.message);
+        }
     } catch (err) {
         console.error('Create order error:', err);
-        // Trả về đúng status code nếu là lỗi tồn kho (statusCode 400)
         const status = err.statusCode || 500;
         res.status(status).json({ error: err.message || 'Đặt hàng thất bại' });
     }
@@ -103,8 +128,22 @@ exports.updateOrderStatus = async (req, res) => {
         const { id } = req.params;
         const { tinhtrang, order_status } = req.body;
         const statusValue = tinhtrang !== undefined ? tinhtrang : order_status;
+
+        // Lấy user_id của đơn hàng để gửi socket riêng tới khách hàng
+        const [[orderInfo]] = await OrderModel.getOrderUserInfo(id);
         await OrderModel.updateStatus(id, statusValue);
         res.json({ message: 'Cập nhật trạng thái đơn hàng thành công' });
+
+        // --- SOCKET: Đồng bộ trạng thái đơn hàng tới tất cả (Admin & Khách hàng) ---
+        try {
+            const io = getIO();
+            io.emit('order_status_updated', {
+                order_id: Number(id),
+                order_status: statusValue,
+            });
+        } catch (socketErr) {
+            console.warn('[Socket] Emit error (non-critical):', socketErr.message);
+        }
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Lỗi cập nhật trạng thái đơn hàng' });
@@ -126,6 +165,18 @@ exports.customerUpdateOrderStatus = async (req, res) => {
         
         await OrderModel.updateStatus(id, 'completed');
         res.json({ message: 'Xác nhận nhận hàng thành công' });
+
+        // --- SOCKET: Thông báo hoàn thành đơn hàng real-time ---
+        try {
+            const io = getIO();
+            io.emit('order_status_updated', {
+                order_id: Number(id),
+                order_status: 'completed',
+                updated_by: 'customer',
+            });
+        } catch (socketErr) {
+            console.warn('[Socket] Emit error (non-critical):', socketErr.message);
+        }
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Lỗi xác nhận nhận hàng' });
@@ -133,12 +184,34 @@ exports.customerUpdateOrderStatus = async (req, res) => {
 };
 
 // [CUSTOMER] Khách hàng hủy đơn hàng
-// Hủy trong transaction: kiểm tra trạng thái + hoàn kho cùng lúc
 exports.customerCancelOrder = async (req, res) => {
     try {
         const { id } = req.params;
-        await OrderModel.cancelOrderWithStockRestore(id);
+        const [[orderInfo]] = await OrderModel.getOrderUserInfo(id);
+        const restoredItems = await OrderModel.cancelOrderWithStockRestore(id);
         res.json({ message: 'Hủy đơn hàng thành công' });
+
+        // --- SOCKET: Hoàn kho → cập nhật tồn kho real-time ---
+        try {
+            const io = getIO();
+            if (Array.isArray(restoredItems)) {
+                for (const item of restoredItems) {
+                    io.emit('inventory_change', {
+                        variantId: item.variant_id,
+                        productId: item.product_id,
+                        newStock: item.newStock,
+                    });
+                }
+            }
+            // Thông báo đồng bộ lại trạng thái cho tất cả (để Admin & Khách hàng cùng thấy)
+            io.emit('order_status_updated', {
+                order_id: Number(id),
+                order_status: 'cancelled',
+                updated_by: 'customer',
+            });
+        } catch (socketErr) {
+            console.warn('[Socket] Emit error (non-critical):', socketErr.message);
+        }
     } catch (err) {
         console.error(err);
         const status = err.statusCode || 500;

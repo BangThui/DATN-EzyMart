@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Table, Tag, Select, Typography, message, Modal, Tooltip, Descriptions, Button } from 'antd';
-import { EyeOutlined } from '@ant-design/icons';
+import { EyeOutlined, BellOutlined } from '@ant-design/icons';
 import { orderService } from '../../../services/orderService';
 import { formatCurrency } from '../../../utils';
+import { useSocket } from '../../../context/SocketContext';
 import '../Admin.css';
 
 const { Title } = Typography;
@@ -21,8 +22,9 @@ const AdminOrders = () => {
     const [loading, setLoading] = useState(true);
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState(null);
+    const { socket } = useSocket();
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         setLoading(true);
         try {
             const data = await orderService.getAll();
@@ -32,11 +34,48 @@ const AdminOrders = () => {
         } finally { 
             setLoading(false); 
         }
-    };
+    }, []);
 
     useEffect(() => { 
         fetchData(); 
-    }, []);
+    }, [fetchData]);
+
+
+
+    // Lắng nghe socket: đơn hàng mới
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleNewOrder = (data) => {
+            // Làm mới danh sách
+            fetchData();
+        };
+
+        socket.on('new_order_alert', handleNewOrder);
+        return () => socket.off('new_order_alert', handleNewOrder);
+    }, [socket, fetchData]);
+
+    // Lắng nghe socket: cập nhật trạng thái đơn hàng (từ khách hàng hoặc admin khác)
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleStatusUpdate = (data) => {
+            // Cập nhật lại danh sách đơn hàng
+            fetchData();
+
+            // Nếu modal chi tiết đang mở đúng đơn hàng này, cập nhật trạng thái hiển thị
+            setSelectedOrder(prev => {
+                if (prev && (prev.mahang === data.order_id || prev.donhang_id === data.order_id)) {
+                    return { ...prev, order_status: data.order_status };
+                }
+                return prev;
+            });
+        };
+
+        socket.on('order_status_updated', handleStatusUpdate);
+        return () => socket.off('order_status_updated', handleStatusUpdate);
+    }, [socket, fetchData]);
+
 
     const handleStatusChange = async (orderId, status) => {
         try {

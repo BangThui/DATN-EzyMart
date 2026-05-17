@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Tag, Typography, Empty, Button, Spin, Tabs, Drawer, Steps, List, Divider, message, Popconfirm } from "antd";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { orderService } from "../../services/orderService";
 import { useAuth } from "../../context/AuthContext";
+import { useSocket } from "../../context/SocketContext";
 import { formatCurrency } from "../../utils";
 import { getImageUrl } from "../../utils/imageHelper";
 import "./Orders.css";
@@ -26,6 +27,7 @@ const STEP_STATUS = {
 
 const Orders = () => {
   const { user } = useAuth();
+  const { socket } = useSocket();
   const [loading, setLoading] = useState(true);
   const [grouped, setGrouped] = useState([]);
   const [activeTab, setActiveTab] = useState("all");
@@ -85,6 +87,32 @@ const Orders = () => {
     return items.reduce((acc, item) => acc + (item.variant_price || item.price || item.dongia || 0) * item.soluong, 0);
   };
 
+  // Lắng nghe socket: Admin cập nhật trạng thái → UI tự cập nhật
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleStatusUpdate = ({ order_id, order_status }) => {
+      // Cập nhật danh sách đơn hàng
+      setGrouped(prev =>
+        prev.map(order =>
+          order.mahang === order_id
+            ? { ...order, order_status }
+            : order,
+        ),
+      );
+
+      // Nếu Drawer đang mở đúng đơn này → cập nhật luôn
+      setSelectedOrder(prev =>
+        prev && prev.mahang === order_id
+          ? { ...prev, order_status }
+          : prev,
+      );
+    };
+
+    socket.on('order_status_updated', handleStatusUpdate);
+    return () => socket.off('order_status_updated', handleStatusUpdate);
+  }, [socket]);
+
   useEffect(() => {
     const userId = user?.user_id || user?.user_code || user?.id;
     if (!userId) {
@@ -110,6 +138,19 @@ const Orders = () => {
       })
       .catch(() => setLoading(false));
   }, [user]);
+
+  const location = useLocation();
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const openOrderId = params.get("openOrder");
+    if (openOrderId && grouped.length > 0) {
+      const found = grouped.find(o => String(o.mahang) === String(openOrderId));
+      if (found) {
+        setSelectedOrder(found);
+        setDrawerVisible(true);
+      }
+    }
+  }, [location.search, grouped]);
 
   // Lọc theo Tab
   const filteredOrders = useMemo(() => {

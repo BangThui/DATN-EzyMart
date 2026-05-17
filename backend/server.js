@@ -1,9 +1,16 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const http = require('http');
 require('dotenv').config();
 
 const app = express();
+const httpServer = http.createServer(app);
+
+// ─── Khởi tạo Socket.io ─────────────────────────────────────────────────────
+const socketModule = require('./src/socket');
+socketModule.init(httpServer);
+// ────────────────────────────────────────────────────────────────────────────
 
 // Middleware
 app.use(cors({
@@ -13,7 +20,6 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Phục vụ file ảnh upload (Đã chuyển sang Cloudinary, không dùng folder local nữa)
 // Phục vụ ảnh từ thư mục images gốc (backward compat)
 app.use('/images', express.static(path.join(__dirname, '../images')));
 
@@ -59,6 +65,7 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
     console.log(`✅ Server đang chạy tại http://localhost:${PORT}`);
+    console.log(`🔌 Socket.io đã kích hoạt`);
 });

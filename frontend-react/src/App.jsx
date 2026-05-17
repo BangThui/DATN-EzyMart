@@ -9,6 +9,7 @@ import { ConfigProvider } from "antd";
 import viVN from "antd/locale/vi_VN";
 
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { SocketProvider } from "./context/SocketContext";
 
 // Layout
 import Navbar from "./components/layout/Navbar";
@@ -36,13 +37,13 @@ import AdminOrders from "./pages/admin/AdminOrders/AdminOrders";
 import AdminCustomers from "./pages/admin/AdminCustomers/AdminCustomers";
 import AdminStock from "./pages/admin/AdminStock/AdminStock";
 import AdminSuppliers from "./pages/admin/AdminSuppliers/AdminSuppliers";
-import Login from "./pages/auth/Login";
+// Login component removed from imports
 
 // Admin Route Guard
 const AdminRoute = ({ children }) => {
   const { user, isAdmin, loading } = useAuth();
   if (loading) return null;
-  if (!user || !isAdmin()) return <Navigate to="/login" replace />;
+  if (!user || !isAdmin()) return <Navigate to="/" replace />;
   return children;
 };
 
@@ -149,8 +150,7 @@ function AppRoutes() {
           }
         />
 
-        {/* Login Route (No Layout) */}
-        <Route path="/login" element={<Login />} />
+        {/* Login Route removed as per user request */}
 
         {/* Admin Routes */}
         <Route
@@ -222,7 +222,9 @@ function App() {
       }}
     >
       <AuthProvider>
-        <AppRoutes />
+        <SocketProvider>
+          <AppRoutes />
+        </SocketProvider>
       </AuthProvider>
     </ConfigProvider>
   );

@@ -254,16 +254,26 @@ const OrderModel = {
 
       // Lấy danh sách sản phẩm trong đơn để hoàn kho
       const [items] = await connection.query(
-        "SELECT variant_id, quantity FROM order_items WHERE order_id = ?",
+        "SELECT oi.variant_id, oi.product_id, oi.quantity FROM order_items oi WHERE oi.order_id = ?",
         [order_id],
       );
 
-      // Hoàn trả tồn kho
+      // Hoàn trả tồn kho + ghi nhận số mới để trả về cho socket
+      const restoredItems = [];
       for (const item of items) {
         await connection.query(
           "UPDATE product_variants SET variant_quantity = variant_quantity + ? WHERE variant_id = ?",
           [item.quantity, item.variant_id],
         );
+        const [[updated]] = await connection.query(
+          "SELECT variant_quantity FROM product_variants WHERE variant_id = ?",
+          [item.variant_id],
+        );
+        restoredItems.push({
+          variant_id: item.variant_id,
+          product_id: item.product_id,
+          newStock: updated?.variant_quantity ?? 0,
+        });
       }
 
       // Cập nhật trạng thái đơn hàng sang hủy
@@ -273,12 +283,33 @@ const OrderModel = {
       );
 
       await connection.commit();
+      return restoredItems; // Trả về để controller emit socket
     } catch (error) {
       await connection.rollback();
       throw error;
     } finally {
       connection.release();
     }
+  },
+
+  /**
+   * Lấy user_id của đơn hàng (dùng để gửi socket riêng cho khách hàng)
+   */
+  getOrderUserInfo: (order_id) => {
+    return db.query(
+      "SELECT order_id, user_id FROM orders WHERE order_id = ?",
+      [order_id],
+    );
+  },
+
+  /**
+   * Lấy số lượng tồn kho hiện tại của 1 variant (dùng sau khi đặt hàng để emit socket)
+   */
+  getVariantStockById: (variant_id) => {
+    return db.query(
+      "SELECT variant_id, variant_quantity FROM product_variants WHERE variant_id = ?",
+      [variant_id],
+    );
   },
 };
 

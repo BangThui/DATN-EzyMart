@@ -16,6 +16,7 @@ import {
 import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import "./AdminLayout.css";
+import NotificationBell from "../components/layout/NotificationBell";
 
 const { Sider, Header, Content } = Layout;
 const { Title, Text } = Typography;
@@ -71,7 +72,7 @@ const AdminLayout = () => {
 
   const handleLogout = () => {
     logout();
-    window.location.href = "/";
+    navigate("/");
   };
 
   return (
@@ -109,6 +110,7 @@ const AdminLayout = () => {
             onClick={() => setCollapsed(!collapsed)}
           />
           <div className="admin-header-right">
+            <NotificationBell isAdmin={true} />
             <Avatar className="admin-avatar">
               {user?.user_name?.charAt(0)?.toUpperCase() || "A"}
             </Avatar>

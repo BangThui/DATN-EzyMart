@@ -12,6 +12,7 @@ import {
 import { productService } from '../../services/productService';
 import { cartService } from '../../services/cartService';
 import { useAuth } from '../../context/AuthContext';
+import { useSocket } from '../../context/SocketContext';
 import { formatCurrency } from '../../utils';
 import ProductCard from '../../components/product/ProductCard';
 import { getImageUrl } from '../../utils/imageHelper';
@@ -29,6 +30,7 @@ const getImageSrc = (filename) => {
 const ProductDetail = () => {
     const { id } = useParams();
     const { user } = useAuth();
+    const { socket } = useSocket();
     const [product, setProduct] = useState(null);
     const [similar, setSimilar] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -66,6 +68,33 @@ const ProductDetail = () => {
         fetchData();
         window.scrollTo(0, 0);
     }, [id]);
+
+    // Lắng nghe socket: tồn kho thay đổi real-time
+    useEffect(() => {
+        if (!socket || !product) return;
+
+        const handleInventoryChange = ({ variantId, newStock }) => {
+            setProduct(prev => {
+                if (!prev) return prev;
+                const updatedVariants = prev.variants.map(v =>
+                    v.variant_id === variantId
+                        ? { ...v, variant_quantity: newStock }
+                        : v,
+                );
+                return { ...prev, variants: updatedVariants };
+            });
+            // Cập nhật luôn nếu đang chọn variant này
+            setSelectedVariant(prev =>
+                prev?.variant_id === variantId
+                    ? { ...prev, variant_quantity: newStock }
+                    : prev,
+            );
+        };
+
+        socket.on('inventory_change', handleInventoryChange);
+        return () => socket.off('inventory_change', handleInventoryChange);
+    }, [socket, product]);
+
 
     const handleAddToCart = async () => {
         if (!selectedVariant) {
@@ -328,20 +357,32 @@ const ProductDetail = () => {
 
                             {/* Action buttons */}
                             <div className="detail-action-btns">
-                                <Button
-                                    type="primary"
-                                    size="large"
-                                    icon={<ThunderboltOutlined />}
-                                    className="detail-btn-buy"
-                                >
-                                    Mua ngay
-                                </Button>
+                                {stockQuantity === 0 ? (
+                                    <Button
+                                        size="large"
+                                        disabled
+                                        className="detail-btn-buy"
+                                        style={{ background: '#f3f4f6', color: '#9ca3af', borderColor: '#e5e7eb' }}
+                                    >
+                                        Hết hàng
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        type="primary"
+                                        size="large"
+                                        icon={<ThunderboltOutlined />}
+                                        className="detail-btn-buy"
+                                    >
+                                        Mua ngay
+                                    </Button>
+                                )}
                                 <Button
                                     size="large"
                                     icon={<ShoppingCartOutlined />}
                                     className="detail-btn-cart"
                                     onClick={handleAddToCart}
                                     loading={addingCart}
+                                    disabled={stockQuantity === 0}
                                 >
                                     Thêm vào giỏ
                                 </Button>
