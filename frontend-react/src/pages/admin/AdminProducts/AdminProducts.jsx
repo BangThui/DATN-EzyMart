@@ -180,6 +180,9 @@ const AdminProducts = () => {
   const [form] = Form.useForm();
   const [fileList, setFileList] = useState([]);
   const [activeTab, setActiveTab] = useState("all");
+  const [searchText, setSearchText] = useState("");
+  const [filterCategory, setFilterCategory] = useState(null);
+  const [filterStatus, setFilterStatus] = useState(null);
 
   const [trashVisible, setTrashVisible] = useState(false);
   const [trashProducts, setTrashProducts] = useState([]);
@@ -190,7 +193,28 @@ const AdminProducts = () => {
     () => products.filter(p => getTotalStock(p) < 10),
     [products],
   );
-  const displayedProducts = activeTab === "low" ? lowStockProducts : products;
+  const displayedProducts = useMemo(() => {
+    let result = products;
+    if (activeTab === "low") result = lowStockProducts;
+
+    if (searchText) {
+      result = result.filter(p =>
+        p.product_name?.toLowerCase().includes(searchText.toLowerCase())
+      );
+    }
+    if (filterCategory) {
+      result = result.filter(p => p.category_id === filterCategory);
+    }
+    if (filterStatus) {
+      result = result.filter(p => {
+        let statusVal = p.product_active;
+        if (statusVal === undefined) statusVal = p.product_acitve; // fallback for typo in backend
+        const isActive = statusVal === 1 || statusVal === "1";
+        return filterStatus === "active" ? isActive : !isActive;
+      });
+    }
+    return result;
+  }, [products, lowStockProducts, activeTab, searchText, filterCategory, filterStatus]);
 
   // Refresh mỗi khi tab được focus lại (sau khi nhập kho ở tab khác)
   useEffect(() => {
@@ -653,6 +677,50 @@ const AdminProducts = () => {
           >
             Thêm sản phẩm
           </Button>
+        </Space>
+      </div>
+
+      {/* ─── Bộ lọc (Filter Bar) ────────────────────────────────────── */}
+      <div className="admin-filter-bar" style={{ marginBottom: 16 }}>
+        <Space wrap>
+          <Input.Search
+            placeholder="Tìm kiếm theo tên sản phẩm..."
+            allowClear
+            onSearch={value => setSearchText(value)}
+            onChange={e => setSearchText(e.target.value)}
+            style={{ width: 300 }}
+          />
+          <Select
+            placeholder="Lọc theo Danh mục"
+            allowClear
+            style={{ width: 200 }}
+            onChange={value => setFilterCategory(value)}
+            options={buildCategoryTree(categories).map(parent => {
+              if (parent.children && parent.children.length > 0) {
+                return {
+                  label: <strong style={{ color: "#333" }}>{parent.category_name}</strong>,
+                  options: parent.children.map(child => ({
+                    label: child.category_name,
+                    value: child.category_id,
+                  })),
+                };
+              }
+              return {
+                label: parent.category_name,
+                value: parent.category_id,
+              };
+            })}
+          />
+          <Select
+            placeholder="Lọc theo Trạng thái"
+            allowClear
+            style={{ width: 200 }}
+            onChange={value => setFilterStatus(value)}
+            options={[
+              { value: "active", label: "Hoạt động" },
+              { value: "inactive", label: "Ngừng hoạt động" },
+            ]}
+          />
         </Space>
       </div>
 
