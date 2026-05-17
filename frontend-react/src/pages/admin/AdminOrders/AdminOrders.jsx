@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Table, Tag, Select, Typography, message, Modal, Tooltip, Descriptions, Button } from 'antd';
-import { EyeOutlined, BellOutlined } from '@ant-design/icons';
+import { Table, Tag, Select, Typography, message, Modal, Tooltip, Descriptions, Button, Input, Space, Row, Col } from 'antd';
+import { EyeOutlined, SearchOutlined } from '@ant-design/icons';
 import { orderService } from '../../../services/orderService';
 import { formatCurrency } from '../../../utils';
+import { getImageUrl } from '../../../utils/imageHelper';
 import { useSocket } from '../../../context/SocketContext';
 import '../Admin.css';
 
@@ -22,12 +23,15 @@ const AdminOrders = () => {
     const [loading, setLoading] = useState(true);
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState(null);
+    const [filterSearch, setFilterSearch] = useState('');
+    const [filterStatus, setFilterStatus] = useState('all');
+    const [filterMethod, setFilterMethod] = useState('all');
     const { socket } = useSocket();
 
-    const fetchData = useCallback(async () => {
+    const fetchData = useCallback(async (params = {}) => {
         setLoading(true);
         try {
-            const data = await orderService.getAll();
+            const data = await orderService.getAll(params);
             setOrders(data || []);
         } catch { 
             message.error('Lỗi tải đơn hàng'); 
@@ -39,6 +43,24 @@ const AdminOrders = () => {
     useEffect(() => { 
         fetchData(); 
     }, [fetchData]);
+
+    const handleFilter = (overrides = {}) => {
+        const params = {};
+        const search = overrides.search !== undefined ? overrides.search : filterSearch;
+        const status = overrides.status !== undefined ? overrides.status : filterStatus;
+        const method = overrides.method !== undefined ? overrides.method : filterMethod;
+        if (search && search.trim()) params.search = search.trim();
+        if (status !== 'all') params.status = status;
+        if (method !== 'all') params.method = method;
+        fetchData(params);
+    };
+
+    const handleReset = () => {
+        setFilterSearch('');
+        setFilterStatus('all');
+        setFilterMethod('all');
+        fetchData();
+    };
 
 
 
@@ -100,10 +122,12 @@ const AdminOrders = () => {
                 products: []
             };
         }
-        acc[key].products.push({
-            ...order,
-            key: `${key}_${order.product_name}_${Math.random()}`,
-        });
+        if (order.product_id || order.order_item_id) {
+            acc[key].products.push({
+                ...order,
+                key: `${key}_${order.product_name}_${Math.random()}`,
+            });
+        }
         return acc;
     }, {})).sort((a, b) => new Date(b.ngayDatHang) - new Date(a.ngayDatHang));
     const canChangeStatus = (current, next) => {
@@ -127,6 +151,14 @@ const AdminOrders = () => {
         {
             title: 'Tổng tiền', dataIndex: 'tongDoanhThu',
             render: v => <span className="admin-price-discount">{formatCurrency(v)}</span>
+        },
+        {
+            title: 'Thanh toán', dataIndex: 'payment_method',
+            render: p => {
+                const isTransfer = p === 'BANK' || p === 'MOMO' || p === 'VNPAY' || p === 'Chuyển khoản' || p === '1' || p === 1;
+                const displayText = p === 'BANK' ? 'Thanh toán ATM' : (p || 'COD');
+                return <Tag color={isTransfer ? 'blue' : 'green'}>{displayText}</Tag>;
+            }
         },
         {
             title: 'Ngày đặt', dataIndex: 'ngayDatHang',
@@ -175,27 +207,90 @@ const AdminOrders = () => {
 
     const productColumns = [
         { 
-            title: 'Ảnh', dataIndex: 'hinhanh', align: 'center', width: 80,
+            title: 'Ảnh', dataIndex: 'product_image', align: 'center', width: 80,
             render: img => {
-                const src = img ? (img.startsWith('http') ? img : `http://localhost:3000${img}`) : '/placeholder.png';
-                return <img src={src} alt="thumb" className="admin-img-cell" style={{width: 50, height: 50, border: '1px solid #f0f0f0'}} onError={(e) => { e.target.onerror = null; e.target.src = '/placeholder.png'; }} />;
+                const src = img ? getImageUrl(img) : '/placeholder.png';
+                return <img src={src} alt="thumb" className="admin-img-cell" style={{width: 50, height: 50, border: '1px solid #f0f0f0', objectFit: 'cover'}} onError={(e) => { e.target.onerror = null; e.target.src = '/placeholder.png'; }} />;
             }
         },
-        { title: 'Tên sản phẩm', dataIndex: 'product_name' },
+        { 
+            title: 'Tên sản phẩm', dataIndex: 'product_name',
+            render: (text, record) => record.variant_name ? `${text} - ${record.variant_name}` : text
+        },
         { title: 'Số lượng', dataIndex: 'soluong', align: 'center' },
         { 
             title: 'Đơn giá', key: 'dongia', 
-            render: (_, r) => formatCurrency(r.dongia || r.giaban || r.price || 0) 
+            render: (_, r) => formatCurrency(r.variant_price || r.dongia || r.giaban || r.price || 0) 
         },
         { 
             title: 'Thành tiền', key: 'total',
-            render: (_, r) => <strong style={{ color: '#cf1322' }}>{formatCurrency(r.soluong * (r.dongia || r.giaban || r.price || 0))}</strong>
+            render: (_, r) => <strong style={{ color: '#cf1322' }}>{formatCurrency(r.soluong * (r.variant_price || r.dongia || r.giaban || r.price || 0))}</strong>
         }
     ];
 
     return (
         <div>
             <Title level={2}>📋 Quản lý đơn hàng</Title>
+
+            {/* Filter Bar */}
+            <div style={{ background: '#fafafa', border: '1px solid #e8e8e8', borderRadius: 8, padding: '16px 20px', marginBottom: 16 }}>
+                <Row gutter={[12, 12]} align="middle">
+                    <Col xs={24} sm={10} md={8}>
+                        <Input.Search
+                            id="order-search-input"
+                            placeholder="Tìm mã đơn, số điện thoại..."
+                            allowClear
+                            prefix={<SearchOutlined />}
+                            value={filterSearch}
+                            onChange={e => setFilterSearch(e.target.value)}
+                            onSearch={val => {
+                                setFilterSearch(val);
+                                handleFilter({ search: val });
+                            }}
+                        />
+                    </Col>
+                    <Col xs={24} sm={7} md={5}>
+                        <Select
+                            id="order-status-filter"
+                            style={{ width: '100%' }}
+                            value={filterStatus}
+                            onChange={val => {
+                                setFilterStatus(val);
+                                handleFilter({ status: val });
+                            }}
+                        >
+                            <Option value="all">Tất cả trạng thái</Option>
+                            <Option value="pending">Chờ xử lý</Option>
+                            <Option value="confirmed">Đã xác nhận</Option>
+                            <Option value="shipping">Đang giao</Option>
+                            <Option value="completed">Đã hoàn thành</Option>
+                            <Option value="cancelled">Đã hủy</Option>
+                        </Select>
+                    </Col>
+                    <Col xs={24} sm={7} md={5}>
+                        <Select
+                            id="order-payment-filter"
+                            style={{ width: '100%' }}
+                            value={filterMethod}
+                            onChange={val => {
+                                setFilterMethod(val);
+                                handleFilter({ method: val });
+                            }}
+                        >
+                            <Option value="all">Tất cả thanh toán</Option>
+                            <Option value="COD">COD</Option>
+                            <Option value="BANK">Chuyển khoản (ATM)</Option>
+                            <Option value="MOMO">Ví MoMo</Option>
+                            <Option value="VNPAY">Cổng VNPAY</Option>
+                        </Select>
+                    </Col>
+                    <Col xs={24} sm={24} md={6}>
+                        <Space>
+                            <Button onClick={handleReset}>Xóa bộ lọc</Button>
+                        </Space>
+                    </Col>
+                </Row>
+            </div>
             <Table 
                 dataSource={groupedOrders} 
                 columns={columns} 
@@ -228,6 +323,9 @@ const AdminOrders = () => {
                             </Descriptions.Item>
                             <Descriptions.Item label="Địa chỉ chi tiết" span={2}>
                                 {selectedOrder.customer_address}
+                            </Descriptions.Item>
+                            <Descriptions.Item label="Ghi chú từ khách hàng" span={2}>
+                                {selectedOrder.note ? selectedOrder.note : <span style={{ color: '#bfbfbf', fontStyle: 'italic' }}>(Không có ghi chú)</span>}
                             </Descriptions.Item>
                         </Descriptions>
 

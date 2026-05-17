@@ -26,7 +26,7 @@ exports.createOrder = async (req, res) => {
         }, 0);
 
         // Tạo đơn hàng trong orders + order_items
-        const order_id = await OrderModel.createOrder({ user_id: user_id || null, cart_items, total_price });
+        const order_id = await OrderModel.createOrder({ user_id: user_id || null, cart_items, total_price, note, payments });
 
         // Xoá giỏ hàng sau khi đặt thành công
         if (user_id) {
@@ -110,10 +110,11 @@ exports.getOrderByMahang = async (req, res) => {
     }
 };
 
-// [ADMIN] Lấy tất cả đơn hàng
+// [ADMIN] Lấy tất cả đơn hàng (có hỗ trợ lọc)
 exports.getAllOrders = async (req, res) => {
     try {
-        const [rows] = await OrderModel.getAll();
+        const { search, status, method } = req.query;
+        const [rows] = await OrderModel.getAll({ search, status, method });
         res.json(rows);
     } catch (err) {
         console.error(err);

@@ -51,7 +51,7 @@ const OrderModel = {
     const connection = await db.getConnection();
     try {
       await connection.beginTransaction();
-      const { user_id, cart_items, total_price } = data;
+      const { user_id, cart_items, total_price, note, payments } = data;
 
       // 1. Kiểm tra tồn kho trước khi tạo đơn
       for (const item of cart_items) {
@@ -70,10 +70,17 @@ const OrderModel = {
 
       // 2. Tạo record orders
       const [orderResult] = await connection.query(
-        "INSERT INTO orders (user_id, total_price, order_status) VALUES (?, ?, ?)",
-        [user_id || null, total_price, "pending"],
+        "INSERT INTO orders (user_id, total_price, order_status, note) VALUES (?, ?, ?, ?)",
+        [user_id || null, total_price, "pending", note || ''],
       );
       const order_id = orderResult.insertId;
+
+      // 2.5 Tạo payment record
+      const paymentMethod = payments === '1' || payments === 1 ? 'BANK' : 'COD';
+      await connection.query(
+        "INSERT INTO payments (order_id, payment_method, payment_status) VALUES (?, ?, ?)",
+        [order_id, paymentMethod, "pending"]
+      );
 
       // 3. Tạo từng order_item và trừ tồn kho
       for (const item of cart_items) {
@@ -118,6 +125,8 @@ const OrderModel = {
                 o.order_date AS ngayDatHang,
                 ${STATUS_CASE},
                 o.order_status,
+                o.note,
+                pm.payment_method,
                 oi.order_item_id,
                 oi.product_id,
                 oi.variant_id,
@@ -132,10 +141,11 @@ const OrderModel = {
                 u.user_email AS customer_email,
                 u.user_address AS customer_address
              FROM orders o
-             JOIN order_items oi ON o.order_id = oi.order_id
-             JOIN products p ON oi.product_id = p.product_id
-             JOIN product_variants pv ON oi.variant_id = pv.variant_id
+             LEFT JOIN order_items oi ON o.order_id = oi.order_id
+             LEFT JOIN products p ON oi.product_id = p.product_id
+             LEFT JOIN product_variants pv ON oi.variant_id = pv.variant_id
              LEFT JOIN users u ON o.user_id = u.user_id
+             LEFT JOIN payments pm ON o.order_id = pm.order_id
              WHERE o.user_id = ?
              ORDER BY o.order_id DESC`,
       [user_id],
@@ -153,6 +163,8 @@ const OrderModel = {
                 o.order_date AS ngayDatHang,
                 ${STATUS_CASE},
                 o.order_status,
+                o.note,
+                pm.payment_method,
                 oi.order_item_id,
                 oi.product_id,
                 oi.variant_id,
@@ -167,10 +179,11 @@ const OrderModel = {
                 u.user_email AS customer_email,
                 u.user_address AS customer_address
              FROM orders o
-             JOIN order_items oi ON o.order_id = oi.order_id
-             JOIN products p ON oi.product_id = p.product_id
-             JOIN product_variants pv ON oi.variant_id = pv.variant_id
+             LEFT JOIN order_items oi ON o.order_id = oi.order_id
+             LEFT JOIN products p ON oi.product_id = p.product_id
+             LEFT JOIN product_variants pv ON oi.variant_id = pv.variant_id
              LEFT JOIN users u ON o.user_id = u.user_id
+             LEFT JOIN payments pm ON o.order_id = pm.order_id
              WHERE o.order_id = ?`,
       [mahang],
     );
@@ -179,7 +192,34 @@ const OrderModel = {
   /**
    * [ADMIN] Lấy tất cả đơn hàng
    */
-  getAll: () => {
+  getAll: ({ search, status, method } = {}) => {
+    const conditions = ['1=1'];
+    const params = [];
+
+    if (search && search.trim()) {
+      const trimmed = search.trim();
+      const isNumeric = /^\d+$/.test(trimmed);
+      if (isNumeric) {
+        conditions.push('(o.order_id = ? OR u.user_phone LIKE ?)');
+        params.push(Number(trimmed), `%${trimmed}%`);
+      } else {
+        conditions.push('u.user_phone LIKE ?');
+        params.push(`%${trimmed}%`);
+      }
+    }
+
+    if (status && status !== 'all') {
+      conditions.push('o.order_status = ?');
+      params.push(status);
+    }
+
+    if (method && method !== 'all') {
+      conditions.push('pm.payment_method = ?');
+      params.push(method);
+    }
+
+    const whereClause = conditions.join(' AND ');
+
     return db.query(
       `SELECT
                 o.order_id AS mahang,
@@ -187,6 +227,8 @@ const OrderModel = {
                 o.order_date AS ngayDatHang,
                 ${STATUS_CASE},
                 o.order_status,
+                o.note,
+                pm.payment_method,
                 o.user_id,
                 oi.order_item_id,
                 oi.product_id,
@@ -194,17 +236,21 @@ const OrderModel = {
                 oi.quantity AS soluong,
                 oi.price AS variant_price,
                 p.product_name,
+                p.product_image,
                 pv.variant_name,
                 u.user_name AS customer_name,
                 u.user_phone AS customer_phone,
                 u.user_email AS customer_email,
                 u.user_address AS customer_address
              FROM orders o
-             JOIN order_items oi ON o.order_id = oi.order_id
-             JOIN products p ON oi.product_id = p.product_id
-             JOIN product_variants pv ON oi.variant_id = pv.variant_id
+             LEFT JOIN order_items oi ON o.order_id = oi.order_id
+             LEFT JOIN products p ON oi.product_id = p.product_id
+             LEFT JOIN product_variants pv ON oi.variant_id = pv.variant_id
              LEFT JOIN users u ON o.user_id = u.user_id
+             LEFT JOIN payments pm ON o.order_id = pm.order_id
+             WHERE ${whereClause}
              ORDER BY o.order_id DESC`,
+      params,
     );
   },
 

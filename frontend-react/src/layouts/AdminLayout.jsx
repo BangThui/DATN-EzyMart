@@ -53,11 +53,7 @@ const AdminLayout = () => {
       icon: <OrderedListOutlined />,
       label: <Link to="/admin/orders">Đơn hàng</Link>,
     },
-    {
-      key: "/admin/customers",
-      icon: <TeamOutlined />,
-      label: <Link to="/admin/customers">Khách hàng</Link>,
-    },
+
     {
       key: "/admin/stock",
       icon: <InboxOutlined />,

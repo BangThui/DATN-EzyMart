@@ -5,7 +5,7 @@ export const orderService = {
     getByUserCode: (user_code) => axiosClient.get(`/orders/user/${user_code}`),
     getDetail: (mahang) => axiosClient.get(`/orders/detail/${mahang}`),
     // Admin
-    getAll: () => axiosClient.get('/orders'),
+    getAll: (params = {}) => axiosClient.get('/orders', { params }),
     updateStatus: (id, tinhtrang) => axiosClient.put(`/orders/${id}/status`, { tinhtrang }),
 
     // Customer
