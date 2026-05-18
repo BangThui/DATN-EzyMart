@@ -97,7 +97,7 @@ const Footer = () => {
             <div className="footer-col-title">Liên hệ</div>
             <div className="footer-contact-item">
               <EnvironmentOutlined className="footer-contact-icon" />
-              <span>123 Đường Organic, Quận 1, TP.HCM</span>
+              <span>123 Phường Yên Nghĩa, TP.Hà Nội</span>
             </div>
             <div className="footer-contact-item">
               <PhoneOutlined className="footer-contact-icon" />

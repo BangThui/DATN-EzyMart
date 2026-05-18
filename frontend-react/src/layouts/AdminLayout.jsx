@@ -13,6 +13,7 @@ import {
   InboxOutlined,
   ShopOutlined,
   FileTextOutlined,
+  TagOutlined,
 } from "@ant-design/icons";
 import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -35,6 +36,11 @@ const AdminLayout = () => {
       label: <Link to="/admin">Dashboard</Link>,
     },
     {
+      key: "/admin/orders",
+      icon: <OrderedListOutlined />,
+      label: <Link to="/admin/orders">Đơn hàng</Link>,
+    },
+    {
       key: "/admin/products",
       icon: <ShoppingOutlined />,
       label: <Link to="/admin/products">Sản phẩm</Link>,
@@ -46,15 +52,9 @@ const AdminLayout = () => {
     },
     {
       key: "/admin/brands",
-      icon: <AppstoreOutlined />,
+      icon: <TagOutlined />,
       label: <Link to="/admin/brands">Thương hiệu</Link>,
     },
-    {
-      key: "/admin/orders",
-      icon: <OrderedListOutlined />,
-      label: <Link to="/admin/orders">Đơn hàng</Link>,
-    },
-
     {
       key: "/admin/stock",
       icon: <InboxOutlined />,
