@@ -28,6 +28,7 @@ import UserProfile from "./pages/UserProfile/UserProfile";
 import NewsListPage from "./pages/News/NewsListPage";
 import NewsDetailPage from "./pages/News/NewsDetailPage";
 import AboutPage from "./pages/About/AboutPage";
+import Contact from "./pages/Contact/Contact";
 
 // Admin Pages
 import Dashboard from "./pages/admin/Dashboard/Dashboard";
@@ -139,6 +140,14 @@ function AppRoutes() {
           element={
             <MainLayout>
               <AboutPage />
+            </MainLayout>
+          }
+        />
+        <Route
+          path="/contact"
+          element={
+            <MainLayout>
+              <Contact />
             </MainLayout>
           }
         />
