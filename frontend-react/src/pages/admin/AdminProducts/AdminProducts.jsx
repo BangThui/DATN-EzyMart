@@ -600,6 +600,8 @@ const AdminProducts = () => {
     {
       title: "Ảnh",
       dataIndex: "product_image",
+      width: 70,
+      align: "center",
       render: img => (
         <Image
           src={getImgSrc(img)}
@@ -610,10 +612,17 @@ const AdminProducts = () => {
         />
       ),
     },
-    { title: "Tên sản phẩm", dataIndex: "product_name", ellipsis: true },
+    {
+      title: "Tên sản phẩm",
+      dataIndex: "product_name",
+      width: 200,
+      ellipsis: true,
+    },
     {
       title: "Ngày xóa",
       dataIndex: "deleted_at",
+      width: 160,
+      align: "center",
       render: val => {
         if (!val) return "--";
         const d = new Date(val);
@@ -623,8 +632,10 @@ const AdminProducts = () => {
     },
     {
       title: "Thao tác",
+      width: 220,
+      align: "center",
       render: (_, r) => (
-        <Space>
+        <Space size="small">
           <Button
             icon={<UndoOutlined />}
             size="small"
@@ -758,7 +769,13 @@ const AdminProducts = () => {
         loading={loading}
         rowKey="product_id"
         expandable={expandable}
-        pagination={{ pageSize: 10, showSizeChanger: true }}
+        pagination={{
+          defaultPageSize: 10,
+          showSizeChanger: true,
+          pageSizeOptions: ['10', '20', '50', '100'],
+          locale: { items_per_page: '/ trang' },
+          showTotal: (total) => `Tổng ${total} sản phẩm`,
+        }}
       />
 
       {/* ─── Modal Thêm / Sửa sản phẩm ────────────────────────────────── */}
@@ -1061,6 +1078,14 @@ const AdminProducts = () => {
           loading={loadingTrash}
           rowKey="product_id"
           locale={{ emptyText: "Thùng rác trống" }}
+          scroll={{ x: 670 }}
+          pagination={{
+            defaultPageSize: 10,
+            showSizeChanger: true,
+            pageSizeOptions: ['10', '20', '50', '100'],
+            locale: { items_per_page: '/ trang' },
+            showTotal: (total) => `Tổng ${total} sản phẩm đã xóa`,
+          }}
         />
       </Modal>
     </div>

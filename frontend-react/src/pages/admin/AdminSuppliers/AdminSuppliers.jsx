@@ -197,7 +197,13 @@ const AdminSuppliers = () => {
         dataSource={suppliers}
         rowKey="supplier_id"
         loading={loading}
-        pagination={{ pageSize: 10, showSizeChanger: false }}
+        pagination={{
+          defaultPageSize: 10,
+          showSizeChanger: true,
+          pageSizeOptions: ['10', '20', '50', '100'],
+          locale: { items_per_page: '/ trang' },
+          showTotal: (total) => `Tổng ${total} nhà cung cấp`,
+        }}
         locale={{ emptyText: "Chưa có nhà cung cấp nào" }}
       />
 

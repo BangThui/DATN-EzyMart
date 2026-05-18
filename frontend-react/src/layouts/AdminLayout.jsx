@@ -12,6 +12,7 @@ import {
   HomeOutlined,
   InboxOutlined,
   ShopOutlined,
+  FileTextOutlined,
 } from "@ant-design/icons";
 import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -63,6 +64,11 @@ const AdminLayout = () => {
       key: "/admin/suppliers",
       icon: <ShopOutlined />,
       label: <Link to="/admin/suppliers">Nhà cung cấp</Link>,
+    },
+    {
+      key: "/admin/news",
+      icon: <FileTextOutlined />,
+      label: <Link to="/admin/news">Bài viết / Tin tức</Link>,
     },
   ];
 

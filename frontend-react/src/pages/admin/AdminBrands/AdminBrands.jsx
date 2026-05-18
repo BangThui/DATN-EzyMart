@@ -224,7 +224,13 @@ const AdminBrands = () => {
         dataSource={brands || []}
         rowKey="brand_id"
         loading={loading}
-        pagination={{ pageSize: 10 }}
+        pagination={{
+          defaultPageSize: 10,
+          showSizeChanger: true,
+          pageSizeOptions: ['10', '20', '50', '100'],
+          locale: { items_per_page: '/ trang' },
+          showTotal: (total) => `Tổng ${total} thương hiệu`,
+        }}
       />
 
       <Modal

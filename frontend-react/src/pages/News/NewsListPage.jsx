@@ -112,8 +112,17 @@ const NewsListPage = () => {
                 {/* Nội dung card */}
                 <div className="news-card-body">
                   <div className="news-card-date">
-                    <CalendarOutlined />
-                    <span>{formatDate(item.created_at)}</span>
+                    {item.updated_at ? (
+                      <>
+                        <span style={{ marginRight: 6 }}>🔄</span>
+                        <span>Đã cập nhật: {formatDate(item.updated_at)}</span>
+                      </>
+                    ) : (
+                      <>
+                        <span style={{ marginRight: 6 }}>📅</span>
+                        <span>{formatDate(item.created_at)}</span>
+                      </>
+                    )}
                   </div>
                   <h2 className="news-card-title">{item.title}</h2>
                   {item.description && (

@@ -264,7 +264,13 @@ const AdminStock = () => {
         dataSource={receipts}
         rowKey="receipt_id"
         loading={loading}
-        pagination={{ pageSize: 10 }}
+        pagination={{
+          defaultPageSize: 10,
+          showSizeChanger: true,
+          pageSizeOptions: ['10', '20', '50', '100'],
+          locale: { items_per_page: '/ trang' },
+          showTotal: (total) => `Tổng ${total} phiếu nhập`,
+        }}
       />
 
       {/* === Modal Tạo Phiếu Nhập === */}

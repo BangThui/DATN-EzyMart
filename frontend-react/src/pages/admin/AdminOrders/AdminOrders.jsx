@@ -297,6 +297,13 @@ const AdminOrders = () => {
                 loading={loading} 
                 rowKey={(record) => record.donhang_id || record.mahang} 
                 scroll={{ x: 1200 }} 
+                pagination={{
+                    defaultPageSize: 10,
+                    showSizeChanger: true,
+                    pageSizeOptions: ['10', '20', '50', '100'],
+                    locale: { items_per_page: '/ trang' },
+                    showTotal: (total) => `Tổng ${total} đơn hàng`,
+                }}
             />
 
             <Modal

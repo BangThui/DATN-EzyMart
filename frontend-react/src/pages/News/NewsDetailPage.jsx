@@ -92,8 +92,17 @@ const NewsDetailPage = () => {
               <h1 className="news-detail-title">{news.title}</h1>
               <div className="news-detail-meta">
                 <span className="news-detail-date">
-                  <CalendarOutlined />
-                  &nbsp;{formatDateTime(news.created_at)}
+                  {news.updated_at ? (
+                    <>
+                      <span>🔄</span>
+                      &nbsp;Đã cập nhật: {formatDateTime(news.updated_at)}
+                    </>
+                  ) : (
+                    <>
+                      <span>📅</span>
+                      &nbsp;{formatDateTime(news.created_at)}
+                    </>
+                  )}
                 </span>
               </div>
               {news.description && (

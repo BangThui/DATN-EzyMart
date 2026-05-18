@@ -269,7 +269,13 @@ const AdminCategories = () => {
         columns={columns}
         loading={loading}
         rowKey="category_id"
-        pagination={{ pageSize: 10 }}
+        pagination={{
+          defaultPageSize: 10,
+          showSizeChanger: true,
+          pageSizeOptions: ['10', '20', '50', '100'],
+          locale: { items_per_page: '/ trang' },
+          showTotal: (total) => `Tổng ${total} danh mục`,
+        }}
         rowClassName={() => "admin-pointer"}
         expandable={{
           expandRowByClick: true,
