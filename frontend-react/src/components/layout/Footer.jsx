@@ -10,6 +10,9 @@ import {
   MailOutlined,
   ClockCircleOutlined,
   RightOutlined,
+  ShoppingCartOutlined,
+  CarOutlined,
+  LikeOutlined,
 } from "@ant-design/icons";
 import "./Footer.css";
 
@@ -33,6 +36,33 @@ const Footer = () => {
 
   return (
     <footer className="footer-wrap">
+      {/* Trust Badges / Features */}
+      <div className="footer-trust-badges-bar">
+        <div className="footer-trust-badges-inner">
+          <div className="footer-trust-item">
+            <ShoppingCartOutlined className="footer-trust-icon" />
+            <div className="footer-trust-info">
+              <span className="footer-trust-title">Miễn phí vận chuyển</span>
+              <span className="footer-trust-sub">Đơn hàng trên 1 triệu</span>
+            </div>
+          </div>
+          <div className="footer-trust-item">
+            <CarOutlined className="footer-trust-icon" />
+            <div className="footer-trust-info">
+              <span className="footer-trust-title">Chuyển phát nhanh</span>
+              <span className="footer-trust-sub">Trên khắp Việt Nam</span>
+            </div>
+          </div>
+          <div className="footer-trust-item">
+            <LikeOutlined className="footer-trust-icon" />
+            <div className="footer-trust-info">
+              <span className="footer-trust-title">Lựa chọn</span>
+              <span className="footer-trust-sub">Nhiều sản phẩm</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="footer-inner">
         <div className="footer-grid">
           {/* Brand col */}
