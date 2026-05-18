@@ -17,4 +17,5 @@ export const productService = {
     hardDelete: (id) => axiosClient.delete(`/products/${id}`),
     // Xóa 1 ảnh trong product_images
     deleteImage: (productId, imageId) => axiosClient.delete(`/products/${productId}/images/${imageId}`),
+    getDetailsByVariants: (variantIds) => axiosClient.post('/products/get-details-by-variants', { variantIds }),
 };

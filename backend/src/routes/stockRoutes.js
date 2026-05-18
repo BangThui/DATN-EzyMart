@@ -5,7 +5,8 @@ const { authMiddleware, adminMiddleware } = require('../middleware/authMiddlewar
 
 // Tất cả đều yêu cầu đăng nhập + quyền admin
 router.get('/', authMiddleware, adminMiddleware, stockController.getReceipts);
-router.get('/:id', authMiddleware, adminMiddleware, stockController.getReceiptById);
 router.post('/import', authMiddleware, adminMiddleware, stockController.importStock);
+router.post('/bulk-import', authMiddleware, adminMiddleware, stockController.bulkImportStock);
+router.get('/:id', authMiddleware, adminMiddleware, stockController.getReceiptById);
 
 module.exports = router;

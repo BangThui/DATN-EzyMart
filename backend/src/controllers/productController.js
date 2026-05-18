@@ -296,3 +296,19 @@ exports.deleteProductImage = async (req, res) => {
     res.status(500).json({ error: "Lỗi xóa ảnh" });
   }
 };
+
+// [ADMIN] Lấy thông tin chi tiết của các biến thể qua danh sách variant_id
+exports.getDetailsByVariants = async (req, res) => {
+  try {
+    const { variantIds } = req.body;
+    if (!variantIds || !Array.isArray(variantIds) || variantIds.length === 0) {
+      return res.status(400).json({ error: "Danh sách variantIds không hợp lệ hoặc rỗng" });
+    }
+
+    const rows = await ProductModel.getDetailsByVariants(variantIds);
+    res.json(rows);
+  } catch (err) {
+    console.error("Lỗi lấy chi tiết biến thể:", err);
+    res.status(500).json({ error: "Lỗi server khi lấy thông tin chi tiết biến thể" });
+  }
+};

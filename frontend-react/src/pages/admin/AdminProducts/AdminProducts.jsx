@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Table,
   Button,
@@ -34,10 +35,13 @@ import {
   CheckCircleOutlined,
   StopOutlined,
   QuestionCircleOutlined,
+  InboxOutlined,
 } from "@ant-design/icons";
 import { productService } from "../../../services/productService";
 import { categoryService } from "../../../services/categoryService";
 import { brandService } from "../../../services/brandService";
+import { supplierService } from "../../../services/supplierService";
+import { stockService } from "../../../services/stockService";
 import { formatCurrency, buildCategoryTree } from "../../../utils";
 import { getImageUrl } from "../../../utils/imageHelper";
 import "../Admin.css";
@@ -170,6 +174,7 @@ const VariantSubTable = ({ variants }) => {
 
 // ─── Component chính ─────────────────────────────────────────────────────────
 const AdminProducts = () => {
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
@@ -187,6 +192,10 @@ const AdminProducts = () => {
   const [trashVisible, setTrashVisible] = useState(false);
   const [trashProducts, setTrashProducts] = useState([]);
   const [loadingTrash, setLoadingTrash] = useState(false);
+
+  // ── Bulk Import (Nhập kho nhanh) ──────────────────────────────────────────
+  const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+  const [isImportMode, setIsImportMode] = useState(false);
 
   // ─── Computed: danh sách đã lọc theo tab ─────────────────────────────
   const lowStockProducts = useMemo(
@@ -246,6 +255,29 @@ const AdminProducts = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // ── Tab change: reset selection khi đổi tab ──────────────────────────────
+  const handleTabChange = (key) => {
+    setActiveTab(key);
+    setSelectedRowKeys([]);
+    setIsImportMode(false);
+  };
+
+  // ── Chuyển hướng sang trang Tạo phiếu nhập với variant_id ─────────────────
+  const handleOpenBulkImport = () => {
+    const selectedProducts = displayedProducts.filter(p =>
+      selectedRowKeys.includes(p.product_id)
+    );
+    const variantIds = [];
+    selectedProducts.forEach(p => {
+      if (p.variants && p.variants.length > 0) {
+        p.variants.forEach(v => {
+          variantIds.push(v.variant_id);
+        });
+      }
+    });
+    navigate('/admin/stock/create', { state: { preSelectedVariants: variantIds } });
   };
 
   const openAdd = () => {
@@ -666,11 +698,57 @@ const AdminProducts = () => {
     rowExpandable: record => record.variants && record.variants.length > 0,
   };
 
+  // ── Row selection config ──────────────────────────────────────────────────
+  const rowSelection = {
+    selectedRowKeys,
+    onChange: keys => setSelectedRowKeys(keys),
+    getCheckboxProps: record => ({
+      disabled: !record.variants || record.variants.length === 0,
+    }),
+  };
+
   return (
     <div>
       <div className="admin-page-header">
         <Title level={2}>🛍️ Quản lý sản phẩm</Title>
         <Space>
+          {isImportMode ? (
+            <Space>
+              <Button
+                type="primary"
+                icon={<InboxOutlined />}
+                disabled={selectedRowKeys.length === 0}
+                onClick={handleOpenBulkImport}
+                style={{
+                  background: '#fa8c16',
+                  borderColor: '#fa8c16',
+                  fontWeight: 600,
+                }}
+              >
+                Tiến hành nhập kho {selectedRowKeys.length > 0 && `(${selectedRowKeys.length})`}
+              </Button>
+              <Button
+                onClick={() => {
+                  setIsImportMode(false);
+                  setSelectedRowKeys([]);
+                }}
+              >
+                Hủy chọn
+              </Button>
+            </Space>
+          ) : (
+            <Button
+              icon={<InboxOutlined />}
+              onClick={() => setIsImportMode(true)}
+              style={{
+                borderColor: '#fa8c16',
+                color: '#fa8c16',
+                fontWeight: 600,
+              }}
+            >
+              Nhập kho nhanh
+            </Button>
+          )}
           <Button
             icon={<RestOutlined />}
             onClick={() => {
@@ -738,7 +816,7 @@ const AdminProducts = () => {
       {/* ─── Tabs bộ lọc tồn kho ────────────────────────────────────── */}
       <Tabs
         activeKey={activeTab}
-        onChange={setActiveTab}
+        onChange={handleTabChange}
         className="admin-tabs-filter"
         items={[
           {
@@ -769,6 +847,7 @@ const AdminProducts = () => {
         loading={loading}
         rowKey="product_id"
         expandable={expandable}
+        rowSelection={isImportMode ? rowSelection : undefined}
         pagination={{
           defaultPageSize: 10,
           showSizeChanger: true,

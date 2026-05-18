@@ -33,21 +33,23 @@ exports.importStock = async (req, res) => {
     await connection.beginTransaction();
 
     // Kiểm tra supplier_id hợp lệ (nếu có cung cấp)
+    let supplier_name = null;
     if (supplier_id) {
       const [supplierRows] = await connection.execute(
-        `SELECT supplier_id FROM suppliers WHERE supplier_id = ? AND is_deleted = 0`,
+        `SELECT supplier_id, supplier_name FROM suppliers WHERE supplier_id = ? AND is_deleted = 0`,
         [supplier_id]
       );
       if (supplierRows.length === 0) {
         await connection.rollback();
         return res.status(404).json({ error: 'Nhà cung cấp không tồn tại hoặc đã bị xóa' });
       }
+      supplier_name = supplierRows[0].supplier_name;
     }
 
-    // --- Hành động 1: Lưu phiếu nhập (dùng supplier_id thay vì supplier_name) ---
+    // --- Hành động 1: Lưu phiếu nhập (dùng cả supplier_id và supplier_name để đảm bảo tương thích ngược) ---
     const [receiptResult] = await connection.execute(
-      `INSERT INTO stock_receipts (supplier_id, total_cost, note) VALUES (?, ?, ?)`,
-      [supplier_id || null, total_cost, note || null]
+      `INSERT INTO stock_receipts (supplier_id, supplier_name, total_cost, note) VALUES (?, ?, ?, ?)`,
+      [supplier_id || null, supplier_name, total_cost, note || null]
     );
     const receipt_id = receiptResult.insertId;
 
@@ -91,6 +93,106 @@ exports.importStock = async (req, res) => {
   } catch (err) {
     await connection.rollback();
     console.error('Lỗi nhập kho:', err);
+    res.status(500).json({ error: 'Lỗi server khi nhập kho. Giao dịch đã được hoàn tác.' });
+  } finally {
+    connection.release();
+  }
+};
+
+// [ADMIN] Nhập kho hàng loạt nhiều sản phẩm cùng lúc (Bulk Import)
+exports.bulkImportStock = async (req, res) => {
+  const { supplier_id, note, items } = req.body;
+
+  // --- Validation ---
+  if (!items || !Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: 'Danh sách sản phẩm nhập không được rỗng' });
+  }
+
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    if (!item.variant_id || !item.quantity || !item.import_price) {
+      return res.status(400).json({
+        error: `Dòng ${i + 1}: variant_id, quantity và import_price là bắt buộc`,
+      });
+    }
+    if (Number(item.quantity) <= 0 || Number(item.import_price) < 0) {
+      return res.status(400).json({
+        error: `Dòng ${i + 1}: Số lượng phải > 0 và giá nhập >= 0`,
+      });
+    }
+  }
+
+  // Bước 1: Tính tổng tiền của toàn bộ lô hàng
+  const total_cost = items.reduce((sum, item) => {
+    return sum + Number(item.quantity) * Number(item.import_price);
+  }, 0);
+
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    // Kiểm tra supplier_id hợp lệ (nếu có cung cấp)
+    let supplier_name = null;
+    if (supplier_id) {
+      const [supplierRows] = await connection.execute(
+        `SELECT supplier_id, supplier_name FROM suppliers WHERE supplier_id = ? AND is_deleted = 0`,
+        [supplier_id]
+      );
+      if (supplierRows.length === 0) {
+        await connection.rollback();
+        return res.status(404).json({ error: 'Nhà cung cấp không tồn tại hoặc đã bị xóa' });
+      }
+      supplier_name = supplierRows[0].supplier_name;
+    }
+
+    // Bước 1: INSERT vào stock_receipts để lấy receipt_id
+    const [receiptResult] = await connection.execute(
+      `INSERT INTO stock_receipts (supplier_id, supplier_name, total_cost, note) VALUES (?, ?, ?, ?)`,
+      [supplier_id || null, supplier_name, total_cost, note || null]
+    );
+    const receipt_id = receiptResult.insertId;
+
+    // Bước 2 & 3: Vòng lặp qua từng item: INSERT chi tiết + UPDATE tồn kho
+    for (const item of items) {
+      const { variant_id, quantity, import_price } = item;
+
+      // Kiểm tra variant tồn tại
+      const [variantRows] = await connection.execute(
+        `SELECT variant_id FROM product_variants WHERE variant_id = ?`,
+        [variant_id]
+      );
+      if (variantRows.length === 0) {
+        await connection.rollback();
+        return res.status(404).json({
+          error: `Biến thể với ID ${variant_id} không tồn tại`,
+        });
+      }
+
+      // Bước 2: INSERT INTO stock_receipt_details
+      await connection.execute(
+        `INSERT INTO stock_receipt_details (receipt_id, variant_id, quantity, import_price) VALUES (?, ?, ?, ?)`,
+        [receipt_id, variant_id, Number(quantity), Number(import_price)]
+      );
+
+      // Bước 3: UPDATE tồn kho – cộng dồn số lượng
+      await connection.execute(
+        `UPDATE product_variants SET variant_quantity = variant_quantity + ? WHERE variant_id = ?`,
+        [Number(quantity), variant_id]
+      );
+    }
+
+    // Commit toàn bộ transaction nếu mọi thứ thành công
+    await connection.commit();
+
+    res.status(201).json({
+      message: `Nhập kho hàng loạt thành công! Đã tạo phiếu nhập #${receipt_id} với ${items.length} loại sản phẩm.`,
+      receipt_id,
+      total_cost,
+      item_count: items.length,
+    });
+  } catch (err) {
+    await connection.rollback();
+    console.error('Lỗi nhập kho hàng loạt:', err);
     res.status(500).json({ error: 'Lỗi server khi nhập kho. Giao dịch đã được hoàn tác.' });
   } finally {
     connection.release();

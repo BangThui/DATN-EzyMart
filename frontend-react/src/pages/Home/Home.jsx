@@ -11,6 +11,20 @@ import { productService } from "../../services/productService";
 import { categoryService } from "../../services/categoryService";
 import "./Home.css";
 
+// Helper to calculate total stock of a product
+const getTotalStock = record => {
+  if (record.variants && record.variants.length > 0) {
+    return record.variants.reduce(
+      (sum, v) => sum + Number(v.variant_quantity || 0),
+      0,
+    );
+  }
+  const total = Number(record.total_quantity);
+  return !isNaN(total) && total > 0
+    ? total
+    : Number(record.product_quantity) || 0;
+};
+
 /* ── Animated Hero Slider ── */
 const HeroSlider = () => {
   const [current, setCurrent] = useState(0);
@@ -152,6 +166,7 @@ const Home = () => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [visibleLimits, setVisibleLimits] = useState({});
 
   useEffect(() => {
     const fetchData = async () => {
@@ -161,7 +176,16 @@ const Home = () => {
           productService.getAll(),
           categoryService.getAll(),
         ]);
-        if (prodRes) setProducts(prodRes);
+        if (prodRes) {
+          // Filter to only show active products that have stock > 0
+          const activeAndInStock = prodRes.filter(p => {
+            let statusVal = p.product_active;
+            if (statusVal === undefined) statusVal = p.product_acitve;
+            const isActive = statusVal === undefined || statusVal === 1 || statusVal === "1";
+            return isActive && getTotalStock(p) > 0;
+          });
+          setProducts(activeAndInStock);
+        }
         if (catRes) setCategories(catRes);
       } catch (e) {
         console.error("Error loading home data:", e);
@@ -171,6 +195,13 @@ const Home = () => {
     };
     fetchData();
   }, []);
+
+  const handleLoadMore = (catId) => {
+    setVisibleLimits(prev => ({
+      ...prev,
+      [catId]: (prev[catId] || 10) + 10
+    }));
+  };
 
   return (
     <div id="products">
@@ -207,25 +238,41 @@ const Home = () => {
                 );
 
                 if (catProducts.length === 0) return null;
-              return (
-                <div key={cat.category_id} className="home-category-section">
-                  <div className="section-header">
-                    <h2 className="section-title">{cat.category_name}</h2>
-                    <Link
-                      to={`/category/${cat.category_id}`}
-                      className="section-link"
-                    >
-                      Xem thêm <ArrowRightOutlined />
-                    </Link>
+
+                const currentLimit = visibleLimits[cat.category_id] || 10;
+                const displayedProducts = catProducts.slice(0, currentLimit);
+                const remainingCount = catProducts.length - currentLimit;
+
+                return (
+                  <div key={cat.category_id} className="home-category-section">
+                    <div className="section-header">
+                      <h2 className="section-title">{cat.category_name}</h2>
+                      <Link
+                        to={`/category/${cat.category_id}`}
+                        className="section-link"
+                      >
+                        Xem thêm <ArrowRightOutlined />
+                      </Link>
+                    </div>
+                    <div className="products-grid">
+                      {displayedProducts.map(p => (
+                        <ProductCard key={p.product_id} product={p} />
+                      ))}
+                    </div>
+
+                    {remainingCount > 0 && (
+                      <div className="load-more-wrap">
+                        <Button
+                          onClick={() => handleLoadMore(cat.category_id)}
+                          className="home-load-more-btn"
+                        >
+                          Xem thêm (còn lại {remainingCount} sản phẩm)
+                        </Button>
+                      </div>
+                    )}
                   </div>
-                  <div className="products-grid">
-                    {catProducts.slice(0, 6).map(p => (
-                      <ProductCard key={p.product_id} product={p} />
-                    ))}
-                  </div>
-                </div>
-              );
-            })
+                );
+              })
           )}
         </div>
       </div>

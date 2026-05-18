@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Table,
   Button,
@@ -30,16 +31,15 @@ const { Title, Text } = Typography;
 const { Option } = Select;
 
 const AdminStock = () => {
+  const navigate = useNavigate();
   const [receipts, setReceipts] = useState([]);
   const [products, setProducts] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [quickAddModalVisible, setQuickAddModalVisible] = useState(false);
   const [currentReceipt, setCurrentReceipt] = useState(null);
   const [quickAddSubmitting, setQuickAddSubmitting] = useState(false);
-  const [form] = Form.useForm();
   const [quickAddForm] = Form.useForm();
 
   useEffect(() => {
@@ -79,35 +79,7 @@ const AdminStock = () => {
     }
   };
 
-  const handleOpenModal = () => {
-    form.resetFields();
-    form.setFieldsValue({
-      items: [{ variant_id: null, quantity: 1, import_price: 0 }],
-    });
-    fetchSuppliers(); // Fetch khi mở modal
-    setModalVisible(true);
-  };
 
-  const handleCancel = () => {
-    setModalVisible(false);
-    form.resetFields();
-  };
-
-  const handleFinish = async (values) => {
-    try {
-      if (!values.items || values.items.length === 0) {
-        message.error("Vui lòng thêm ít nhất một sản phẩm để nhập kho");
-        return;
-      }
-      await stockService.importStock(values);
-      message.success("Tạo phiếu nhập kho thành công!");
-      handleCancel();
-      fetchData();
-    } catch (error) {
-      console.error("Lỗi tạo phiếu nhập:", error);
-      message.error(error?.response?.data?.error || "Lỗi khi tạo phiếu nhập kho!");
-    }
-  };
 
   const handleViewDetail = async (id) => {
     try {
@@ -252,7 +224,7 @@ const AdminStock = () => {
         <Button
           type="primary"
           icon={<PlusOutlined />}
-          onClick={handleOpenModal}
+          onClick={() => navigate("/admin/stock/create")}
           className="admin-btn-primary"
         >
           Tạo Phiếu Nhập Mới
@@ -273,135 +245,7 @@ const AdminStock = () => {
         }}
       />
 
-      {/* === Modal Tạo Phiếu Nhập === */}
-      <Modal
-        title="Tạo Phiếu Nhập Kho Mới"
-        open={modalVisible}
-        onCancel={handleCancel}
-        footer={null}
-        width={800}
-        destroyOnClose
-      >
-        <Form form={form} layout="vertical" onFinish={handleFinish}>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item name="supplier_id" label="Nhà cung cấp">
-                <Space.Compact className="admin-w-full">
-                  <Select
-                    showSearch
-                    placeholder="Chọn nhà cung cấp"
-                    optionFilterProp="label"
-                    className="admin-flex-fill"
-                    allowClear
-                    filterOption={(input, option) =>
-                      (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
-                    }
-                    options={suppliers.map((s) => ({
-                      label: s.supplier_name,
-                      value: s.supplier_id,
-                    }))}
-                  />
-                  <Tooltip title="Thêm nhà cung cấp mới">
-                    <Button
-                      icon={<PlusCircleOutlined />}
-                      onClick={handleOpenQuickAdd}
-                      className="admin-flex-fixed"
-                    />
-                  </Tooltip>
-                </Space.Compact>
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="note" label="Ghi chú">
-                <Input placeholder="Ghi chú phiếu nhập (tuỳ chọn)" />
-              </Form.Item>
-            </Col>
-          </Row>
 
-          <div className="admin-section-label">
-            <Text strong>Danh sách sản phẩm nhập:</Text>
-          </div>
-
-          <Form.List name="items">
-            {(fields, { add, remove }) => (
-              <>
-                {fields.map(({ key, name, ...restField }) => (
-                  <Space
-                    key={key}
-                    className="admin-stock-item-row"
-                    align="baseline"
-                  >
-                    <Form.Item
-                      {...restField}
-                      name={[name, "variant_id"]}
-                      rules={[{ required: true, message: "Chọn biến thể SP" }]}
-                      className="admin-fi-variant-select"
-                    >
-                      <Select
-                        showSearch
-                        placeholder="Tìm chọn biến thể sản phẩm"
-                        optionFilterProp="children"
-                        filterOption={(input, option) =>
-                          (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
-                        }
-                        options={products.flatMap((p) =>
-                          p.variants?.map((v) => ({
-                            label: `${p.product_name} - ${
-                              v.variant_name || "---"
-                            } (Hiện tại: ${v.variant_quantity})`,
-                            value: v.variant_id,
-                          })) || []
-                        )}
-                      />
-                    </Form.Item>
-                    <Form.Item
-                      {...restField}
-                      name={[name, "quantity"]}
-                      rules={[{ required: true, message: "Nhập SL" }]}
-                    >
-                      <InputNumber min={1} placeholder="Số lượng" />
-                    </Form.Item>
-                    <Form.Item
-                      {...restField}
-                      name={[name, "import_price"]}
-                      rules={[{ required: true, message: "Nhập giá" }]}
-                    >
-                      <InputNumber
-                        min={0}
-                        step={1000}
-                        placeholder="Giá nhập"
-                        className="admin-input-import-price"
-                        formatter={(value) =>
-                          `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-                        }
-                        parser={(value) => value.replace(/\$\s?|(,*)/g, "")}
-                      />
-                    </Form.Item>
-                    <MinusCircleOutlined onClick={() => remove(name)} className="admin-remove-icon" />
-                  </Space>
-                ))}
-                <Form.Item>
-                  <Button
-                    type="dashed"
-                    onClick={() => add()}
-                    block
-                    icon={<PlusOutlined />}
-                  >
-                    Thêm dòng sản phẩm
-                  </Button>
-                </Form.Item>
-              </>
-            )}
-          </Form.List>
-
-          <div className="admin-form-actions admin-form-actions--mt">
-            <Button onClick={handleCancel}>Hủy</Button>
-            <Button type="primary" htmlType="submit" className="admin-btn-primary">
-              Hoàn tất phiếu nhập
-            </Button>
-          </div>
-        </Form>
-      </Modal>
 
       {/* === Modal Quick Add Nhà Cung Cấp === */}
       <Modal

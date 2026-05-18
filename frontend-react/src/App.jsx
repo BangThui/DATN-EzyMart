@@ -39,6 +39,7 @@ import AdminOrders from "./pages/admin/AdminOrders/AdminOrders";
 import AdminStock from "./pages/admin/AdminStock/AdminStock";
 import AdminSuppliers from "./pages/admin/AdminSuppliers/AdminSuppliers";
 import AdminNews from "./pages/admin/AdminNews/AdminNews";
+import CreateStockReceipt from "./pages/admin/AdminStock/CreateStockReceipt";
 // Login component removed from imports
 
 // Admin Route Guard
@@ -185,6 +186,7 @@ function AppRoutes() {
           <Route path="categories" element={<AdminCategories />} />
           <Route path="orders" element={<AdminOrders />} />
           <Route path="stock" element={<AdminStock />} />
+          <Route path="stock/create" element={<CreateStockReceipt />} />
           <Route path="suppliers" element={<AdminSuppliers />} />
           <Route path="news" element={<AdminNews />} />
         </Route>

@@ -22,16 +22,28 @@ export const formatCurrency = (amount) => {
 export const buildCategoryTree = (categories, parentId = null) => {
     if (!Array.isArray(categories)) return [];
     
+    // Safely handle options object passed as second argument
+    const actualParentId = (typeof parentId === 'object' && parentId !== null) ? null : parentId;
+    
     return categories
-        .filter(c => c.parent_id === parentId)
-        .map(c => ({
-            ...c,
-            key: c.category_id,
-            label: c.category_name,
-            children: buildCategoryTree(categories, c.category_id).length > 0 
-                ? buildCategoryTree(categories, c.category_id) 
-                : null
-        }));
+        .filter(c => {
+            if (actualParentId === null) {
+                return !c.parent_id || c.parent_id === 0 || c.parent_id === "0";
+            }
+            // Strict comparison, or loose if IDs can be numbers/strings
+            return Number(c.parent_id) === Number(actualParentId);
+        })
+        .map(c => {
+            const children = buildCategoryTree(categories, c.category_id);
+            return {
+                ...c,
+                key: c.category_id,
+                value: c.category_id,
+                title: c.category_name,
+                label: c.category_name,
+                children: children.length > 0 ? children : null
+            };
+        });
 };
 
 /**

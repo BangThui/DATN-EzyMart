@@ -63,7 +63,14 @@ const ProductModel = {
       query += " WHERE " + conditions.join(" AND ");
     }
 
-    query += " GROUP BY p.product_id ORDER BY p.product_id DESC";
+    query += " GROUP BY p.product_id";
+    
+    // Only show active products that have a stock quantity greater than 0 for public users
+    if (!admin && isdeleted === undefined) {
+      query += " HAVING total_quantity > 0";
+    }
+
+    query += " ORDER BY p.product_id DESC";
 
     const [products] = await db.query(query, params);
     if (products.length === 0) return [products];
@@ -140,8 +147,8 @@ const ProductModel = {
 
     query += " GROUP BY p.product_id";
 
-    // Logic giá: Lọc theo variant_price thấp nhất của sản phẩm.
-    let havingConditions = [];
+    // Logic giá: Lọc theo variant_price thấp nhất của sản phẩm và yêu cầu tồn kho > 0 cho public shop.
+    let havingConditions = ["total_quantity > 0"];
     if (minPrice !== undefined && minPrice !== '') {
       havingConditions.push("min_price >= ?");
       params.push(Number(minPrice));
@@ -214,7 +221,14 @@ const ProductModel = {
 
   getSimilar: async (category_id, current_id) => {
     const [products] = await db.query(
-      `SELECT ${PRODUCT_SELECT} FROM products p LEFT JOIN categories c ON p.category_id = c.category_id WHERE p.category_id = ? AND p.product_id != ? AND p.is_deleted = 0 AND p.product_active = 1 LIMIT 4`,
+      `SELECT ${PRODUCT_SELECT}, SUM(v.variant_quantity) as total_quantity 
+       FROM products p 
+       LEFT JOIN categories c ON p.category_id = c.category_id 
+       JOIN product_variants v ON p.product_id = v.product_id
+       WHERE p.category_id = ? AND p.product_id != ? AND p.is_deleted = 0 AND p.product_active = 1 
+       GROUP BY p.product_id
+       HAVING total_quantity > 0
+       LIMIT 4`,
       [category_id, current_id],
     );
     if (products.length === 0) return [products];
@@ -425,6 +439,19 @@ const ProductModel = {
 
   updateStatus: (id, status) => {
     return db.query("UPDATE products SET product_active = ? WHERE product_id = ?", [status, id]);
+  },
+
+  getDetailsByVariants: async (variantIds) => {
+    if (!variantIds || variantIds.length === 0) return [];
+    const [rows] = await db.query(
+      `SELECT pv.variant_id, pv.variant_name, pv.sku, pv.variant_price, pv.variant_quantity,
+              p.product_id, p.product_name, p.product_image
+       FROM product_variants pv
+       JOIN products p ON pv.product_id = p.product_id
+       WHERE pv.variant_id IN (?)`,
+      [variantIds]
+    );
+    return rows;
   },
 };
 
