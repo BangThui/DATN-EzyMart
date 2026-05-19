@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Tag, Typography, Empty, Button, Spin, Tabs, Drawer, Steps, List, Divider, message, Popconfirm } from "antd";
+import { Tag, Typography, Empty, Button, Spin, Tabs, Drawer, Steps, List, Divider, message, Popconfirm, Space } from "antd";
 import { Link, useLocation } from "react-router-dom";
 import { orderService } from "../../services/orderService";
 import { useAuth } from "../../context/AuthContext";
@@ -223,9 +223,14 @@ const Orders = () => {
                         : "--"}
                     </Text>
                   </div>
-                  <Tag className="custom-status-tag" color={statusObj.color}>
-                    {statusObj.label}
-                  </Tag>
+                  <Space>
+                    {(order.payment_method === 'PAYPAL' || order.payment_method === 'paypal') && (
+                      <Tag color="purple">PayPal</Tag>
+                    )}
+                    <Tag className="custom-status-tag" color={statusObj.color}>
+                      {statusObj.label}
+                    </Tag>
+                  </Space>
                 </div>
 
                 {/* Body */}
@@ -343,7 +348,18 @@ const Orders = () => {
               <p><Text type="secondary">Số điện thoại:</Text> {selectedOrder.customer_phone || user.phone || "Không có"}</p>
               <p><Text type="secondary">Địa chỉ:</Text> {selectedOrder.customer_address || user.address || "Không có địa chỉ"}</p>
               <Divider className="drawer-divider" />
-              <p><Text type="secondary">Phương thức thanh toán:</Text> Thanh toán khi nhận hàng (COD)</p>
+              <p>
+                <Text type="secondary">Phương thức thanh toán:</Text>{" "}
+                {selectedOrder.payment_method === "PAYPAL" || selectedOrder.payment_method === "paypal"
+                  ? "Thanh toán qua PayPal (Đã thanh toán)"
+                  : selectedOrder.payment_method === "BANK"
+                  ? "Chuyển khoản (ATM)"
+                  : selectedOrder.payment_method === "MOMO"
+                  ? "Ví MoMo"
+                  : selectedOrder.payment_method === "VNPAY"
+                  ? "Cổng VNPAY"
+                  : "Thanh toán khi nhận hàng (COD)"}
+              </p>
             </div>
 
             {/* Danh sách sản phẩm */}

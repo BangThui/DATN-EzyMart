@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Form, Input, Select, Button, Card, Typography, Divider, message, Row, Col, Alert } from 'antd';
 import { CheckCircleOutlined } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
@@ -6,6 +6,8 @@ import { cartService } from '../../services/cartService';
 import { orderService } from '../../services/orderService';
 import { useAuth } from '../../context/AuthContext';
 import { formatCurrency } from '../../utils';
+import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
+import axiosClient from '../../services/axiosClient';
 import './Checkout.css';
 
 import { getImageUrl } from '../../utils/imageHelper';
@@ -21,6 +23,9 @@ const Checkout = () => {
     const [submitting, setSubmitting] = useState(false);
     const [orderedMahang, setOrderedMahang] = useState(null);
     const [form] = Form.useForm();
+    const [paymentMethod, setPaymentMethod] = useState('');
+    const [tempOrderId, setTempOrderId] = useState(null);
+    const localOrderIdRef = useRef(null);
 
     useEffect(() => {
         if (!user) { navigate('/'); return; }
@@ -45,6 +50,67 @@ const Checkout = () => {
     };
 
     const total = cartItems.reduce((sum, item) => sum + getItemPrice(item) * item.product_quantity, 0);
+
+    const handlePaypalCreateOrder = async () => {
+        try {
+            // Validate form trước khi tạo đơn hàng
+            const values = await form.validateFields();
+            if (cartItems.length === 0) {
+                message.error('Giỏ hàng trống');
+                return Promise.reject(new Error('Giỏ hàng trống'));
+            }
+
+            setSubmitting(true);
+
+            // 1. Gọi API lưu đơn hàng vào database locally với status pending
+            const res = await orderService.create({
+                ...values,
+                user_id: user.user_id,
+                cart_items: cartItems.map(item => ({
+                    product_id: item.product_id,
+                    variant_id: item.variant_id,
+                    variant_price: item.variant_price,
+                    variant_discount: item.variant_discount,
+                    product_quantity: item.product_quantity
+                }))
+            });
+
+            const localOrderId = res.mahang || res.order_id;
+            localOrderIdRef.current = localOrderId;
+            setTempOrderId(localOrderId);
+
+            // 2. Gọi API backend PayPal đổi tỷ giá và tạo giao dịch
+            const paypalRes = await axiosClient.post('/payment/paypal/create-order', {
+                order_id: localOrderId
+            });
+
+            return paypalRes.id; // Trả về PayPal Order ID cho PayPal Buttons
+        } catch (err) {
+            console.error('PayPal Create Order Error:', err);
+            const errMsg = err.response?.data?.error || err.message || 'Khởi tạo đơn hàng PayPal thất bại';
+            message.error(errMsg);
+            setSubmitting(false);
+            return Promise.reject(err);
+        }
+    };
+
+    const handlePaypalApprove = async (data, actions) => {
+        try {
+            // Gọi API backend capture đơn hàng
+            const res = await axiosClient.post('/payment/paypal/capture-order', {
+                paypalOrderId: data.orderID,
+                order_id: localOrderIdRef.current || tempOrderId
+            });
+
+            message.success('Thanh toán đơn hàng qua PayPal thành công!');
+            setOrderedMahang(localOrderIdRef.current || tempOrderId);
+        } catch (err) {
+            console.error('PayPal Capture Error:', err);
+            message.error(err.response?.data?.error || 'Xác nhận thanh toán thất bại');
+        } finally {
+            setSubmitting(false);
+        }
+    };
 
     const handleSubmit = async (values) => {
         if (cartItems.length === 0) { message.error('Giỏ hàng trống'); return; }
@@ -105,9 +171,10 @@ const Checkout = () => {
                                 <Input />
                             </Form.Item>
                             <Form.Item label="Hình thức thanh toán" name="payments" rules={[{ required: true }]}>
-                                <Select placeholder="Chọn hình thức thanh toán">
+                                <Select placeholder="Chọn hình thức thanh toán" onChange={(val) => setPaymentMethod(val)}>
                                     <Option value="0">Thanh toán khi nhận hàng (COD)</Option>
-                                    <Option value="1">Thanh toán ATM</Option>
+                                    <Option value="1">Thanh toán ATM (BANK)</Option>
+                                    <Option value="paypal">Thanh toán qua PayPal</Option>
                                 </Select>
                             </Form.Item>
                             <Form.Item label="Ghi chú" name="note">
@@ -116,17 +183,40 @@ const Checkout = () => {
                             <Link to="/profile" className="checkout-edit-profile-link">
                                 ✏️ Thay đổi thông tin cá nhân
                             </Link>
-                            <Form.Item>
-                                <Button
-                                    type="primary"
-                                    htmlType="submit"
-                                    loading={submitting}
-                                    block size="large"
-                                    className="checkout-submit-btn"
-                                >
-                                    Xác nhận đặt hàng
-                                </Button>
-                            </Form.Item>
+                            {paymentMethod === 'paypal' ? (
+                                <PayPalScriptProvider options={{ 
+                                    "client-id": "Abyb3e-LitkcVfYfpwKU0BAIm_eC0KpmVsOCmWwRA87IQmo1Bt5v1zY2pnwLh6kJ3C7RqAIR2nk9gEsh"
+                                }}>
+                                    <div style={{ marginTop: '15px' }}>
+                                        <PayPalButtons
+                                            style={{ layout: "vertical" }}
+                                            createOrder={handlePaypalCreateOrder}
+                                            onApprove={handlePaypalApprove}
+                                            onError={(err) => {
+                                                console.error("PayPal Error:", err);
+                                                message.error("Có lỗi xảy ra trong quá trình thanh toán PayPal.");
+                                                setSubmitting(false);
+                                            }}
+                                            onCancel={() => {
+                                                message.warning("Bạn đã hủy thanh toán PayPal.");
+                                                setSubmitting(false);
+                                            }}
+                                        />
+                                    </div>
+                                </PayPalScriptProvider>
+                            ) : (
+                                <Form.Item>
+                                    <Button
+                                        type="primary"
+                                        htmlType="submit"
+                                        loading={submitting}
+                                        block size="large"
+                                        className="checkout-submit-btn"
+                                    >
+                                        Xác nhận đặt hàng
+                                    </Button>
+                                </Form.Item>
+                            )}
                         </Form>
                     </Card>
                 </Col>

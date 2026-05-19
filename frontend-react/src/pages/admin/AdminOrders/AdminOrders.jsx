@@ -155,9 +155,22 @@ const AdminOrders = () => {
         {
             title: 'Thanh toán', dataIndex: 'payment_method',
             render: p => {
-                const isTransfer = p === 'BANK' || p === 'MOMO' || p === 'VNPAY' || p === 'Chuyển khoản' || p === '1' || p === 1;
-                const displayText = p === 'BANK' ? 'Thanh toán ATM' : (p || 'COD');
-                return <Tag color={isTransfer ? 'blue' : 'green'}>{displayText}</Tag>;
+                const isTransfer = p === 'BANK' || p === 'MOMO' || p === 'VNPAY' || p === 'PAYPAL' || p === 'paypal' || p === 'Chuyển khoản' || p === '1' || p === 1;
+                let displayText = p || 'COD';
+                let color = isTransfer ? 'blue' : 'green';
+                if (p === 'BANK') {
+                    displayText = 'Thanh toán ATM';
+                } else if (p === 'MOMO') {
+                    displayText = 'Ví MoMo';
+                    color = 'magenta';
+                } else if (p === 'VNPAY') {
+                    displayText = 'Cổng VNPAY';
+                    color = 'volcano';
+                } else if (p === 'PAYPAL' || p === 'paypal') {
+                    displayText = 'PayPal';
+                    color = 'purple';
+                }
+                return <Tag color={color}>{displayText}</Tag>;
             }
         },
         {
@@ -171,20 +184,24 @@ const AdminOrders = () => {
             title: 'Trạng thái', dataIndex: 'order_status',
             render: (status, record) => {
                 const currentStatus = status || 'pending';
+                const isPaypal = record.payment_method === 'PAYPAL' || record.payment_method === 'paypal';
                 return (
-                    <Select
-                        value={currentStatus}
-                        className={`select-status-${currentStatus}`}
-                        style={{ width: 140 }}
-                        onChange={(val) => handleStatusChange(record.mahang || record.donhang_id, val)}
-                        onClick={(e) => e.stopPropagation()} 
-                    >
-                        {Object.entries(STATUS_MAP).map(([k, v]) => (
-                            <Option key={k} value={k} disabled={!canChangeStatus(currentStatus, k)}>
-                                <Tag className="custom-status-tag" color={v.color}>{v.label}</Tag>
-                            </Option>
-                        ))}
-                    </Select>
+                    <Space direction="vertical" size={2}>
+                        <Select
+                            value={currentStatus}
+                            className={`select-status-${currentStatus}`}
+                            style={{ width: 140 }}
+                            onChange={(val) => handleStatusChange(record.mahang || record.donhang_id, val)}
+                            onClick={(e) => e.stopPropagation()} 
+                        >
+                            {Object.entries(STATUS_MAP).map(([k, v]) => (
+                                <Option key={k} value={k} disabled={!canChangeStatus(currentStatus, k)}>
+                                    <Tag className="custom-status-tag" color={v.color}>{v.label}</Tag>
+                                </Option>
+                            ))}
+                        </Select>
+                        {isPaypal && <Tag color="purple" style={{ fontSize: '11px', margin: 0, textAlign: 'center', width: 140 }}>Đã thanh toán qua PayPal</Tag>}
+                    </Space>
                 );
             }
         },
@@ -282,6 +299,7 @@ const AdminOrders = () => {
                             <Option value="BANK">Chuyển khoản (ATM)</Option>
                             <Option value="MOMO">Ví MoMo</Option>
                             <Option value="VNPAY">Cổng VNPAY</Option>
+                            <Option value="PAYPAL">Cổng PayPal</Option>
                         </Select>
                     </Col>
                     <Col xs={24} sm={24} md={6}>

@@ -76,7 +76,12 @@ const OrderModel = {
       const order_id = orderResult.insertId;
 
       // 2.5 Tạo payment record
-      const paymentMethod = payments === '1' || payments === 1 ? 'BANK' : 'COD';
+      let paymentMethod = 'COD';
+      if (payments === '1' || payments === 1 || payments === 'BANK') {
+        paymentMethod = 'BANK';
+      } else if (payments === '2' || payments === 2 || payments === 'PAYPAL' || payments === 'paypal') {
+        paymentMethod = 'PAYPAL';
+      }
       await connection.query(
         "INSERT INTO payments (order_id, payment_method, payment_status) VALUES (?, ?, ?)",
         [order_id, paymentMethod, "pending"]
