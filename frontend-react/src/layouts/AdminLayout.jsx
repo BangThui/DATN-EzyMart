@@ -14,6 +14,7 @@ import {
   ShopOutlined,
   FileTextOutlined,
   TagOutlined,
+  SafetyCertificateOutlined,
 } from "@ant-design/icons";
 import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -39,6 +40,11 @@ const AdminLayout = () => {
       key: "/admin/orders",
       icon: <OrderedListOutlined />,
       label: <Link to="/admin/orders">Đơn hàng</Link>,
+    },
+    {
+      key: "/admin/users",
+      icon: <TeamOutlined />,
+      label: <Link to="/admin/users">Tài khoản</Link>,
     },
     {
       key: "/admin/products",

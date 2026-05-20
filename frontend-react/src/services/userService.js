@@ -6,5 +6,8 @@ export const userService = {
     changePassword: (id, data) => axiosClient.put(`/users/${id}/password`, data),
     // Admin
     getAllUsers: () => axiosClient.get('/users'),
+    createUser: (data) => axiosClient.post('/users/admin', data),
+    updateUserByAdmin: (id, data) => axiosClient.put(`/users/admin/${id}`, data),
+    deleteUser: (id) => axiosClient.delete(`/users/admin/${id}`),
     getAllCustomers: () => axiosClient.get('/users/admin/customers'),
 };

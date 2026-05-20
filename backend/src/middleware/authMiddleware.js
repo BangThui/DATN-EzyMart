@@ -20,8 +20,8 @@ const authMiddleware = (req, res, next) => {
 };
 
 const adminMiddleware = (req, res, next) => {
-  if (!req.user || (req.user.role !== 0 && req.user.role !== "0")) {
-    return res.status(403).json({ error: "Chỉ admin mới có quyền truy cập" });
+  if (!req.user || (req.user.role !== 0 && req.user.role !== "0" && req.user.role !== 2 && req.user.role !== "2")) {
+    return res.status(403).json({ error: "Chỉ admin và nhân viên mới có quyền truy cập" });
   }
   next();
 };

@@ -10,6 +10,9 @@ router.put('/:id/password', authMiddleware, userController.changePassword);
 
 // Admin routes
 router.get('/', authMiddleware, adminMiddleware, userController.getAllUsers);
+router.post('/admin', authMiddleware, adminMiddleware, userController.createUserByAdmin);
+router.put('/admin/:id', authMiddleware, adminMiddleware, userController.updateUserByAdmin);
+router.delete('/admin/:id', authMiddleware, adminMiddleware, userController.deleteUser);
 router.get('/admin/customers', authMiddleware, adminMiddleware, userController.getAllCustomers);
 
 module.exports = router;

@@ -9,14 +9,32 @@ exports.login = async (req, res) => {
       return res.status(400).json({ error: "Vui lòng nhập email và mật khẩu" });
     }
 
-    // Kiểm tra user (Dùng chung cho cả Admin & Khách)
-    const [userRows] = await UserModel.findByEmailAndPassword(email, password);
+    // Thay vì dùng UserModel.findByEmailAndPassword (chỉ tìm plaintext), ta tìm user bằng email trước
+    const [userRows] = await UserModel.findByEmail(email);
 
     if (userRows.length === 0) {
       return res.status(401).json({ error: "Email hoặc mật khẩu không đúng" });
     }
 
-    const user = userRows[0];
+    const userId = userRows[0].user_id;
+    // Lấy thông tin đầy đủ bao gồm cả user_password
+    const [fullUserRows] = await require('../config/db').query("SELECT * FROM users WHERE user_id = ?", [userId]);
+    const user = fullUserRows[0];
+
+    const bcrypt = require('bcryptjs');
+    let isMatch = false;
+
+    // Kiểm tra xem mật khẩu trong DB đã băm chưa (bcrypt hash thường bắt đầu bằng $2a$ hoặc $2b$)
+    if (user.user_password.startsWith('$2a$') || user.user_password.startsWith('$2b$')) {
+      isMatch = bcrypt.compareSync(password, user.user_password);
+    } else {
+      // So sánh plaintext (hỗ trợ tương thích ngược)
+      isMatch = password === user.user_password;
+    }
+
+    if (!isMatch) {
+      return res.status(401).json({ error: "Email hoặc mật khẩu không đúng" });
+    }
 
     // Tạo JWT
     const token = jwt.sign(
@@ -24,7 +42,7 @@ exports.login = async (req, res) => {
         user_id: user.user_id,
         email: user.user_email,
         name: user.user_name,
-        role: user.role, // 0 là Admin, 1 là Khách hàng
+        role: user.role, // 0 là Admin, 1 là Khách hàng, 2 là Nhân viên
       },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || "7d" },
@@ -58,10 +76,14 @@ exports.register = async (req, res) => {
       return res.status(409).json({ error: "Email đã được sử dụng" });
     }
 
+    const bcrypt = require('bcryptjs');
+    const salt = bcrypt.genSaltSync(10);
+    const hashedPassword = bcrypt.hashSync(password, salt);
+
     const [result] = await UserModel.create({
       name,
       email,
-      password,
+      password: hashedPassword,
       phone,
       address,
     });
