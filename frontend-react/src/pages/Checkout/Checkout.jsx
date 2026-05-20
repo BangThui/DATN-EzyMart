@@ -55,33 +55,41 @@ const Checkout = () => {
         try {
             // Validate form trước khi tạo đơn hàng
             const values = await form.validateFields();
-            if (cartItems.length === 0) {
-                message.error('Giỏ hàng trống');
-                return Promise.reject(new Error('Giỏ hàng trống'));
+            
+            let currentOrderId = tempOrderId || localOrderIdRef.current;
+
+            if (!currentOrderId) {
+                if (cartItems.length === 0) {
+                    message.error('Giỏ hàng trống');
+                    return Promise.reject(new Error('Giỏ hàng trống'));
+                }
+
+                setSubmitting(true);
+
+                // 1. Gọi API lưu đơn hàng vào database locally với status pending
+                const res = await orderService.create({
+                    ...values,
+                    user_id: user.user_id,
+                    cart_items: cartItems.map(item => ({
+                        product_id: item.product_id,
+                        variant_id: item.variant_id,
+                        variant_price: item.variant_price,
+                        variant_discount: item.variant_discount,
+                        product_quantity: item.product_quantity
+                    }))
+                });
+
+                const localOrderId = res.mahang || res.order_id;
+                localOrderIdRef.current = localOrderId;
+                setTempOrderId(localOrderId);
+                currentOrderId = localOrderId;
+            } else {
+                setSubmitting(true);
             }
-
-            setSubmitting(true);
-
-            // 1. Gọi API lưu đơn hàng vào database locally với status pending
-            const res = await orderService.create({
-                ...values,
-                user_id: user.user_id,
-                cart_items: cartItems.map(item => ({
-                    product_id: item.product_id,
-                    variant_id: item.variant_id,
-                    variant_price: item.variant_price,
-                    variant_discount: item.variant_discount,
-                    product_quantity: item.product_quantity
-                }))
-            });
-
-            const localOrderId = res.mahang || res.order_id;
-            localOrderIdRef.current = localOrderId;
-            setTempOrderId(localOrderId);
 
             // 2. Gọi API backend PayPal đổi tỷ giá và tạo giao dịch
             const paypalRes = await axiosClient.post('/payment/paypal/create-order', {
-                order_id: localOrderId
+                order_id: currentOrderId
             });
 
             return paypalRes.id; // Trả về PayPal Order ID cho PayPal Buttons
@@ -173,7 +181,6 @@ const Checkout = () => {
                             <Form.Item label="Hình thức thanh toán" name="payments" rules={[{ required: true }]}>
                                 <Select placeholder="Chọn hình thức thanh toán" onChange={(val) => setPaymentMethod(val)}>
                                     <Option value="0">Thanh toán khi nhận hàng (COD)</Option>
-                                    <Option value="1">Thanh toán ATM (BANK)</Option>
                                     <Option value="paypal">Thanh toán qua PayPal</Option>
                                 </Select>
                             </Form.Item>
@@ -185,7 +192,9 @@ const Checkout = () => {
                             </Link>
                             {paymentMethod === 'paypal' ? (
                                 <PayPalScriptProvider options={{ 
-                                    "client-id": "Abyb3e-LitkcVfYfpwKU0BAIm_eC0KpmVsOCmWwRA87IQmo1Bt5v1zY2pnwLh6kJ3C7RqAIR2nk9gEsh"
+                                    "client-id": "Abyb3e-LitkcVfYfpwKU0BAIm_eC0KpmVsOCmWwRA87IQmo1Bt5v1zY2pnwLh6kJ3C7RqAIR2nk9gEsh",
+                                    currency: "USD",
+                                    intent: "capture"
                                 }}>
                                     <div style={{ marginTop: '15px' }}>
                                         <PayPalButtons

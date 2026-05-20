@@ -351,7 +351,7 @@ const Orders = () => {
               <p>
                 <Text type="secondary">Phương thức thanh toán:</Text>{" "}
                 {selectedOrder.payment_method === "PAYPAL" || selectedOrder.payment_method === "paypal"
-                  ? "Thanh toán qua PayPal (Đã thanh toán)"
+                  ? (selectedOrder.order_status === "pending" || selectedOrder.order_status === "cancelled" ? "Thanh toán qua PayPal (Chưa thanh toán)" : "Thanh toán qua PayPal (Đã thanh toán)")
                   : selectedOrder.payment_method === "BANK"
                   ? "Chuyển khoản (ATM)"
                   : selectedOrder.payment_method === "MOMO"
