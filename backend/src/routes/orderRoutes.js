@@ -13,5 +13,7 @@ router.patch('/:id/cancel', authMiddleware, orderController.customerCancelOrder)
 // Admin
 router.get('/', authMiddleware, adminMiddleware, orderController.getAllOrders);
 router.put('/:id/status', authMiddleware, adminMiddleware, orderController.updateOrderStatus);
+// Click & Collect: cập nhật pickup_status (waiting → prepared → received)
+router.patch('/:id/pickup-status', authMiddleware, adminMiddleware, orderController.updatePickupStatus);
 
 module.exports = router;

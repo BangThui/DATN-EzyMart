@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Table, Tag, Select, Typography, message, Modal, Tooltip, Descriptions, Button, Input, Space, Row, Col } from 'antd';
-import { EyeOutlined, SearchOutlined } from '@ant-design/icons';
+import { Table, Tag, Select, Typography, message, Modal, Tooltip, Descriptions, Button, Input, Space, Row, Col, Popconfirm } from 'antd';
+import { EyeOutlined, SearchOutlined, ClockCircleOutlined, ShopOutlined } from '@ant-design/icons';
 import { orderService } from '../../../services/orderService';
 import { formatCurrency } from '../../../utils';
 import { getImageUrl } from '../../../utils/imageHelper';
@@ -17,6 +17,24 @@ const STATUS_MAP = {
     'completed': { label: 'Hoàn thành', color: 'success' },
     'cancelled': { label: 'Đã hủy', color: 'error' },
 };
+
+const PICKUP_STATUS_MAP = {
+    'none': { label: 'Không áp dụng', color: 'default' },
+    'waiting': { label: 'Đang chuẩn bị', color: 'orange' },
+    'prepared': { label: 'Đã soạn xong', color: 'blue' },
+    'received': { label: 'Đã giao khách', color: 'green' },
+};
+
+// Tiếp theo là bước chuyển trạng thái pickup hợp lệ
+const PICKUP_NEXT_STATUS = {
+    'waiting': 'prepared',
+    'prepared': 'received',
+};
+const PICKUP_NEXT_LABEL = {
+    'waiting': 'Đã soạn xong →',
+    'prepared': 'Giao cho khách →',
+};
+
 
 const AdminOrders = () => {
     const [orders, setOrders] = useState([]);
@@ -98,6 +116,28 @@ const AdminOrders = () => {
         return () => socket.off('order_status_updated', handleStatusUpdate);
     }, [socket, fetchData]);
 
+    // Lắng nghe socket: cập nhật pickup_status real-time
+    useEffect(() => {
+        if (!socket) return;
+        const handlePickupUpdate = (data) => {
+            // Cập nhật pickup_status (cột Phương thức giao)
+            setOrders(prev => prev.map(o =>
+                (o.mahang === data.order_id || o.donhang_id === data.order_id)
+                    ? { ...o, pickup_status: data.pickup_status }
+                    : o
+            ));
+            setSelectedOrder(prev => {
+                if (prev && (prev.mahang === data.order_id || prev.donhang_id === data.order_id)) {
+                    return { ...prev, pickup_status: data.pickup_status };
+                }
+                return prev;
+            });
+        };
+        socket.on('pickup_status_updated', handlePickupUpdate);
+        return () => socket.off('pickup_status_updated', handlePickupUpdate);
+    }, [socket]);
+
+
 
     const handleStatusChange = async (orderId, status) => {
         try {
@@ -112,6 +152,51 @@ const AdminOrders = () => {
             message.error('Cập nhật thất bại'); 
         }
     };
+
+    // Xử lý cập nhật pickup_status của đơn Click & Collect
+    // prepared  → order_status = 'processing' (Chờ đến lấy)
+    // received  → order_status = 'completed'  (Hoàn thành) + COD paid
+    const handlePickupStatusChange = async (orderId, newPickupStatus) => {
+        try {
+            const res = await orderService.updatePickupStatus(orderId, newPickupStatus);
+            const { pickup_status, order_status, was_prepared, was_completed } = res;
+
+            // Thông báo phù hợp với hành động
+            if (was_completed) {
+                message.success('Đã giao hàng cho khách. Đơn hàng hoàn thành!');
+            } else if (was_prepared) {
+                message.success('Đã soạn xong hàng. Khách hàng sẽ đến lấy!');
+            } else {
+                message.success('Cập nhật trạng thái chuẩn bị hàng thành công');
+            }
+
+            // Cập nhật local state đồng thời cả 2 cột:
+            //   pickup_status → cột "Phương thức giao"
+            //   order_status  → cột "Trạng thái" (khi prepared hoặc received)
+            const shouldSyncOrderStatus = was_prepared || was_completed;
+            setOrders(prev => prev.map(o => {
+                if (o.mahang === orderId || o.donhang_id === orderId) {
+                    return {
+                        ...o,
+                        pickup_status,
+                        ...(shouldSyncOrderStatus ? { order_status } : {}),
+                    };
+                }
+                return o;
+            }));
+
+            if (selectedOrder && (selectedOrder.mahang === orderId || selectedOrder.donhang_id === orderId)) {
+                setSelectedOrder(prev => ({
+                    ...prev,
+                    pickup_status,
+                    ...(shouldSyncOrderStatus ? { order_status } : {}),
+                }));
+            }
+        } catch (err) {
+            message.error(err?.response?.data?.error || 'Cập nhật thất bại');
+        }
+    };
+
 
     // 1. Gộp đơn hàng theo donhang_id
     const groupedOrders = Object.values(orders.reduce((acc, order) => {
@@ -178,7 +263,61 @@ const AdminOrders = () => {
             render: d => d ? new Date(d).toLocaleDateString('vi-VN') : '--'
         },
         {
-            title: 'Địa chỉ', dataIndex: 'customer_address', ellipsis: true
+            title: 'Phương thức giao', key: 'shipping_info',
+            width: 220,
+            render: (_, record) => {
+                if (record.shipping_method === 'pickup') {
+                    const pickupStatus = record.pickup_status || 'waiting';
+                    const nextStatus = PICKUP_NEXT_STATUS[pickupStatus];
+                    const pickupTime = record.pickup_time
+                        ? new Date(record.pickup_time).toLocaleString('vi-VN', {
+                            day: '2-digit', month: '2-digit', year: 'numeric',
+                            hour: '2-digit', minute: '2-digit'
+                          })
+                        : '--';
+                    return (
+                        <Space direction="vertical" size={4}>
+                            <Tag color="purple" icon={<ShopOutlined />} className="admin-pickup-tag">Nhận tại quầy</Tag>
+                            <Space size={4}>
+                                <ClockCircleOutlined className="admin-pickup-clock-icon" />
+                                <span className="admin-pickup-time">{pickupTime}</span>
+                            </Space>
+                            <Tag color={PICKUP_STATUS_MAP[pickupStatus]?.color || 'default'} className="admin-pickup-status-tag">
+                                {PICKUP_STATUS_MAP[pickupStatus]?.label}
+                            </Tag>
+                            {/* Nút chuyển trạng thái tiếp theo */}
+                            {nextStatus && pickupStatus !== 'received' && (
+                                <Popconfirm
+                                    title={`Xác nhận: ${PICKUP_NEXT_LABEL[pickupStatus]}?`}
+                                    onConfirm={() => handlePickupStatusChange(record.mahang || record.donhang_id, nextStatus)}
+                                    okText="Xác nhận"
+                                    cancelText="Hủy"
+                                >
+                                    <Button
+                                        size="small"
+                                        type="default"
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="admin-btn-pickup-action"
+                                    >
+                                        {PICKUP_NEXT_LABEL[pickupStatus]}
+                                    </Button>
+                                </Popconfirm>
+                            )}
+                            {pickupStatus === 'received' && (
+                                <Tag color="success" className="admin-pickup-completed-tag">✓ Hoàn tất</Tag>
+                            )}
+                        </Space>
+                    );
+                }
+                return (
+                    <Space direction="vertical" size={4}>
+                        <Tag color="cyan" className="admin-delivery-tag">🚚 Giao tận nơi</Tag>
+                        <span className="admin-delivery-address">
+                            {record.customer_address || '--'}
+                        </span>
+                    </Space>
+                );
+            }
         },
         {
             title: 'Trạng thái', dataIndex: 'order_status',
@@ -348,8 +487,49 @@ const AdminOrders = () => {
                                 </Tag>
                             </Descriptions.Item>
                             <Descriptions.Item label="Địa chỉ chi tiết" span={2}>
-                                {selectedOrder.customer_address}
+                                {selectedOrder.shipping_method === 'pickup'
+                                    ? <Tag color="purple" icon={<ShopOutlined />}>Nhận tại cửa hàng (Click &amp; Collect)</Tag>
+                                    : selectedOrder.customer_address
+                                }
                             </Descriptions.Item>
+                            {selectedOrder.shipping_method === 'pickup' && (
+                                <>
+                                    <Descriptions.Item label="Giờ hẹn đến lấy" span={1}>
+                                        <Space>
+                                            <ClockCircleOutlined style={{ color: '#fa8c16' }} />
+                                            <strong style={{ color: '#d46b08' }}>
+                                                {selectedOrder.pickup_time
+                                                    ? new Date(selectedOrder.pickup_time).toLocaleString('vi-VN', {
+                                                        day: '2-digit', month: '2-digit', year: 'numeric',
+                                                        hour: '2-digit', minute: '2-digit'
+                                                      })
+                                                    : '--'
+                                                }
+                                            </strong>
+                                        </Space>
+                                    </Descriptions.Item>
+                                    <Descriptions.Item label="Trạng thái cẩm hàng" span={1}>
+                                        <Space wrap>
+                                            <Tag color={PICKUP_STATUS_MAP[selectedOrder.pickup_status || 'waiting']?.color}>
+                                                {PICKUP_STATUS_MAP[selectedOrder.pickup_status || 'waiting']?.label}
+                                            </Tag>
+                                            {/* Dropdown Select để admin có thể đổi trạng thái linh hoạt */}
+                                            {selectedOrder.pickup_status !== 'received' && (
+                                                <Select
+                                                    size="small"
+                                                    value={selectedOrder.pickup_status || 'waiting'}
+                                                    style={{ width: 160 }}
+                                                    onChange={(val) => handlePickupStatusChange(selectedOrder.mahang || selectedOrder.donhang_id, val)}
+                                                >
+                                                    <Option value="waiting">Đang chuẩn bị</Option>
+                                                    <Option value="prepared">Đã soạn xong</Option>
+                                                    <Option value="received">Đã giao khách</Option>
+                                                </Select>
+                                            )}
+                                        </Space>
+                                    </Descriptions.Item>
+                                </>
+                            )}
                             <Descriptions.Item label="Ghi chú từ khách hàng" span={2}>
                                 {selectedOrder.note ? selectedOrder.note : <span style={{ color: '#bfbfbf', fontStyle: 'italic' }}>(Không có ghi chú)</span>}
                             </Descriptions.Item>

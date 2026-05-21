@@ -10,19 +10,51 @@ import "./Orders.css";
 
 const { Title, Text } = Typography;
 
+// ─── Bản đồ trạng thái TỔNG (order_status) ───────────────────────────────────
 const STATUS_MAP = {
-  pending: { label: "Chờ xác nhận", color: "default" },
-  confirmed: { label: "Đang xử lý", color: "processing" },
-  shipping: { label: "Đang giao hàng", color: "warning" },
-  completed: { label: "Hoàn thành", color: "success" },
-  cancelled: { label: "Đã hủy", color: "error" },
+  pending:    { label: "Chờ xác nhận",   color: "default" },
+  confirmed:  { label: "Đang xử lý",     color: "processing" },
+  processing: { label: "Đang xử lý",     color: "processing" },  // alias cho pickup
+  shipping:   { label: "Đang giao hàng", color: "warning" },
+  completed:  { label: "Hoàn thành",     color: "success" },
+  cancelled:  { label: "Đã hủy",         color: "error" },
 };
 
+/**
+ * Hàm lấy Tag hiển thị thông minh cho đơn hàng:
+ * - Với đơn Click & Collect (pickup), ưu tiên pickup_status để render
+ * - Với đơn giao thường, dùng STATUS_MAP bình thường
+ */
+const getOrderStatusDisplay = (order) => {
+  const { order_status, pickup_status, shipping_method } = order;
+
+  // ── Đơn Click & Collect ──
+  if (shipping_method === 'pickup') {
+    // Đã soạn xong: nhân viên đã chuẩn bị, khách cần đến lấy
+    if (pickup_status === 'prepared') {
+      return { label: '🏪 Sẵn sàng nhận hàng', color: 'blue' };
+    }
+    // Đã giao / Hoàn tất
+    if (pickup_status === 'received' || order_status === 'completed') {
+      return { label: 'Hoàn thành', color: 'success' };
+    }
+    // Chờ chuẩn bị (waiting)
+    if (pickup_status === 'waiting') {
+      return { label: '⏳ Đang chuẩn bị hàng', color: 'orange' };
+    }
+  }
+
+  // ── Đơn giao thường: fallback về STATUS_MAP ──
+  return STATUS_MAP[order_status] || STATUS_MAP['pending'];
+};
+
+// Bản đồ bước tiến trình cho Steps bar
 const STEP_STATUS = {
-  pending: 0,
-  confirmed: 1,
-  shipping: 2,
-  completed: 3,
+  pending:    0,
+  confirmed:  1,
+  processing: 1,  // alias 'processing' = bước 1 (Đang xử lý)
+  shipping:   2,
+  completed:  3,
 };
 
 const Orders = () => {
@@ -87,30 +119,60 @@ const Orders = () => {
     return items.reduce((acc, item) => acc + (item.variant_price || item.price || item.dongia || 0) * item.soluong, 0);
   };
 
-  // Lắng nghe socket: Admin cập nhật trạng thái → UI tự cập nhật
+  // Lắng nghe socket: Admin cập nhật order_status → UI khách tự cập nhật
   useEffect(() => {
     if (!socket) return;
 
-    const handleStatusUpdate = ({ order_id, order_status }) => {
-      // Cập nhật danh sách đơn hàng
+    const handleStatusUpdate = ({ order_id, order_status, pickup_status }) => {
       setGrouped(prev =>
         prev.map(order =>
           order.mahang === order_id
-            ? { ...order, order_status }
+            ? {
+                ...order,
+                order_status,
+                // Nếu socket kèm pickup_status thì cập nhật luôn
+                ...(pickup_status !== undefined ? { pickup_status } : {}),
+              }
             : order,
         ),
       );
 
-      // Nếu Drawer đang mở đúng đơn này → cập nhật luôn
       setSelectedOrder(prev =>
         prev && prev.mahang === order_id
-          ? { ...prev, order_status }
+          ? {
+              ...prev,
+              order_status,
+              ...(pickup_status !== undefined ? { pickup_status } : {}),
+            }
           : prev,
       );
     };
 
     socket.on('order_status_updated', handleStatusUpdate);
     return () => socket.off('order_status_updated', handleStatusUpdate);
+  }, [socket]);
+
+  // Lắng nghe socket: pickup_status thay đổi (waiting → prepared → received)
+  useEffect(() => {
+    if (!socket) return;
+
+    const handlePickupUpdate = ({ order_id, pickup_status }) => {
+      setGrouped(prev =>
+        prev.map(order =>
+          order.mahang === order_id
+            ? { ...order, pickup_status }
+            : order,
+        ),
+      );
+      setSelectedOrder(prev =>
+        prev && prev.mahang === order_id
+          ? { ...prev, pickup_status }
+          : prev,
+      );
+    };
+
+    socket.on('pickup_status_updated', handlePickupUpdate);
+    return () => socket.off('pickup_status_updated', handlePickupUpdate);
   }, [socket]);
 
   useEffect(() => {
@@ -173,12 +235,13 @@ const Orders = () => {
     );
 
   const tabsItems = [
-    { key: "all", label: "Tất cả" },
-    { key: "pending", label: "Chờ xác nhận" },
-    { key: "confirmed", label: "Đang xử lý" },
-    { key: "shipping", label: "Đang giao" },
-    { key: "completed", label: "Hoàn thành" },
-    { key: "cancelled", label: "Đã hủy" },
+    { key: "all",        label: "Tất cả" },
+    { key: "pending",    label: "Chờ xác nhận" },
+    { key: "confirmed",  label: "Đang xử lý" },
+    { key: "processing", label: "Chờ đến lấy" },
+    { key: "shipping",   label: "Đang giao" },
+    { key: "completed",  label: "Hoàn thành" },
+    { key: "cancelled",  label: "Đã hủy" },
   ];
 
   return (
@@ -200,8 +263,9 @@ const Orders = () => {
       ) : (
         <div className="order-card-list">
           {filteredOrders.map(order => {
-            const statusObj =
-              STATUS_MAP[order.order_status] || STATUS_MAP["pending"];
+            // Lấy Tag hiển thị thông minh: ưu tiên pickup_status cho đơn Click & Collect
+            const statusObj = getOrderStatusDisplay(order);
+            const isPickup = order.shipping_method === 'pickup';
             const displayItems = order.items.slice(0, 2);
             const hiddenCount = order.items.length - 2;
 
@@ -224,6 +288,10 @@ const Orders = () => {
                     </Text>
                   </div>
                   <Space>
+                    {/* Badge Click & Collect */}
+                    {isPickup && (
+                      <Tag color="purple" className="order-pickup-badge">🏪 Tại quầy</Tag>
+                    )}
                     {(order.payment_method === 'PAYPAL' || order.payment_method === 'paypal') && (
                       <Tag color="purple">PayPal</Tag>
                     )}
@@ -328,12 +396,21 @@ const Orders = () => {
                 progressDot
                 labelPlacement="vertical"
                 className="drawer-steps-bar"
-                items={[
-                  { title: "Đã đặt" },
-                  { title: "Đang xử lý" },
-                  { title: "Đang giao" },
-                  { title: "Hoàn thành" },
-                ]}
+                items={
+                  selectedOrder.shipping_method === 'pickup'
+                    ? [
+                        { title: "Đã đặt" },
+                        { title: "Đang chuẩn bị" },
+                        { title: "Sẵn sàng lấy" },
+                        { title: "Hoàn thành" },
+                      ]
+                    : [
+                        { title: "Đã đặt" },
+                        { title: "Đang xử lý" },
+                        { title: "Đang giao" },
+                        { title: "Hoàn thành" },
+                      ]
+                }
               />
             ) : (
               <div className="drawer-steps-bar">
@@ -346,7 +423,23 @@ const Orders = () => {
               <Text className="drawer-section-title">Thông tin nhận hàng</Text>
               <p><Text type="secondary">Người nhận:</Text> {selectedOrder.customer_name || user.name || "Khách hàng"}</p>
               <p><Text type="secondary">Số điện thoại:</Text> {selectedOrder.customer_phone || user.phone || "Không có"}</p>
-              <p><Text type="secondary">Địa chỉ:</Text> {selectedOrder.customer_address || user.address || "Không có địa chỉ"}</p>
+              {/* Địa chỉ / Phương thức nhận */}
+              {selectedOrder.shipping_method === 'pickup' ? (
+                <p>
+                  <Text type="secondary">Phương thức nhận:</Text>{' '}
+                  <Tag color="purple">🏪 Nhận tại cửa hàng (Click &amp; Collect)</Tag>
+                  {selectedOrder.pickup_time && (
+                    <span className="drawer-pickup-time-hint">
+                      📅 Hẹn: {new Date(selectedOrder.pickup_time).toLocaleString('vi-VN', {
+                        day: '2-digit', month: '2-digit', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit'
+                      })}
+                    </span>
+                  )}
+                </p>
+              ) : (
+                <p><Text type="secondary">Địa chỉ:</Text> {selectedOrder.customer_address || user.address || "Không có địa chỉ"}</p>
+              )}
               <Divider className="drawer-divider" />
               <p>
                 <Text type="secondary">Phương thức thanh toán:</Text>{" "}

@@ -625,3 +625,47 @@
   margin: 0 !important;
 }
 
+/* ── AdminOrders: Pickup & Delivery styles ── */
+.admin-pickup-tag {
+  font-weight: 600 !important;
+}
+.admin-pickup-clock-icon {
+  color: #fa8c16;
+}
+.admin-pickup-time {
+  font-size: 12px;
+  color: #555;
+}
+.admin-pickup-status-tag {
+  margin: 0 !important;
+  font-size: 11px !important;
+}
+.admin-btn-pickup-action {
+  font-size: 11px !important;
+  border-color: #722ed1 !important;
+  color: #722ed1 !important;
+  background: #f9f0ff !important;
+  font-weight: 600 !important;
+}
+.admin-btn-pickup-action:hover {
+  border-color: #5b21b6 !important;
+  color: #5b21b6 !important;
+  background: #f3e8ff !important;
+}
+.admin-pickup-completed-tag {
+  font-size: 11px !important;
+  margin: 0 !important;
+}
+.admin-delivery-tag {
+  font-weight: 500 !important;
+}
+.admin-delivery-address {
+  font-size: 12px;
+  color: #888;
+  max-width: 160px;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+

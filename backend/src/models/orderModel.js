@@ -51,7 +51,14 @@ const OrderModel = {
     const connection = await db.getConnection();
     try {
       await connection.beginTransaction();
-      const { user_id, cart_items, total_price, note, payments } = data;
+      const { user_id, cart_items, total_price, note, payments, shipping_method, pickup_time } = data;
+
+      // Validate shipping_method
+      const shippingMethod = shipping_method === 'pickup' ? 'pickup' : 'delivery';
+      // Nếu là pickup thì mặc định pickup_status = 'waiting', ngược lại là 'none'
+      const pickupStatus = shippingMethod === 'pickup' ? 'waiting' : 'none';
+      // pickup_time chỉ lưu khi là pickup
+      const pickupTime = shippingMethod === 'pickup' && pickup_time ? new Date(pickup_time) : null;
 
       // 1. Kiểm tra tồn kho trước khi tạo đơn
       for (const item of cart_items) {
@@ -68,10 +75,11 @@ const OrderModel = {
         }
       }
 
-      // 2. Tạo record orders
+      // 2. Tạo record orders (bao gồm các trường Click & Collect)
       const [orderResult] = await connection.query(
-        "INSERT INTO orders (user_id, total_price, order_status, note) VALUES (?, ?, ?, ?)",
-        [user_id || null, total_price, "pending", note || ''],
+        `INSERT INTO orders (user_id, total_price, order_status, note, shipping_method, pickup_time, pickup_status)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [user_id || null, total_price, "pending", note || '', shippingMethod, pickupTime, pickupStatus],
       );
       const order_id = orderResult.insertId;
 
@@ -131,6 +139,9 @@ const OrderModel = {
                 ${STATUS_CASE},
                 o.order_status,
                 o.note,
+                o.shipping_method,
+                o.pickup_time,
+                o.pickup_status,
                 pm.payment_method,
                 oi.order_item_id,
                 oi.product_id,
@@ -169,6 +180,9 @@ const OrderModel = {
                 ${STATUS_CASE},
                 o.order_status,
                 o.note,
+                o.shipping_method,
+                o.pickup_time,
+                o.pickup_status,
                 pm.payment_method,
                 oi.order_item_id,
                 oi.product_id,
@@ -233,6 +247,9 @@ const OrderModel = {
                 ${STATUS_CASE},
                 o.order_status,
                 o.note,
+                o.shipping_method,
+                o.pickup_time,
+                o.pickup_status,
                 pm.payment_method,
                 o.user_id,
                 oi.order_item_id,
@@ -361,6 +378,104 @@ const OrderModel = {
       "SELECT variant_id, variant_quantity FROM product_variants WHERE variant_id = ?",
       [variant_id],
     );
+  },
+
+  /**
+   * [ADMIN] Cập nhật pickup_status của đơn hàng nhận tại cửa hàng.
+   *
+   * Luồng tự động đồng bộ order_status:
+   *   'prepared'  → order_status = 'processing'  (Chờ đến lấy – khách thấy "Sẵn sàng nhận")
+   *   'received'  → order_status = 'completed'   (Hoàn thành)
+   *                + payment_status = 'paid'      (nếu là COD)
+   *
+   * Trả về object { pickup_status, order_status, payment_status, was_completed, was_prepared }
+   */
+  updatePickupStatus: async (order_id, pickup_status) => {
+    const validStatuses = ['waiting', 'prepared', 'received'];
+    if (!validStatuses.includes(pickup_status)) {
+      return Promise.reject(new Error(`pickup_status không hợp lệ: ${pickup_status}`));
+    }
+
+    const connection = await db.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      // 1. Kiểm tra đơn có tồn tại và là pickup không
+      const [[order]] = await connection.query(
+        `SELECT o.order_id, o.order_status, o.shipping_method, pm.payment_method, pm.payment_status
+         FROM orders o
+         LEFT JOIN payments pm ON o.order_id = pm.order_id
+         WHERE o.order_id = ? AND o.shipping_method = 'pickup'
+         FOR UPDATE`,
+        [order_id]
+      );
+
+      if (!order) {
+        throw Object.assign(
+          new Error('Không tìm thấy đơn hàng nhận tại cửa hàng.'),
+          { statusCode: 404 }
+        );
+      }
+
+      // 2. Cập nhật pickup_status
+      await connection.query(
+        "UPDATE orders SET pickup_status = ? WHERE order_id = ?",
+        [pickup_status, order_id]
+      );
+
+      let newOrderStatus = order.order_status;
+      let newPaymentStatus = order.payment_status;
+      let wasPrepared = false;
+      let wasCompleted = false;
+
+      // 3a. 'prepared' → order_status = 'processing' (Chờ đến lấy)
+      if (pickup_status === 'prepared') {
+        newOrderStatus = 'processing';
+        wasPrepared = true;
+        await connection.query(
+          "UPDATE orders SET order_status = 'processing' WHERE order_id = ?",
+          [order_id]
+        );
+      }
+
+      // 3b. 'received' → order_status = 'completed' + COD paid
+      if (pickup_status === 'received') {
+        newOrderStatus = 'completed';
+        wasCompleted = true;
+        await connection.query(
+          "UPDATE orders SET order_status = 'completed' WHERE order_id = ?",
+          [order_id]
+        );
+
+        // Nếu là COD (tiền mặt tại quầy) → mark paid
+        const isCOD = !order.payment_method ||
+                      order.payment_method === 'COD' ||
+                      order.payment_method === '0';
+        if (isCOD && order.payment_status !== 'paid') {
+          newPaymentStatus = 'paid';
+          await connection.query(
+            "UPDATE payments SET payment_status = 'paid' WHERE order_id = ?",
+            [order_id]
+          );
+        }
+      }
+
+      await connection.commit();
+
+      return {
+        affectedRows: 1,
+        pickup_status,
+        order_status: newOrderStatus,
+        payment_status: newPaymentStatus,
+        was_prepared: wasPrepared,
+        was_completed: wasCompleted,
+      };
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
   },
 };
 

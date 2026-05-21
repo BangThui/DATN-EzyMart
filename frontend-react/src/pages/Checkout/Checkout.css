@@ -119,3 +119,46 @@
 .checkout-success-order-btn {
     margin-right: 12px;
 }
+
+/* Click & Collect styles */
+.checkout-pickup-info-box {
+    margin-top: 12px;
+    padding: 10px 20px;
+    background: #f0f5ff;
+    border-radius: 8px;
+    border: 1px solid #adc6ff;
+}
+
+.checkout-pickup-info-icon {
+    color: #2f54eb;
+    margin-right: 8px;
+}
+
+.checkout-pickup-info-text {
+    color: #2f54eb;
+}
+
+.checkout-delivery-icon {
+    color: #52c41a;
+}
+
+.checkout-pickup-icon {
+    color: #2f54eb;
+}
+
+.checkout-pickup-badge-text {
+    color: #888;
+    font-size: 12px;
+}
+
+.checkout-w-full {
+    width: 100% !important;
+}
+
+.checkout-paypal-wrapper {
+    margin-top: 15px;
+}
+
+.checkout-item-variant {
+    font-size: 12px;
+}

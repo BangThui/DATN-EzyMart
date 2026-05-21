@@ -11,10 +11,30 @@ const { getIO } = require('../socket');
 // Tạo đơn hàng
 exports.createOrder = async (req, res) => {
     try {
-        const { name, phone, email, address, payments, note, cart_items, user_id } = req.body;
+        const { name, phone, email, address, payments, note, cart_items, user_id, shipping_method, pickup_time } = req.body;
 
         if (!cart_items || cart_items.length === 0) {
             return res.status(400).json({ error: 'Giỏ hàng trống' });
+        }
+
+        // Validate pickup_time nếu là đơn nhận tại cửa hàng
+        if (shipping_method === 'pickup') {
+            if (!pickup_time) {
+                return res.status(400).json({ error: 'Vui lòng chọn thời gian hẹn đến lấy hàng.' });
+            }
+            const pt = new Date(pickup_time);
+            if (isNaN(pt.getTime())) {
+                return res.status(400).json({ error: 'Thời gian hẹn không hợp lệ.' });
+            }
+            if (pt <= new Date()) {
+                return res.status(400).json({ error: 'Thời gian hẹn phải là trong tương lai.' });
+            }
+            const hours = pt.getHours();
+            const minutes = pt.getMinutes();
+            const totalMinutes = hours * 60 + minutes;
+            if (totalMinutes < 7 * 60 || totalMinutes > 22 * 60) {
+                return res.status(400).json({ error: 'Giờ hẹn phải nằm trong khung 07:00 – 22:00.' });
+            }
         }
 
         // Tính tổng tiền
@@ -26,7 +46,15 @@ exports.createOrder = async (req, res) => {
         }, 0);
 
         // Tạo đơn hàng trong orders + order_items
-        const order_id = await OrderModel.createOrder({ user_id: user_id || null, cart_items, total_price, note, payments });
+        const order_id = await OrderModel.createOrder({
+            user_id: user_id || null,
+            cart_items,
+            total_price,
+            note,
+            payments,
+            shipping_method: shipping_method || 'delivery',
+            pickup_time: shipping_method === 'pickup' ? pickup_time : null,
+        });
 
         // Xoá giỏ hàng sau khi đặt thành công
         if (user_id) {
@@ -47,6 +75,7 @@ exports.createOrder = async (req, res) => {
                 order_id,
                 customer_name: name || 'Khách vãng lai',
                 total_price,
+                shipping_method: shipping_method || 'delivery',
                 created_at: new Date().toISOString(),
             });
 
@@ -217,5 +246,69 @@ exports.customerCancelOrder = async (req, res) => {
         console.error(err);
         const status = err.statusCode || 500;
         res.status(status).json({ error: err.message || 'Lỗi hủy đơn hàng' });
+    }
+};
+
+// [ADMIN] Cập nhật pickup_status cho đơn hàng nhận tại cửa hàng
+exports.updatePickupStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { pickup_status } = req.body;
+
+        const validStatuses = ['waiting', 'prepared', 'received'];
+        if (!pickup_status || !validStatuses.includes(pickup_status)) {
+            return res.status(400).json({
+                error: `pickup_status không hợp lệ. Chỉ chấp nhận: ${validStatuses.join(', ')}`
+            });
+        }
+
+        // Model sẽ thực hiện transaction: cập nhật pickup_status,
+        // và nếu 'received' thì tự động set order_status='completed' + payment_status='paid' (COD)
+        const result = await OrderModel.updatePickupStatus(id, pickup_status);
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Không tìm thấy đơn hàng nhận tại cửa hàng.' });
+        }
+
+        // Trả về đầy đủ thông tin để FE cập nhật cả 2 cột ngay lập tức
+        res.json({
+            message: pickup_status === 'received'
+                ? 'Đã giao hàng thành công. Đơn hàng hoàn thành!'
+                : pickup_status === 'prepared'
+                ? 'Đã soạn xong hàng. Khách hàng đã được thông báo!'
+                : 'Cập nhật trạng thái chuẩn bị hàng thành công',
+            pickup_status: result.pickup_status,
+            order_status: result.order_status,
+            payment_status: result.payment_status,
+            was_prepared: result.was_prepared,
+            was_completed: result.was_completed,
+        });
+
+        // --- SOCKET: Phát sóng đồng bộ ---
+        try {
+            const io = getIO();
+
+            // 1. Luôn emit pickup_status (để cập nhật cột "Phương thức giao" admin)
+            io.emit('pickup_status_updated', {
+                order_id: Number(id),
+                pickup_status: result.pickup_status,
+            });
+
+            // 2. Emit order_status khi có thay đổi (prepared → processing, received → completed)
+            if (result.was_prepared || result.was_completed) {
+                io.emit('order_status_updated', {
+                    order_id: Number(id),
+                    order_status: result.order_status,
+                    pickup_status: result.pickup_status,
+                    updated_by: 'admin_pickup',
+                });
+            }
+        } catch (socketErr) {
+            console.warn('[Socket] Emit error (non-critical):', socketErr.message);
+        }
+    } catch (err) {
+        console.error(err);
+        const status = err.statusCode || 500;
+        res.status(status).json({ error: err.message || 'Lỗi cập nhật trạng thái chuẩn bị hàng' });
     }
 };

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Form, Input, Select, Button, Card, Typography, Divider, message, Row, Col, Alert } from 'antd';
-import { CheckCircleOutlined } from '@ant-design/icons';
+import { Form, Input, Select, Button, Card, Typography, Divider, message, Row, Col, Alert, Radio, Space } from 'antd';
+import { CheckCircleOutlined, CarOutlined, ShopOutlined } from '@ant-design/icons';
+import { DatePicker } from 'antd';
 import { Link, useNavigate } from 'react-router-dom';
 import { cartService } from '../../services/cartService';
 import { orderService } from '../../services/orderService';
@@ -9,8 +10,13 @@ import { formatCurrency } from '../../utils';
 import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
 import axiosClient from '../../services/axiosClient';
 import './Checkout.css';
-
 import { getImageUrl } from '../../utils/imageHelper';
+import dayjs from 'dayjs';
+import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
+import 'dayjs/locale/vi';
+dayjs.extend(isSameOrBefore);
+dayjs.locale('vi');
+
 const { Title, Text } = Typography;
 const { Option } = Select;
 // const IMAGE_BASE = 'http://localhost:5000/uploads/'; // Replaced by getImageUrl
@@ -24,6 +30,7 @@ const Checkout = () => {
     const [orderedMahang, setOrderedMahang] = useState(null);
     const [form] = Form.useForm();
     const [paymentMethod, setPaymentMethod] = useState('');
+    const [shippingMethod, setShippingMethod] = useState('delivery');
     const [tempOrderId, setTempOrderId] = useState(null);
     const localOrderIdRef = useRef(null);
 
@@ -70,6 +77,10 @@ const Checkout = () => {
                 const res = await orderService.create({
                     ...values,
                     user_id: user.user_id,
+                    shipping_method: shippingMethod,
+                    pickup_time: shippingMethod === 'pickup' && values.pickup_time
+                        ? values.pickup_time.toISOString()
+                        : null,
                     cart_items: cartItems.map(item => ({
                         product_id: item.product_id,
                         variant_id: item.variant_id,
@@ -127,6 +138,10 @@ const Checkout = () => {
             const res = await orderService.create({
                 ...values,
                 user_id: user.user_id,
+                shipping_method: shippingMethod,
+                pickup_time: shippingMethod === 'pickup' && values.pickup_time
+                    ? values.pickup_time.toISOString()
+                    : null,
                 cart_items: cartItems.map(item => ({
                     product_id: item.product_id,
                     variant_id: item.variant_id,
@@ -145,11 +160,18 @@ const Checkout = () => {
     };
 
     if (orderedMahang) {
+        const isPickup = shippingMethod === 'pickup';
         return (
             <div className="checkout-success-wrap">
                 <CheckCircleOutlined className="checkout-success-icon" />
                 <Title level={2} className="checkout-success-title">Đặt hàng thành công!</Title>
                 <Text>Mã đơn hàng: <strong>#{orderedMahang}</strong></Text>
+                {isPickup && (
+                    <div className="checkout-pickup-info-box">
+                        <ShopOutlined className="checkout-pickup-info-icon" />
+                        <Text className="checkout-pickup-info-text">Đơn hàng của bạn sẽ được chuẩn bị sẵn tại quầy. Vui lòng đến đúng giờ hẹn để nhận hàng!</Text>
+                    </div>
+                )}
                 <div className="checkout-success-actions">
                     <Link to="/orders"><Button type="primary" className="checkout-success-order-btn">Xem đơn mua</Button></Link>
                     <Link to="/"><Button>Về trang chủ</Button></Link>
@@ -175,9 +197,131 @@ const Checkout = () => {
                             <Form.Item label="Email" name="email" rules={[{ required: true, type: 'email' }]}>
                                 <Input />
                             </Form.Item>
-                            <Form.Item label="Địa chỉ" name="address" rules={[{ required: true }]}>
-                                <Input />
+
+                            {/* ── Phương thức nhận hàng ── */}
+                            <Form.Item
+                                label="Phương thức nhận hàng"
+                                name="shipping_method"
+                                initialValue="delivery"
+                                rules={[{ required: true, message: 'Vui lòng chọn phương thức nhận hàng' }]}
+                            >
+                                <Radio.Group
+                                    value={shippingMethod}
+                                    onChange={(e) => {
+                                        setShippingMethod(e.target.value);
+                                        // Reset pickup_time khi chuyển sang delivery
+                                        if (e.target.value === 'delivery') {
+                                            form.setFieldsValue({ pickup_time: null });
+                                        }
+                                    }}
+                                >
+                                    <Space direction="vertical" size={8}>
+                                        <Radio value="delivery">
+                                            <Space>
+                                                <CarOutlined className="checkout-delivery-icon" />
+                                                <span><strong>Giao hàng tận nơi</strong></span>
+                                            </Space>
+                                        </Radio>
+                                        <Radio value="pickup">
+                                            <Space>
+                                                <ShopOutlined className="checkout-pickup-icon" />
+                                                <span><strong>Nhận tại cửa hàng</strong> <span className="checkout-pickup-badge-text">(Click &amp; Collect)</span></span>
+                                            </Space>
+                                        </Radio>
+                                    </Space>
+                                </Radio.Group>
                             </Form.Item>
+
+                            {/* ── Hẹn giờ nhận hàng (chỉ hiện khi chọn pickup) ── */}
+                            {shippingMethod === 'pickup' && (
+                                <Form.Item
+                                    label="🕐 Chọn thời gian hẹn đến lấy hàng"
+                                    name="pickup_time"
+                                    rules={[
+                                        { required: true, message: 'Vui lòng chọn thời gian hẹn' },
+                                        {
+                                            validator: (_, value) => {
+                                                if (!value) return Promise.resolve();
+                                                const now = dayjs();
+                                                if (value.isSameOrBefore(now)) {
+                                                    return Promise.reject('Thời gian hẹn phải là trong tương lai');
+                                                }
+                                                const hours = value.hour();
+                                                const minutes = value.minute();
+                                                const totalMin = hours * 60 + minutes;
+                                                if (totalMin < 7 * 60 || totalMin > 22 * 60) {
+                                                    return Promise.reject('Giờ hẹn phải nằm trong khung 07:00 – 22:00');
+                                                }
+                                                return Promise.resolve();
+                                            }
+                                        }
+                                    ]}
+                                    extra="Cửa hàng mở cửa từ 07:00 đến 22:00 hàng ngày"
+                                >
+                                    <DatePicker
+                                        showTime={{ format: 'HH:mm', minuteStep: 15 }}
+                                        format="DD/MM/YYYY HH:mm"
+                                        placeholder="Chọn ngày và giờ hẹn đến lấy"
+                                        className="checkout-w-full"
+                                        locale={{
+                                            lang: {
+                                                locale: 'vi_VN',
+                                                placeholder: 'Chọn ngày',
+                                                rangePlaceholder: ['Từ ngày', 'Đến ngày'],
+                                                today: 'Hôm nay',
+                                                now: 'Bây giờ',
+                                                backToToday: 'Trở về hôm nay',
+                                                ok: 'Xác nhận',
+                                                clear: 'Xóa',
+                                                month: 'Tháng',
+                                                year: 'Năm',
+                                                timeSelect: 'Chọn giờ',
+                                                dateSelect: 'Chọn ngày',
+                                                monthSelect: 'Chọn tháng',
+                                                yearSelect: 'Chọn năm',
+                                                decadeSelect: 'Chọn thập kỷ',
+                                                previousMonth: 'Tháng trước',
+                                                nextMonth: 'Tháng sau',
+                                                previousYear: 'Năm trước',
+                                                nextYear: 'Năm sau',
+                                            },
+                                            timePickerLocale: { placeholder: 'Chọn giờ' },
+                                        }}
+                                        disabledDate={(current) => current && current < dayjs().startOf('day')}
+                                        disabledTime={(date) => {
+                                            if (!date) return {};
+                                            const isToday = date && date.isSame(dayjs(), 'day');
+                                            const currentHour = dayjs().hour();
+                                            const currentMinute = dayjs().minute();
+                                            return {
+                                                disabledHours: () => {
+                                                    const hours = [];
+                                                    // Disable trước 7h và sau 22h
+                                                    for (let i = 0; i < 7; i++) hours.push(i);
+                                                    for (let i = 23; i < 24; i++) hours.push(i);
+                                                    // Nếu là hôm nay, disable giờ đã qua
+                                                    if (isToday) {
+                                                        for (let i = 7; i <= currentHour; i++) hours.push(i);
+                                                    }
+                                                    return [...new Set(hours)];
+                                                },
+                                                disabledMinutes: (selectedHour) => {
+                                                    if (isToday && selectedHour === currentHour + 1) {
+                                                        return Array.from({ length: currentMinute }, (_, i) => i);
+                                                    }
+                                                    return [];
+                                                },
+                                            };
+                                        }}
+                                    />
+                                </Form.Item>
+                            )}
+
+                            {shippingMethod === 'delivery' && (
+                                <Form.Item label="Địa chỉ" name="address" rules={[{ required: true, message: 'Vui lòng nhập địa chỉ giao hàng' }]}>
+                                    <Input placeholder="Nhập địa chỉ nhận hàng" />
+                                </Form.Item>
+                            )}
                             <Form.Item label="Hình thức thanh toán" name="payments" rules={[{ required: true }]}>
                                 <Select placeholder="Chọn hình thức thanh toán" onChange={(val) => setPaymentMethod(val)}>
                                     <Option value="0">Thanh toán khi nhận hàng (COD)</Option>
@@ -196,7 +340,7 @@ const Checkout = () => {
                                     currency: "USD",
                                     intent: "capture"
                                 }}>
-                                    <div style={{ marginTop: '15px' }}>
+                                    <div className="checkout-paypal-wrapper">
                                         <PayPalButtons
                                             style={{ layout: "vertical" }}
                                             createOrder={handlePaypalCreateOrder}
@@ -240,7 +384,7 @@ const Checkout = () => {
                                         <img src={getImageUrl(item.product_image)} alt="" className="checkout-order-img" />
                                         <div>
                                             <div className="checkout-order-name">{item.product_name}</div>
-                                            <Text type="secondary" style={{ fontSize: 12 }}>{item.variant_name}</Text>
+                                            <Text type="secondary" className="checkout-item-variant">{item.variant_name}</Text>
                                             <br />
                                             <Text type="secondary" className="checkout-order-qty">x{item.product_quantity}</Text>
                                         </div>

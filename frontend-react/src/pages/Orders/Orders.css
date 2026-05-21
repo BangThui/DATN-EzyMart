@@ -353,3 +353,14 @@
   justify-content: flex-end;
   margin-top: 24px;
 }
+
+/* Click & Collect styles */
+.order-pickup-badge {
+  font-size: 11px !important;
+}
+
+.drawer-pickup-time-hint {
+  margin-left: 6px;
+  color: #fa8c16;
+  font-size: 13px;
+}

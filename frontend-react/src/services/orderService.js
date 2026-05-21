@@ -7,6 +7,8 @@ export const orderService = {
     // Admin
     getAll: (params = {}) => axiosClient.get('/orders', { params }),
     updateStatus: (id, tinhtrang) => axiosClient.put(`/orders/${id}/status`, { tinhtrang }),
+    // Click & Collect: cập nhật pickup_status
+    updatePickupStatus: (id, pickup_status) => axiosClient.patch(`/orders/${id}/pickup-status`, { pickup_status }),
 
     // Customer
     customerUpdateStatus: (id) => axiosClient.patch(`/orders/${id}/status`),
