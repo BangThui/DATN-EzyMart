@@ -1,0 +1,30 @@
+/* ── AdminCategories Specific Styles ── */
+
+/* Expanded Row - Danh mục con */
+.admin-expanded-row {
+  background: #f9fafb;
+  border-radius: 6px;
+  padding: 12px 16px;
+  border: 1px solid #f0f0f0;
+  border-left: 3px solid #d9d9d9; /* Đường kẻ dọc kết nối với cha */
+  margin: 0 8px 8px 24px;
+}
+
+.admin-child-item {
+  background: #fff;
+  border-radius: 4px;
+  padding: 6px 12px !important;
+  margin-bottom: 4px;
+  transition: background 0.15s;
+  align-items: center !important;
+}
+
+.admin-child-item:hover {
+  background: #e6f7ff !important;
+}
+
+.admin-add-child-btn {
+  margin-top: 10px;
+  color: #16a34a !important;
+  border-color: #16a34a !important;
+}

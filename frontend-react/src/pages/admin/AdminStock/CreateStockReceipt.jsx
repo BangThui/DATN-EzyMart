@@ -30,6 +30,7 @@ import { productService } from "../../../services/productService";
 import { formatCurrency } from "../../../utils";
 import { getImageUrl } from "../../../utils/imageHelper";
 import "../Admin.css";
+import "./AdminStock.css";
 
 const { Title, Text } = Typography;
 

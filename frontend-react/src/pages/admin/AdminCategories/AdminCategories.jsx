@@ -24,6 +24,7 @@ import {
 } from "@ant-design/icons";
 import { categoryService } from "../../../services/categoryService";
 import "../Admin.css";
+import "./AdminCategories.css";
 
 const { Title, Text } = Typography;
 

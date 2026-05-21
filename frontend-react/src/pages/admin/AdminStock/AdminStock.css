@@ -1,0 +1,38 @@
+/* ── AdminStock Specific Styles ── */
+
+.admin-stock-page {
+  padding: 24px;
+  background: #fff;
+  min-height: 100%;
+  border-radius: 8px;
+}
+
+.admin-stock-item-row {
+  display: flex;
+  margin-bottom: 8px;
+}
+
+.admin-fi-variant-select {
+  width: 350px;
+}
+
+.admin-input-import-price {
+  width: 150px;
+}
+
+.admin-remove-icon {
+  color: #ff4d4f;
+  cursor: pointer;
+}
+
+.admin-section-label {
+  margin-bottom: 16px;
+}
+
+.admin-receipt-info {
+  margin-bottom: 16px;
+}
+
+.admin-form-actions--mt {
+  margin-top: 24px;
+}

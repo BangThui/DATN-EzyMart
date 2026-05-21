@@ -11,6 +11,7 @@ import {
 import { newsService } from '../../../services/newsService';
 import { getImageUrl } from '../../../utils/imageHelper';
 import '../Admin.css';
+import './AdminNews.css';
 
 const { Title, Text } = Typography;
 const { Option } = Select;

@@ -26,6 +26,7 @@ import { supplierService } from "../../../services/supplierService";
 import { productService } from "../../../services/productService";
 import dayjs from "dayjs";
 import "../Admin.css";
+import "./AdminStock.css";
 
 const { Title, Text } = Typography;
 const { Option } = Select;

@@ -45,6 +45,7 @@ import { stockService } from "../../../services/stockService";
 import { formatCurrency, buildCategoryTree } from "../../../utils";
 import { getImageUrl } from "../../../utils/imageHelper";
 import "../Admin.css";
+import "./AdminProducts.css";
 
 const { Title, Text } = Typography;
 const { Option } = Select;

@@ -6,6 +6,7 @@ import { formatCurrency } from '../../../utils';
 import { getImageUrl } from '../../../utils/imageHelper';
 import { useSocket } from '../../../context/SocketContext';
 import '../Admin.css';
+import './AdminOrders.css';
 
 const { Title } = Typography;
 const { Option } = Select;
