@@ -453,6 +453,21 @@ const ProductModel = {
     );
     return rows;
   },
+
+  checkSkuExists: async (skus, excludeProductId = null) => {
+    if (!skus || skus.length === 0) return [];
+    
+    let query = "SELECT sku FROM product_variants WHERE sku IN (?)";
+    let params = [skus];
+    
+    if (excludeProductId) {
+      query += " AND product_id != ?";
+      params.push(excludeProductId);
+    }
+    
+    const [rows] = await db.query(query, params);
+    return rows.map(r => r.sku);
+  },
 };
 
 module.exports = ProductModel;

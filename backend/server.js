@@ -36,6 +36,7 @@ const brandRoutes = require('./src/routes/brandRoutes');
 const stockRoutes = require('./src/routes/stockRoutes');
 const supplierRoutes = require('./src/routes/supplierRoutes');
 const paypalRoutes = require('./src/routes/paypalRoutes');
+const recommendationRoutes = require('./src/routes/recommendationRoutes');
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/categories', categoryRoutes);
@@ -48,6 +49,7 @@ app.use('/api/brands', brandRoutes);
 app.use('/api/stock', stockRoutes);
 app.use('/api/suppliers', supplierRoutes);
 app.use('/api/payment/paypal', paypalRoutes);
+app.use('/api/recommendations', recommendationRoutes);
 // Health check
 app.get('/', (req, res) => {
     res.json({ message: 'XDPTPM Backend API đang chạy ✅', version: '2.0.0' });

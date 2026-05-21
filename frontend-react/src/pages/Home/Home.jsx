@@ -9,6 +9,7 @@ import {
 import ProductCard from "../../components/product/ProductCard";
 import { productService } from "../../services/productService";
 import { categoryService } from "../../services/categoryService";
+import TimeBasedCombo from "../../components/home/TimeBasedCombo";
 import "./Home.css";
 
 // Helper to calculate total stock of a product
@@ -210,6 +211,11 @@ const Home = () => {
 
       {/* Features */}
       <FeaturesStrip />
+
+      {/* Combo Khuyến mãi theo khung giờ */}
+      <div className="page-wrap">
+        <TimeBasedCombo />
+      </div>
 
       {/* Products by Category */}
       <div className="home-categories-wrap">

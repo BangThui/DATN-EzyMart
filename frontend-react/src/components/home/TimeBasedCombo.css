@@ -1,0 +1,79 @@
+/* TimeBasedCombo Styles */
+
+.time-combo-card {
+  margin: 24px 0;
+  border-radius: 12px;
+  background: #fff7e6;
+  border-color: #ffd591;
+}
+
+.time-combo-loading-card {
+  margin: 24px 0;
+  border-radius: 12px;
+}
+
+.time-combo-loading-content {
+  text-align: center;
+  padding: 40px;
+}
+
+.time-combo-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.time-combo-title {
+  margin: 0 !important;
+  color: #d46b08 !important;
+}
+
+.time-combo-icon {
+  margin-right: 8px;
+}
+
+.time-combo-btn {
+  background: #fa8c16 !important;
+  border-color: #fa8c16 !important;
+  font-weight: 500 !important;
+}
+
+.time-combo-btn:hover {
+  background: #d46b08 !important;
+  border-color: #d46b08 !important;
+}
+
+.time-combo-product-card {
+  border-radius: 12px;
+  height: 100%;
+  border-color: #ffe7ba !important;
+}
+
+.time-combo-product-img {
+  height: 180px;
+  width: 100%;
+  object-fit: cover;
+  padding: 8px;
+  border-radius: 16px;
+}
+
+.time-combo-product-name {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  height: 42px;
+}
+
+.time-combo-product-price {
+  color: #cf1322;
+  font-weight: bold;
+  font-size: 16px;
+}

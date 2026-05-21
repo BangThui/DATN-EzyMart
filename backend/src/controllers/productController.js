@@ -110,6 +110,15 @@ exports.createProduct = async (req, res) => {
       console.error("Lỗi parse variants", e);
     }
 
+    // Kiểm tra SKU trùng lặp
+    const skus = parsedVariants.map(v => v.sku).filter(s => s && s.trim() !== "");
+    if (skus.length > 0) {
+      const existingSkus = await ProductModel.checkSkuExists(skus);
+      if (existingSkus.length > 0) {
+        return res.status(400).json({ error: `Mã SKU đã tồn tại: ${existingSkus.join(', ')}. Vui lòng nhập mã khác!` });
+      }
+    }
+
     if (!product_name || !category_id) {
       return res
         .status(400)
@@ -158,6 +167,15 @@ exports.updateProduct = async (req, res) => {
       if (variants) parsedVariants = JSON.parse(variants);
     } catch (e) {
       console.error("Lỗi parse variants", e);
+    }
+
+    // Kiểm tra SKU trùng lặp (bỏ qua sản phẩm hiện tại)
+    const skus = parsedVariants.map(v => v.sku).filter(s => s && s.trim() !== "");
+    if (skus.length > 0) {
+      const existingSkus = await ProductModel.checkSkuExists(skus, id);
+      if (existingSkus.length > 0) {
+        return res.status(400).json({ error: `Mã SKU đã tồn tại ở một sản phẩm khác: ${existingSkus.join(', ')}. Vui lòng nhập mã khác!` });
+      }
     }
 
     // Lấy thông tin cũ
