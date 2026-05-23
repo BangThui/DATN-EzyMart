@@ -69,7 +69,8 @@
   color: #374151;
   font-weight: 500;
   padding: 11px 16px;
-  display: inline-block;
+  display: inline-flex !important;
+  align-items: center !important;
   border-bottom: 2px solid transparent;
   transition: all 0.2s ease;
 }
