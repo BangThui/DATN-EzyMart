@@ -12,6 +12,8 @@ import {
   Popconfirm,
   Image,
   TreeSelect,
+  Tag,
+  Avatar,
 } from "antd";
 import {
   PlusOutlined,
@@ -38,16 +40,19 @@ const AdminBrands = () => {
   const [editingBrand, setEditingBrand] = useState(null);
   const [form] = Form.useForm();
   const [fileList, setFileList] = useState([]);
+  const [searchText, setSearchText] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState(null);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [selectedCategory]);
 
   const fetchData = async () => {
     setLoading(true);
     try {
+      const params = selectedCategory ? { category_id: selectedCategory } : {};
       const [brandsData, categoriesData] = await Promise.all([
-        brandService.getAll(),
+        brandService.getAll(params),
         categoryService.getAll(),
       ]);
       setBrands(Array.isArray(brandsData) ? brandsData : []);
@@ -65,7 +70,7 @@ const AdminBrands = () => {
     if (record) {
       form.setFieldsValue({
         brand_name: record.brand_name,
-        category_id: record.category_id,
+        category_ids: record.category_ids || [],
       });
       if (record.brand_logo) {
         setFileList([
@@ -98,7 +103,8 @@ const AdminBrands = () => {
       message.success("Xóa thương hiệu thành công!");
       fetchData();
     } catch (error) {
-      message.error("Lỗi khi xóa thương hiệu!");
+      console.error("Delete brand error:", error);
+      message.error(error.response?.data?.error || "Lỗi khi xóa thương hiệu!");
     }
   };
 
@@ -110,8 +116,8 @@ const AdminBrands = () => {
     try {
       const formData = new FormData();
       formData.append("brand_name", values.brand_name);
-      if (values.category_id) {
-        formData.append("category_id", values.category_id);
+      if (values.category_ids) {
+        formData.append("category_ids", JSON.stringify(values.category_ids));
       }
       if (fileList.length > 0 && fileList[0].originFileObj) {
         formData.append("brand_logo", fileList[0].originFileObj);
@@ -127,7 +133,8 @@ const AdminBrands = () => {
       handleCancel();
       fetchData();
     } catch (error) {
-      message.error("Lỗi khi lưu thương hiệu!");
+      console.error("Save brand error:", error);
+      message.error(error.response?.data?.error || "Lỗi khi lưu thương hiệu!");
     }
   };
 
@@ -162,12 +169,26 @@ const AdminBrands = () => {
     },
     {
       title: "Danh Mục",
-      dataIndex: "category_id",
-      key: "category_id",
-      render: catId => {
-        if (!Array.isArray(categories)) return "---";
-        const cat = categories.find(c => c.category_id === catId);
-        return cat ? cat.category_name : "---";
+      dataIndex: "category_ids",
+      key: "category_ids",
+      render: catIds => {
+        if (!Array.isArray(categories) || !Array.isArray(catIds) || catIds.length === 0) return "---";
+        
+        const tagColors = ['magenta', 'volcano', 'orange', 'gold', 'lime', 'green', 'cyan', 'blue', 'geekblue', 'purple'];
+        
+        const catObjects = catIds.map(id => {
+          return categories.find(c => c.category_id === id);
+        }).filter(Boolean);
+        
+        return catObjects.length > 0 ? (
+          <Space size="small" wrap>
+            {catObjects.map((cat, index) => (
+              <Tag color={tagColors[cat.category_id % tagColors.length]} key={index}>
+                {cat.category_name}
+              </Tag>
+            ))}
+          </Space>
+        ) : "---";
       },
     },
     {
@@ -209,19 +230,53 @@ const AdminBrands = () => {
     >
       <div className="admin-page-header">
         <Title level={2}>🏷️ Quản lý Thương Hiệu</Title>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => handleOpenModal()}
-          className="admin-btn-primary"
-        >
-          Thêm Thương Hiệu
-        </Button>
+        <Space>
+          <Select
+            placeholder="Lọc theo Danh mục"
+            allowClear
+            style={{ width: 250, marginRight: 16 }}
+            value={selectedCategory}
+            onChange={(value) => setSelectedCategory(value)}
+            options={buildCategoryTree(categories).map(parent => {
+              if (parent.children && parent.children.length > 0) {
+                return {
+                  label: <strong style={{ color: "#333" }}>{parent.category_name}</strong>,
+                  options: parent.children.map(child => ({
+                    label: child.category_name,
+                    value: child.category_id,
+                  })),
+                };
+              }
+              return {
+                label: parent.category_name,
+                value: parent.category_id,
+              };
+            })}
+          />
+          <Input.Search
+            placeholder="Tìm kiếm thương hiệu..."
+            style={{ width: 300 }}
+            onChange={(e) => setSearchText(e.target.value)}
+            allowClear
+          />
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => handleOpenModal()}
+            className="admin-btn-primary"
+          >
+            Thêm Thương Hiệu
+          </Button>
+        </Space>
       </div>
 
       <Table
         columns={columns}
-        dataSource={brands || []}
+        dataSource={
+          (brands || []).filter((b) =>
+            b.brand_name.toLowerCase().includes(searchText.toLowerCase())
+          )
+        }
         rowKey="brand_id"
         loading={loading}
         pagination={{
@@ -251,7 +306,7 @@ const AdminBrands = () => {
             <Input placeholder="Nhập tên thương hiệu" />
           </Form.Item>
 
-          <Form.Item name="category_id" label="Danh Mục Liên Kết">
+          <Form.Item name="category_ids" label="Danh Mục Liên Kết">
             <TreeSelect
               treeData={buildCategoryTree(categories, {
                 boldParent: true,
@@ -262,6 +317,7 @@ const AdminBrands = () => {
               allowClear
               showSearch
               treeNodeFilterProp="title"
+              multiple
             />
           </Form.Item>
 

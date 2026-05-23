@@ -21,6 +21,7 @@ import {
   Badge,
   TreeSelect,
   Tabs,
+  Avatar,
 } from "antd";
 import {
   PlusOutlined,
@@ -189,6 +190,7 @@ const AdminProducts = () => {
   const [searchText, setSearchText] = useState("");
   const [filterCategory, setFilterCategory] = useState(null);
   const [filterStatus, setFilterStatus] = useState(null);
+  const [filterBrand, setFilterBrand] = useState(null);
 
   const [trashVisible, setTrashVisible] = useState(false);
   const [trashProducts, setTrashProducts] = useState([]);
@@ -215,6 +217,9 @@ const AdminProducts = () => {
     if (filterCategory) {
       result = result.filter(p => p.category_id === filterCategory);
     }
+    if (filterBrand) {
+      result = result.filter(p => p.brand_id === filterBrand);
+    }
     if (filterStatus) {
       result = result.filter(p => {
         let statusVal = p.product_active;
@@ -224,7 +229,7 @@ const AdminProducts = () => {
       });
     }
     return result;
-  }, [products, lowStockProducts, activeTab, searchText, filterCategory, filterStatus]);
+  }, [products, lowStockProducts, activeTab, searchText, filterCategory, filterBrand, filterStatus]);
 
   // Refresh mỗi khi tab được focus lại (sau khi nhập kho ở tab khác)
   useEffect(() => {
@@ -454,6 +459,16 @@ const AdminProducts = () => {
       dataIndex: "product_name",
       ellipsis: true,
       render: name => <Text strong>{name}</Text>,
+    },
+    {
+      title: "THƯƠNG HIỆU",
+      key: "brand",
+      render: (_, record) => {
+        if (record.brand_name) {
+          return <Tag color="blue">{record.brand_name}</Tag>;
+        }
+        return <Tag color="default">Khác</Tag>;
+      },
     },
     {
       title: "Danh mục",
@@ -783,7 +798,7 @@ const AdminProducts = () => {
           <Select
             placeholder="Lọc theo Danh mục"
             allowClear
-            style={{ width: 200 }}
+            style={{ width: 250 }}
             onChange={value => setFilterCategory(value)}
             options={buildCategoryTree(categories).map(parent => {
               if (parent.children && parent.children.length > 0) {
@@ -800,6 +815,15 @@ const AdminProducts = () => {
                 value: parent.category_id,
               };
             })}
+          />
+          <Select
+            placeholder="Lọc theo Thương hiệu"
+            allowClear
+            style={{ width: 180, marginRight: 8 }}
+            onChange={value => setFilterBrand(value)}
+            options={(brands || []).map(b => ({ label: b.brand_name, value: b.brand_id }))}
+            showSearch
+            optionFilterProp="label"
           />
           <Select
             placeholder="Lọc theo Trạng thái"

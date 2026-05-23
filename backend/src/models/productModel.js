@@ -12,12 +12,14 @@ const PRODUCT_SELECT = `
     p.product_hot,
     p.product_image,
     p.brand_id,
-    c.category_name
+    c.category_name,
+    b.brand_name,
+    b.brand_logo
 `;
 
 const ProductModel = {
   getAll: async (filters = {}) => {
-    const { category, search, hot, isdeleted, admin } = filters;
+    const { category, search, hot, isdeleted, admin, brand_id } = filters;
     let query = `
             SELECT ${PRODUCT_SELECT},
                    MIN(v.variant_price) as min_price,
@@ -25,6 +27,7 @@ const ProductModel = {
                    SUM(v.variant_quantity) as total_quantity
             FROM products p
             LEFT JOIN categories c ON p.category_id = c.category_id
+            LEFT JOIN brands b ON p.brand_id = b.brand_id
             LEFT JOIN product_variants v ON p.product_id = v.product_id
         `;
     let params = [];
@@ -45,6 +48,10 @@ const ProductModel = {
     if (hot !== undefined) {
       conditions.push("p.product_hot = ?");
       params.push(hot);
+    }
+    if (brand_id) {
+      conditions.push("p.brand_id = ?");
+      params.push(brand_id);
     }
 
     if (isdeleted !== undefined) {
@@ -189,7 +196,7 @@ const ProductModel = {
 
   getById: async id => {
     const [products] = await db.query(
-      `SELECT ${PRODUCT_SELECT} FROM products p LEFT JOIN categories c ON p.category_id = c.category_id WHERE p.product_id = ?`,
+      `SELECT ${PRODUCT_SELECT} FROM products p LEFT JOIN categories c ON p.category_id = c.category_id LEFT JOIN brands b ON p.brand_id = b.brand_id WHERE p.product_id = ?`,
       [id],
     );
     if (products.length === 0) return [products];
@@ -224,6 +231,7 @@ const ProductModel = {
       `SELECT ${PRODUCT_SELECT}, SUM(v.variant_quantity) as total_quantity 
        FROM products p 
        LEFT JOIN categories c ON p.category_id = c.category_id 
+       LEFT JOIN brands b ON p.brand_id = b.brand_id
        JOIN product_variants v ON p.product_id = v.product_id
        WHERE p.category_id = ? AND p.product_id != ? AND p.is_deleted = 0 AND p.product_active = 1 
        GROUP BY p.product_id
