@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   FacebookOutlined,
@@ -14,17 +14,32 @@ import {
   CarOutlined,
   LikeOutlined,
 } from "@ant-design/icons";
+import { categoryService } from "../../services/categoryService";
 import "./Footer.css";
 
 const Footer = () => {
+  const [footerCategories, setFooterCategories] = useState([
+    { category_id: 1, category_name: "Trái cây tươi" },
+    { category_id: 2, category_name: "Rau củ sạch" },
+    { category_id: 3, category_name: "Đồ uống" },
+    { category_id: 4, category_name: "Sữa các loại" },
+    { category_id: 5, category_name: "Thực phẩm khô" },
+  ]);
+
+  useEffect(() => {
+    categoryService
+      .getFooterCategories()
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setFooterCategories(data);
+        }
+      })
+      .catch(err => {
+        console.error("Error fetching footer categories:", err);
+      });
+  }, []);
+
   const links = {
-    shop: [
-      { label: "Trái cây tươi", path: "/category/1" },
-      { label: "Rau củ sạch", path: "/category/2" },
-      { label: "Đồ uống", path: "/category/3" },
-      { label: "Sữa các loại", path: "/category/4" },
-      { label: "Thực phẩm khô", path: "/category/5" },
-    ],
     support: [
       { label: "Về chúng tôi", path: "/about" },
       { label: "Chính sách vận chuyển", path: "/shipping" },
@@ -102,9 +117,9 @@ const Footer = () => {
           <div>
             <div className="footer-col-title">Danh mục</div>
             <div className="footer-links">
-              {links.shop.map(l => (
-                <Link key={l.path} to={l.path}>
-                  <RightOutlined className="footer-link-icon" /> {l.label}
+              {footerCategories.map(item => (
+                <Link key={item.category_id} to={`/category/${item.category_id}`}>
+                  <RightOutlined className="footer-link-icon" /> {item.category_name}
                 </Link>
               ))}
             </div>
@@ -157,7 +172,7 @@ const Footer = () => {
         {/* Bottom bar */}
         <div className="footer-bottom">
           <span className="footer-bottom-text">
-            © 2024 EzyMart. All rights reserved.
+            © 2026 EzyMart. All rights reserved.
           </span>
           <div className="footer-bottom-links">
             <Link to="/privacy">Chính sách bảo mật</Link>

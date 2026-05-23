@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   Row,
   Col,
@@ -48,6 +48,7 @@ const getImageSrc = filename => {
 
 const ProductDetail = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { socket } = useSocket();
   const [product, setProduct] = useState(null);
@@ -131,6 +132,27 @@ const ProductDetail = () => {
         content: "Đã thêm vào giỏ hàng!",
         style: { marginTop: 60 },
       });
+    } catch {
+      message.error("Lỗi thêm vào giỏ hàng");
+    } finally {
+      setAddingCart(false);
+    }
+  };
+
+  const handleBuyNow = async () => {
+    if (!selectedVariant) {
+      message.error("Vui lòng chọn phân loại sản phẩm!");
+      return;
+    }
+    setAddingCart(true);
+    try {
+      await cartService.addToCart({
+        product_id: product.product_id,
+        variant_id: selectedVariant.variant_id,
+        quantity,
+        user_id: user?.user_id,
+      });
+      navigate("/cart");
     } catch {
       message.error("Lỗi thêm vào giỏ hàng");
     } finally {
@@ -463,6 +485,8 @@ const ProductDetail = () => {
                     size="large"
                     icon={<ThunderboltOutlined />}
                     className="detail-btn-buy"
+                    onClick={handleBuyNow}
+                    loading={addingCart}
                   >
                     Mua ngay
                   </Button>
