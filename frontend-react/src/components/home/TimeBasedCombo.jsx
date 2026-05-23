@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Button, message, Spin, Typography } from 'antd';
+import { Card, Button, Spin, Typography, Tabs, message } from 'antd';
 import { PlusCircleOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import axiosClient from '../../services/axiosClient';
 import { cartService } from '../../services/cartService';
 import { useAuth } from '../../context/AuthContext';
-import { getImageUrl } from '../../utils/imageHelper';
-import { formatCurrency } from '../../utils';
-import './TimeBasedCombo.css'; // Import file CSS mới tạo
+import ProductCard from '../product/ProductCard';
+import './TimeBasedCombo.css';
 
 const { Title } = Typography;
 
 const TimeBasedCombo = () => {
   const [comboData, setComboData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [activeTabKey, setActiveTabKey] = useState(null);
   
   const { user } = useAuth();
 
@@ -20,9 +20,17 @@ const TimeBasedCombo = () => {
     const fetchCombo = async () => {
       try {
         setLoading(true);
-        const response = await axiosClient.get('/recommendations/combo');
+        // Hỗ trợ truyền ?hour trên URL để phục vụ việc test giao diện
+        const queryParams = new URLSearchParams(window.location.search);
+        const hourParam = queryParams.get('hour');
+        const url = hourParam ? `/recommendations/combo?hour=${hourParam}` : '/recommendations/combo';
+        
+        const response = await axiosClient.get(url);
         if (response.success) {
           setComboData(response);
+          if (response.combos && response.combos.length > 0) {
+            setActiveTabKey(response.combos[0].id_combo);
+          }
         }
       } catch (error) {
         console.error('Lỗi khi tải combo gợi ý:', error);
@@ -40,13 +48,28 @@ const TimeBasedCombo = () => {
       return;
     }
     
-    if (!comboData || !comboData.items || comboData.items.length === 0) return;
+    if (!comboData || !comboData.combos || comboData.combos.length === 0) return;
+
+    // Tìm combo đang hiển thị ở tab hiện tại
+    const activeCombo = comboData.combos.find(c => c.id_combo === activeTabKey);
+    if (!activeCombo || !activeCombo.items || activeCombo.items.length === 0) {
+      message.warning('Không có sản phẩm nào trong Combo này!');
+      return;
+    }
 
     try {
-      for (const product of comboData.items) {
-         await cartService.addToCart(user.user_id, product.product_id, 1);
+      for (const product of activeCombo.items) {
+         const defaultVariantId = product.variants?.[0]?.variant_id;
+         if (defaultVariantId) {
+            await cartService.addToCart({
+              product_id: product.product_id,
+              variant_id: defaultVariantId,
+              quantity: 1,
+              user_id: user.user_id,
+            });
+         }
       }
-      message.success('Đã thêm toàn bộ sản phẩm trong Combo vào giỏ hàng của bạn!');
+      message.success(`Đã thêm toàn bộ sản phẩm trong Combo "${activeCombo.comboName}" vào giỏ hàng!`);
     } catch (error) {
       console.error('Lỗi khi thêm combo vào giỏ:', error);
       message.error('Có lỗi xảy ra khi thêm vào giỏ hàng.');
@@ -63,16 +86,28 @@ const TimeBasedCombo = () => {
     );
   }
 
-  if (!comboData || !comboData.items || comboData.items.length === 0) {
+  if (!comboData || !comboData.combos || comboData.combos.length === 0) {
     return null;
   }
+
+  const tabItems = comboData.combos.map(combo => ({
+    key: combo.id_combo,
+    label: combo.comboName,
+    children: (
+      <div className="time-combo-products-grid">
+        {combo.items.map(product => (
+          <ProductCard key={product.product_id} product={product} />
+        ))}
+      </div>
+    )
+  }));
 
   return (
     <Card className="time-combo-card">
       <div className="time-combo-header">
         <Title level={4} className="time-combo-title">
           <ClockCircleOutlined className="time-combo-icon" />
-          {comboData.comboName}
+          {comboData.title}
         </Title>
         <Button 
           type="primary" 
@@ -84,32 +119,12 @@ const TimeBasedCombo = () => {
         </Button>
       </div>
 
-      <Row gutter={[16, 16]}>
-        {comboData.items.map(product => (
-          <Col xs={24} sm={12} md={8} lg={6} key={product.product_id}>
-            <Card
-              hoverable
-              cover={
-                <img 
-                  alt={product.product_name} 
-                  src={getImageUrl(product.product_image)} 
-                  className="time-combo-product-img"
-                  onError={(e) => { e.target.onerror = null; e.target.src = '/placeholder.png'; }}
-                />
-              }
-              className="time-combo-product-card"
-              bodyStyle={{ padding: '12px' }}
-            >
-              <div className="time-combo-product-name">
-                {product.product_name}
-              </div>
-              <div className="time-combo-product-price">
-                {formatCurrency(product.price || product.dongia || 0)}
-              </div>
-            </Card>
-          </Col>
-        ))}
-      </Row>
+      <Tabs 
+        activeKey={activeTabKey} 
+        onChange={setActiveTabKey}
+        items={tabItems}
+        className="time-combo-tabs"
+      />
     </Card>
   );
 };

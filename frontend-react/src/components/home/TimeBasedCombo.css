@@ -35,45 +35,85 @@
   margin-right: 8px;
 }
 
-.time-combo-btn {
-  background: #fa8c16 !important;
-  border-color: #fa8c16 !important;
+.time-combo-btn,
+button.ant-btn-primary.time-combo-btn {
+  background: #16a34a !important;
+  border-color: #16a34a !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  transition: all 0.3s ease !important;
+}
+
+body .time-combo-btn:hover, 
+body .time-combo-btn:focus, 
+body .time-combo-btn:active,
+button.ant-btn-primary.time-combo-btn:hover,
+button.ant-btn-primary.time-combo-btn:focus,
+button.ant-btn-primary.time-combo-btn:active {
+  background: #15803d !important;
+  border-color: #15803d !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3) !important;
+}
+
+.time-combo-products-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 20px;
+  margin-top: 16px;
+  animation: fadeIn 0.4s ease-in-out;
+}
+
+@media (max-width: 1200px) {
+  .time-combo-products-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+}
+
+/* Custom styles for Ant Design Tabs in TimeBasedCombo */
+.time-combo-tabs {
+  margin-top: 12px;
+}
+
+.time-combo-tabs .ant-tabs-nav {
+  margin-bottom: 20px !important;
+}
+
+.time-combo-tabs .ant-tabs-tab {
+  font-size: 15px !important;
   font-weight: 500 !important;
+  padding: 8px 16px !important;
+  color: #595959 !important;
+  transition: all 0.3s ease;
 }
 
-.time-combo-btn:hover {
-  background: #d46b08 !important;
-  border-color: #d46b08 !important;
+.time-combo-tabs .ant-tabs-tab:hover {
+  color: #fa8c16 !important;
 }
 
-.time-combo-product-card {
-  border-radius: 12px;
-  height: 100%;
-  border-color: #ffe7ba !important;
+.time-combo-tabs .ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: #d46b08 !important;
+  font-weight: 600 !important;
 }
 
-.time-combo-product-img {
-  height: 180px;
-  width: 100%;
-  object-fit: cover;
-  padding: 8px;
-  border-radius: 16px;
+.time-combo-tabs .ant-tabs-ink-bar {
+  background-color: #fa8c16 !important;
+  height: 3px !important;
+  border-radius: 2px;
 }
 
-.time-combo-product-name {
-  font-size: 14px;
-  font-weight: 500;
-  margin-bottom: 8px;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  height: 42px;
+.time-combo-products-row {
+  animation: fadeIn 0.4s ease-in-out;
 }
 
-.time-combo-product-price {
-  color: #cf1322;
-  font-weight: bold;
-  font-size: 16px;
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
