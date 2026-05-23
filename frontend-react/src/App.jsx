@@ -30,6 +30,7 @@ import NewsListPage from "./pages/News/NewsListPage";
 import NewsDetailPage from "./pages/News/NewsDetailPage";
 import AboutPage from "./pages/About/AboutPage";
 import Contact from "./pages/Contact/Contact";
+import ResetPassword from "./pages/ResetPassword/ResetPassword";
 
 // Admin Pages
 import Dashboard from "./pages/admin/Dashboard/Dashboard";
@@ -166,6 +167,15 @@ function AppRoutes() {
           element={
             <MainLayout>
               <NewsDetailPage />
+            </MainLayout>
+          }
+        />
+
+        <Route
+          path="/reset-password"
+          element={
+            <MainLayout>
+              <ResetPassword />
             </MainLayout>
           }
         />
