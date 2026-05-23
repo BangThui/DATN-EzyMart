@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Avatar, Dropdown, Button, message } from "antd";
+import { Avatar, Dropdown, Button, message, Typography, Divider } from "antd";
+import { GoogleLogin } from "@react-oauth/google";
+import { authService } from "../../services/authService";
 import {
   ShoppingCartOutlined,
   UserOutlined,
@@ -13,7 +15,6 @@ import {
   PhoneOutlined,
 } from "@ant-design/icons";
 import { useAuth } from "../../context/AuthContext";
-import { authService } from "../../services/authService";
 import { cartService } from "../../services/cartService";
 import { categoryService } from "../../services/categoryService";
 import { buildCategoryTree, buildMenuItems } from "../../utils";
@@ -85,22 +86,27 @@ const Navbar = () => {
     setLoadingAuth(true);
     try {
       const res = await authService.login(loginData);
-
       login(res.user, res.token);
       setLoginVisible(false);
       setLoginData({ email: "", password: "" });
-
-      if (res.user.role === 0 || res.user.role === "0") {
-        message.success(`Xin chào, ${res.user.user_name}! 🎉`);
-      } else {
-        message.success(`Xin chào, ${res.user.user_name}! 🎉`);
-      }
+      message.success(`Xin chào, ${res.user.user_name}! 🎉`);
     } catch (err) {
       setLoginError(
         err.response?.data?.error || "Email hoặc mật khẩu không đúng",
       );
     } finally {
       setLoadingAuth(false);
+    }
+  };
+
+  const handleGoogleLoginSuccess = async (credentialResponse) => {
+    try {
+      const res = await authService.googleLogin(credentialResponse.credential);
+      login(res.user, res.token);
+      setLoginVisible(false);
+      message.success(`Xin chào, ${res.user.user_name}! 🎉`);
+    } catch (err) {
+      message.error(err.response?.data?.error || "Đăng nhập Google thất bại");
     }
   };
 
@@ -429,6 +435,11 @@ const Navbar = () => {
                     }
                     required
                   />
+                  <Typography.Link
+                    style={{ float: "right", fontSize: "13px", color: "#8c8c8c", marginTop: 6 }}
+                  >
+                    Quên mật khẩu?
+                  </Typography.Link>
                 </div>
                 <button
                   type="submit"
@@ -438,7 +449,23 @@ const Navbar = () => {
                   {loadingAuth ? "⏳ Đang xử lý..." : "🚀 Đăng nhập"}
                 </button>
               </form>
-              <div className="modal-footer-text">
+
+              <Divider style={{ margin: "16px 0", color: "#8c8c8c", fontSize: 13 }}>Hoặc tiếp tục với</Divider>
+
+              <div style={{ display: "flex", justifyContent: "center" }}>
+                <GoogleLogin
+                  onSuccess={handleGoogleLoginSuccess}
+                  onError={() => message.error("Đăng nhập Google thất bại")}
+                  width="100%"
+                  theme="outline"
+                  size="large"
+                  text="signin_with"
+                  shape="rectangular"
+                  locale="vi"
+                />
+              </div>
+
+              <div className="modal-footer-text" style={{ marginTop: 16 }}>
                 Chưa có tài khoản?{" "}
                 <span
                   className="modal-footer-link"

@@ -7,6 +7,7 @@ import {
 } from "react-router-dom";
 import { ConfigProvider } from "antd";
 import viVN from "antd/locale/vi_VN";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { SocketProvider } from "./context/SocketContext";
@@ -198,56 +199,58 @@ function AppRoutes() {
 
 function App() {
   return (
-    <ConfigProvider
-      locale={viVN}
-      theme={{
-        token: {
-          colorPrimary: "#16a34a",
-          colorPrimaryHover: "#15803d",
-          colorPrimaryActive: "#166534",
-          colorLink: "#16a34a",
-          colorLinkHover: "#15803d",
-          borderRadius: 8,
-          borderRadiusLG: 12,
-          borderRadiusSM: 6,
-          fontFamily: "'Inter', 'Plus Jakarta Sans', -apple-system, sans-serif",
-          fontSize: 14,
-          colorBgContainer: "#ffffff",
-          colorBgLayout: "#f8fafc",
-          colorBorder: "#e2e8f0",
-          colorBorderSecondary: "#f1f5f9",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05)",
-          boxShadowSecondary: "0 4px 12px rgba(0,0,0,0.08)",
-        },
-        components: {
-          Button: {
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ""}>
+      <ConfigProvider
+        locale={viVN}
+        theme={{
+          token: {
+            colorPrimary: "#16a34a",
+            colorPrimaryHover: "#15803d",
+            colorPrimaryActive: "#166534",
+            colorLink: "#16a34a",
+            colorLinkHover: "#15803d",
             borderRadius: 8,
-            fontWeight: 600,
+            borderRadiusLG: 12,
+            borderRadiusSM: 6,
+            fontFamily: "'Inter', 'Plus Jakarta Sans', -apple-system, sans-serif",
+            fontSize: 14,
+            colorBgContainer: "#ffffff",
+            colorBgLayout: "#f8fafc",
+            colorBorder: "#e2e8f0",
+            colorBorderSecondary: "#f1f5f9",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05)",
+            boxShadowSecondary: "0 4px 12px rgba(0,0,0,0.08)",
           },
-          Input: {
-            borderRadius: 8,
+          components: {
+            Button: {
+              borderRadius: 8,
+              fontWeight: 600,
+            },
+            Input: {
+              borderRadius: 8,
+            },
+            Card: {
+              borderRadius: 12,
+            },
+            Table: {
+              borderRadius: 12,
+            },
+            Modal: {
+              borderRadius: 16,
+            },
+            Menu: {
+              itemBorderRadius: 8,
+            },
           },
-          Card: {
-            borderRadius: 12,
-          },
-          Table: {
-            borderRadius: 12,
-          },
-          Modal: {
-            borderRadius: 16,
-          },
-          Menu: {
-            itemBorderRadius: 8,
-          },
-        },
-      }}
-    >
-      <AuthProvider>
-        <SocketProvider>
-          <AppRoutes />
-        </SocketProvider>
-      </AuthProvider>
-    </ConfigProvider>
+        }}
+      >
+        <AuthProvider>
+          <SocketProvider>
+            <AppRoutes />
+          </SocketProvider>
+        </AuthProvider>
+      </ConfigProvider>
+    </GoogleOAuthProvider>
   );
 }
 

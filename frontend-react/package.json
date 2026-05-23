@@ -12,6 +12,7 @@
   "dependencies": {
     "@ant-design/icons": "^6.1.1",
     "@paypal/react-paypal-js": "^9.2.0",
+    "@react-oauth/google": "^0.13.5",
     "antd": "^6.3.5",
     "axios": "^1.14.0",
     "dayjs": "^1.11.20",

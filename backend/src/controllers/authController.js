@@ -1,5 +1,82 @@
 const jwt = require("jsonwebtoken");
 const UserModel = require("../models/userModel");
+const { OAuth2Client } = require("google-auth-library");
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+// Đăng nhập bằng Google
+exports.googleLogin = async (req, res) => {
+  try {
+    const { credential } = req.body;
+    if (!credential) {
+      return res.status(400).json({ error: "Google credential là bắt buộc" });
+    }
+
+    // Xác thực token với Google
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    const { email, name, picture } = payload;
+
+    // Tìm user theo email
+    const [userRows] = await UserModel.findByEmail(email);
+    let user;
+
+    if (userRows.length === 0) {
+      // Chưa có tài khoản → tự động tạo mới
+      const randomPassword = Math.random().toString(36).slice(-10);
+      const bcrypt = require("bcryptjs");
+      const hashedPassword = bcrypt.hashSync(randomPassword, 10);
+
+      const [result] = await UserModel.create({
+        name: name || email.split("@")[0],
+        email,
+        password: hashedPassword,
+        phone: "",
+        address: "",
+        role: 1, // Khách hàng
+      });
+
+      const [newUserRows] = await require("../config/db").query(
+        "SELECT * FROM users WHERE user_id = ?",
+        [result.insertId]
+      );
+      user = newUserRows[0];
+    } else {
+      // Đã có tài khoản → lấy đầy đủ thông tin
+      const [fullUserRows] = await require("../config/db").query(
+        "SELECT * FROM users WHERE user_id = ?",
+        [userRows[0].user_id]
+      );
+      user = fullUserRows[0];
+    }
+
+    // Ký JWT
+    const token = jwt.sign(
+      {
+        user_id: user.user_id,
+        email: user.user_email,
+        name: user.user_name,
+        role: user.role,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
+    );
+
+    const { user_password, ...userWithoutPassword } = user;
+
+    res.json({
+      message: "Đăng nhập Google thành công",
+      token,
+      user: userWithoutPassword,
+    });
+  } catch (err) {
+    console.error("Google login error:", err);
+    res.status(401).json({ error: "Xác thực Google thất bại. Vui lòng thử lại." });
+  }
+};
 
 // Đăng nhập
 exports.login = async (req, res) => {
