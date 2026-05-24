@@ -200,6 +200,31 @@ const AdminProducts = () => {
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const [isImportMode, setIsImportMode] = useState(false);
 
+  const selectedBrandId = Form.useWatch("brand_id", form);
+
+  const allowedCategoryIds = useMemo(() => {
+    if (!selectedBrandId) return null;
+    const brand = brands.find((b) => b.brand_id === selectedBrandId);
+    return brand ? (brand.category_ids || []) : [];
+  }, [selectedBrandId, brands]);
+
+  const filteredFormCategories = useMemo(() => {
+    if (!allowedCategoryIds) return categories;
+    const allowedSet = new Set(allowedCategoryIds);
+    categories.forEach(c => {
+      if (allowedSet.has(c.category_id)) {
+         let current = c;
+         while (current && current.parent_id) {
+           const pid = Number(current.parent_id);
+           if (pid === 0) break;
+           allowedSet.add(pid);
+           current = categories.find(parent => parent.category_id === pid);
+         }
+      }
+    });
+    return categories.filter(c => allowedSet.has(c.category_id));
+  }, [categories, allowedCategoryIds]);
+
   // ─── Computed: danh sách đã lọc theo tab ─────────────────────────────
   const lowStockProducts = useMemo(
     () => products.filter(p => getTotalStock(p) < 10),
@@ -418,8 +443,12 @@ const AdminProducts = () => {
       }
       setModalVisible(false);
       fetchData();
-    } catch {
-      message.error("Thao tác thất bại");
+    } catch (error) {
+      if (error.response && error.response.data && error.response.data.error) {
+        message.error(error.response.data.error);
+      } else {
+        message.error("Thao tác thất bại");
+      }
     } finally {
       setSaving(false);
     }
@@ -821,7 +850,16 @@ const AdminProducts = () => {
             allowClear
             style={{ width: 180, marginRight: 8 }}
             onChange={value => setFilterBrand(value)}
-            options={(brands || []).map(b => ({ label: b.brand_name, value: b.brand_id }))}
+            options={(brands || [])
+              .filter(b => {
+                if (!filterCategory) return true;
+                // Hiển thị thương hiệu nếu category_ids của nó có chứa danh mục đang lọc
+                // Hoặc (phòng hờ) nếu có sản phẩm nào thuộc danh mục này mang thương hiệu này
+                const inBrandCat = b.category_ids && b.category_ids.includes(filterCategory);
+                const hasProduct = products.some(p => p.category_id === filterCategory && p.brand_id === b.brand_id);
+                return inBrandCat || hasProduct;
+              })
+              .map(b => ({ label: b.brand_name, value: b.brand_id }))}
             showSearch
             optionFilterProp="label"
           />
@@ -1082,6 +1120,7 @@ const AdminProducts = () => {
                       <Input
                         placeholder="SKU / Mã kho"
                         className="admin-input-price"
+                        style={{ width: 180 }}
                       />
                     </Form.Item>
 
@@ -1120,7 +1159,13 @@ const AdminProducts = () => {
           </Form.List>
 
           <Form.Item label="Thương hiệu" name="brand_id">
-            <Select placeholder="Chọn thương hiệu" allowClear>
+            <Select
+              showSearch
+              placeholder="Chọn thương hiệu"
+              allowClear
+              optionFilterProp="children"
+              onChange={() => form.setFieldsValue({ category_id: undefined })}
+            >
               {brands.map(b => (
                 <Option key={b.brand_id} value={b.brand_id}>
                   {b.brand_name}
@@ -1135,7 +1180,7 @@ const AdminProducts = () => {
             rules={[{ required: true }]}
           >
             <TreeSelect
-              treeData={buildCategoryTree(categories, {
+              treeData={buildCategoryTree(filteredFormCategories, {
                 boldParent: true,
                 leafOnly: true,
               })}

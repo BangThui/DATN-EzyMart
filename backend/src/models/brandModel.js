@@ -16,7 +16,7 @@ const BrandModel = {
             }
             params.push(categoryId);
         }
-        query += ' GROUP BY b.brand_id ORDER BY b.brand_id ASC';
+        query += ' GROUP BY b.brand_id ORDER BY b.brand_id DESC';
         return db.query(query, params);
     },
 

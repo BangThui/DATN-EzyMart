@@ -116,6 +116,19 @@ exports.createProduct = async (req, res) => {
         .json({ error: "Tên sản phẩm và danh mục là bắt buộc" });
     }
 
+    // Xác thực SKU
+    const skus = parsedVariants.map(v => v.sku).filter(sku => sku && sku.trim() !== '');
+    if (skus.length > 0) {
+      const uniqueSkus = new Set(skus);
+      if (uniqueSkus.size !== skus.length) {
+        return res.status(400).json({ error: "Có mã SKU trùng lặp giữa các biến thể trong chính sản phẩm này" });
+      }
+      const duplicateSkus = await ProductModel.checkDuplicateSkus(skus);
+      if (duplicateSkus.length > 0) {
+        return res.status(400).json({ error: `Các mã SKU sau đã tồn tại trong hệ thống: ${duplicateSkus.join(', ')}` });
+      }
+    }
+
     const [result] = await ProductModel.createWithVariants(
       {
         product_name,
@@ -164,6 +177,19 @@ exports.updateProduct = async (req, res) => {
     const [existing] = await ProductModel.getById(id);
     if (existing.length === 0)
       return res.status(404).json({ error: "Không tìm thấy sản phẩm" });
+
+    // Xác thực SKU
+    const skus = parsedVariants.map(v => v.sku).filter(sku => sku && sku.trim() !== '');
+    if (skus.length > 0) {
+      const uniqueSkus = new Set(skus);
+      if (uniqueSkus.size !== skus.length) {
+        return res.status(400).json({ error: "Có mã SKU trùng lặp giữa các biến thể trong chính sản phẩm này" });
+      }
+      const duplicateSkus = await ProductModel.checkDuplicateSkus(skus, id);
+      if (duplicateSkus.length > 0) {
+        return res.status(400).json({ error: `Các mã SKU sau đã tồn tại trong hệ thống: ${duplicateSkus.join(', ')}` });
+      }
+    }
 
     const files = req.files || [];
     let finalImages = [];
