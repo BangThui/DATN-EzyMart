@@ -133,6 +133,26 @@ const DashboardModel = {
             params.push(startDate, endDate);
         }
         return db.query(sql, params);
+    },
+
+    getTotalImportCost: (startDate, endDate) => {
+        let sql = 'SELECT COALESCE(SUM(total_cost), 0) as total_import_cost FROM stock_receipts WHERE 1=1';
+        const params = [];
+        if (startDate && endDate) {
+            sql += ' AND DATE(created_at) >= ? AND DATE(created_at) <= ?';
+            params.push(startDate, endDate);
+        }
+        return db.query(sql, params);
+    },
+
+    getTotalItemsSold: () => {
+        let sql = `
+            SELECT COALESCE(SUM(oi.quantity), 0) as total_items_sold 
+            FROM order_items oi
+            JOIN orders o ON oi.order_id = o.order_id
+            WHERE o.order_status = 'completed'
+        `;
+        return db.query(sql);
     }
 };
 

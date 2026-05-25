@@ -11,6 +11,7 @@ import {
   ClockCircleOutlined,
   RiseOutlined,
   DollarCircleOutlined,
+  InboxOutlined,
 } from "@ant-design/icons";
 import {
   BarChart,
@@ -122,8 +123,8 @@ const Dashboard = () => {
     { label: "Tổng đơn hàng",    value: stats?.total_orders    || 0, icon: <ShoppingCartOutlined />, color: "#3b82f6", bg: "#eff6ff",  currency: false },
     { label: "Tổng doanh thu",   value: stats?.total_revenue   || 0, icon: <DollarOutlined />,       color: "#dc2626", bg: "#fef2f2",  currency: true  },
     { label: "Tổng lợi nhuận",   value: stats?.total_profit    || 0, icon: <DollarCircleOutlined />, color: "#52c41a", bg: "#f6ffed",  currency: true  },
+    { label: "Tổng tiền nhập kho",  value: stats?.total_import_cost   || 0, icon: <InboxOutlined />,          color: "#f59e0b", bg: "#fffbeb",  currency: true  },
     { label: "Khách hàng",       value: stats?.total_customers || 0, icon: <TeamOutlined />,          color: "#10b981", bg: "#f0fdf4",  currency: false },
-    { label: "Doanh thu tháng",  value: stats?.month_revenue   || 0, icon: <RiseOutlined />,          color: "#f59e0b", bg: "#fffbeb",  currency: true  },
     { label: "Tổng sản phẩm",   value: stats?.total_products  || 0, icon: <AppstoreOutlined />,      color: "#8b5cf6", bg: "#faf5ff",  currency: false },
   ];
 

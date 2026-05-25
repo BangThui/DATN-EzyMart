@@ -17,6 +17,10 @@ exports.getStats = async (req, res) => {
         const [customerRows] = await DashboardModel.getTotalCustomers();
         const [monthRows] = await DashboardModel.getMonthStats();
         const [productRows] = await DashboardModel.getTotalProducts();
+        
+        // Thống kê mới
+        const [importRows] = await DashboardModel.getTotalImportCost(startDate, endDate);
+        const [itemsSoldRows] = await DashboardModel.getTotalItemsSold();
 
         res.json({
             total_orders: orderRows[0].total_orders,
@@ -25,7 +29,9 @@ exports.getStats = async (req, res) => {
             total_customers: customerRows[0].total_customers,
             month_revenue: monthRows[0].month_revenue || 0,
             month_orders: monthRows[0].month_orders || 0,
-            total_products: productRows[0].total_products
+            total_products: productRows[0].total_products,
+            total_import_cost: importRows[0].total_import_cost || 0,
+            total_items_sold: itemsSoldRows[0].total_items_sold || 0
         });
     } catch (err) {
         console.error(err);
