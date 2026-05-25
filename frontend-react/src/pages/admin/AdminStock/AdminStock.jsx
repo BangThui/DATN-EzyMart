@@ -14,6 +14,9 @@ import {
   Row,
   Col,
   Tooltip,
+  DatePicker,
+  Card,
+  Statistic,
 } from "antd";
 import {
   PlusOutlined,
@@ -43,15 +46,28 @@ const AdminStock = () => {
   const [quickAddSubmitting, setQuickAddSubmitting] = useState(false);
   const [quickAddForm] = Form.useForm();
 
+  const [dateRange, setDateRange] = useState([
+    dayjs().startOf('month'),
+    dayjs()
+  ]);
+
   useEffect(() => {
     fetchData();
+  }, [dateRange]);
+
+  useEffect(() => {
     fetchProducts();
   }, []);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const data = await stockService.getAll();
+      const params = {};
+      if (dateRange && dateRange.length === 2) {
+        params.startDate = dateRange[0].format("YYYY-MM-DD");
+        params.endDate = dateRange[1].format("YYYY-MM-DD");
+      }
+      const data = await stockService.getAll(params);
       setReceipts(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Lỗi lấy phiếu nhập:", error);
@@ -218,6 +234,9 @@ const AdminStock = () => {
     },
   ];
 
+  const totalAllAmount = receipts.reduce((sum, item) => sum + (Number(item.total_cost) || 0), 0);
+  const totalElements = receipts.length;
+
   return (
     <div className="admin-stock-page">
       <div className="admin-page-header">
@@ -231,6 +250,40 @@ const AdminStock = () => {
           Tạo Phiếu Nhập Mới
         </Button>
       </div>
+
+      <div style={{ marginBottom: 16 }}>
+        <DatePicker.RangePicker 
+          value={dateRange} 
+          onChange={(dates) => setDateRange(dates)}
+          format="DD/MM/YYYY"
+          placeholder={['Từ ngày', 'Đến ngày']}
+        />
+      </div>
+
+      <Row gutter={16} style={{ marginBottom: 16 }}>
+        <Col span={12}>
+          <Card bordered={false} className="admin-statistic-card" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+            <Statistic
+              title="Tổng tiền nhập kho"
+              value={totalAllAmount}
+              valueStyle={{ color: '#cf1322', fontWeight: 'bold' }}
+              suffix="đ"
+              formatter={(val) => new Intl.NumberFormat("vi-VN").format(val)}
+            />
+          </Card>
+        </Col>
+        <Col span={12}>
+          <Card bordered={false} className="admin-statistic-card" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+            <Statistic
+              title="Tổng số phiếu nhập"
+              value={totalElements}
+              valueStyle={{ color: '#1677ff', fontWeight: 'bold' }}
+              suffix="phiếu"
+              formatter={(val) => new Intl.NumberFormat("vi-VN").format(val)}
+            />
+          </Card>
+        </Col>
+      </Row>
 
       <Table
         columns={columns}

@@ -38,6 +38,7 @@ const AdminBrands = () => {
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingBrand, setEditingBrand] = useState(null);
+  const [saving, setSaving] = useState(false);
   const [form] = Form.useForm();
   const [fileList, setFileList] = useState([]);
   const [searchText, setSearchText] = useState("");
@@ -113,6 +114,7 @@ const AdminBrands = () => {
   };
 
   const handleFinish = async values => {
+    setSaving(true);
     try {
       const formData = new FormData();
       formData.append("brand_name", values.brand_name);
@@ -135,6 +137,8 @@ const AdminBrands = () => {
     } catch (error) {
       console.error("Save brand error:", error);
       message.error(error.response?.data?.error || "Lỗi khi lưu thương hiệu!");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -338,6 +342,7 @@ const AdminBrands = () => {
             <Button
               type="primary"
               htmlType="submit"
+              loading={saving}
               className="admin-btn-primary"
             >
               {editingBrand ? "Cập nhật" : "Thêm mới"}

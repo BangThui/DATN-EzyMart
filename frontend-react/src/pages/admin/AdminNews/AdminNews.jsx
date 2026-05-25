@@ -163,9 +163,8 @@ const AdminNews = () => {
   };
 
   // ─── Submit form (Thêm / Sửa) ────────────────────────────────────────────────
-  const handleFormSubmit = async () => {
+  const handleFormSubmit = async (values) => {
     try {
-      const values = await form.validateFields();
       setSubmitting(true);
 
       const formData = new FormData();
@@ -404,10 +403,7 @@ const AdminNews = () => {
         }
         open={modalOpen}
         onCancel={handleModalClose}
-        onOk={handleFormSubmit}
-        okText={editingRecord ? 'Cập nhật' : 'Thêm mới'}
-        cancelText="Hủy"
-        confirmLoading={submitting}
+        footer={null}
         width={820}
         centered
         destroyOnClose
@@ -417,6 +413,7 @@ const AdminNews = () => {
           layout="vertical"
           initialValues={{ status: 1 }}
           className="admin-news-form"
+          onFinish={handleFormSubmit}
         >
           {/* Tiêu đề */}
           <Form.Item
@@ -518,6 +515,18 @@ const AdminNews = () => {
               </Option>
             </Select>
           </Form.Item>
+
+          <div className="admin-form-actions">
+            <Button onClick={handleModalClose}>Hủy</Button>
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={submitting}
+              className="admin-btn-primary"
+            >
+              {editingRecord ? 'Cập nhật' : 'Thêm mới'}
+            </Button>
+          </div>
         </Form>
       </Modal>
     </div>

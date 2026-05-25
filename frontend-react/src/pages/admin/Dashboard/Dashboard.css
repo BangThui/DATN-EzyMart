@@ -28,7 +28,7 @@
 }
 
 .dashboard-stat-card .ant-card-body {
-  padding: 18px 20px !important;
+  padding: 16px 12px !important;
 }
 
 .dashboard-stat-card:hover {
@@ -39,7 +39,7 @@
 .dashboard-stat-inner {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 10px;
 }
 
 .dashboard-stat-icon {
@@ -62,13 +62,12 @@
   font-size: 13px;
   color: #8c8c8c;
   margin-bottom: 4px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  line-height: 1.2;
 }
 
 .dashboard-stat-value {
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 700;
   color: #141414;
   white-space: nowrap;

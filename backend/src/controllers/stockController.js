@@ -202,6 +202,15 @@ exports.bulkImportStock = async (req, res) => {
 // [ADMIN] Lấy danh sách phiếu nhập (JOIN với bảng suppliers để lấy supplier_name)
 exports.getReceipts = async (req, res) => {
   try {
+    const { startDate, endDate } = req.query;
+    let timeCondition = '';
+    const params = [];
+    
+    if (startDate && endDate) {
+      timeCondition = 'WHERE DATE(sr.created_at) BETWEEN ? AND ?';
+      params.push(startDate, endDate);
+    }
+
     const [rows] = await pool.execute(
       `SELECT sr.receipt_id, sr.supplier_id, s.supplier_name,
               sr.total_cost, sr.note, sr.created_at,
@@ -209,8 +218,10 @@ exports.getReceipts = async (req, res) => {
        FROM stock_receipts sr
        LEFT JOIN suppliers s ON sr.supplier_id = s.supplier_id AND s.is_deleted = 0
        LEFT JOIN stock_receipt_details srd ON sr.receipt_id = srd.receipt_id
+       ${timeCondition}
        GROUP BY sr.receipt_id, sr.supplier_id, s.supplier_name, sr.total_cost, sr.note, sr.created_at
-       ORDER BY sr.created_at DESC`
+       ORDER BY sr.created_at DESC`,
+      params
     );
     res.json(rows);
   } catch (err) {
