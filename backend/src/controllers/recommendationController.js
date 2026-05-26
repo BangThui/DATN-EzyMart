@@ -81,27 +81,27 @@ const getDailyCombo = async (req, res) => {
             
             // Combo 1: Bữa sáng tiện lợi -> Lấy 5 món distinct
             const exclude1 = [];
-            const item1_1 = await getRandomProductByCategory([73, 124, 125, 126, 127], exclude1, [90, 95]);
+            const item1_1 = await getRandomProductByCategory([125, 126, 130], exclude1, [90, 95]);
             if (item1_1) exclude1.push(item1_1.product_id);
-            const item1_2 = await getRandomProductByCategory([73, 124, 125, 126, 127], exclude1, [90, 95]);
+            const item1_2 = await getRandomProductByCategory([125, 126, 130], exclude1, [90, 95]);
             if (item1_2) exclude1.push(item1_2.product_id);
-            const item1_3 = await getRandomProductByCategory([93, 107, 128, 129, 130], exclude1, [3, 69, 83]);
+            const item1_3 = await getRandomProductByCategory([107, 109], exclude1, [3, 69, 83]);
             if (item1_3) exclude1.push(item1_3.product_id);
-            const item1_4 = await getRandomProductByCategory([93, 107, 128, 129, 130], exclude1, [3, 69, 83]);
+            const item1_4 = await getRandomProductByCategory([107, 109], exclude1, [3, 69, 83]);
             if (item1_4) exclude1.push(item1_4.product_id);
-            const item1_5 = await getRandomProductByCategory([90, 95], exclude1, [73, 124]);
+            const item1_5 = await getRandomProductByCategory([90], exclude1, [73, 124]);
             
             // Combo 2: Sáng ấm bụng -> Lấy 5 món distinct
             const exclude2 = [];
-            const item2_1 = await getRandomProductByCategory([74, 98, 99, 100, 101], exclude2, [79, 108]);
+            const item2_1 = await getRandomProductByCategory([98, 101], exclude2, [79, 108]);
             if (item2_1) exclude2.push(item2_1.product_id);
-            const item2_2 = await getRandomProductByCategory([74, 98, 99, 100, 101], exclude2, [79, 108]);
+            const item2_2 = await getRandomProductByCategory([98, 101], exclude2, [79, 108]);
             if (item2_2) exclude2.push(item2_2.product_id);
-            const item2_3 = await getRandomProductByCategory([3, 69, 82], exclude2, [83]);
+            const item2_3 = await getRandomProductByCategory([82, 69, 83], exclude2, [83]);
             if (item2_3) exclude2.push(item2_3.product_id);
-            const item2_4 = await getRandomProductByCategory([3, 69, 82], exclude2, [83]);
+            const item2_4 = await getRandomProductByCategory([82, 69, 83], exclude2, [83]);
             if (item2_4) exclude2.push(item2_4.product_id);
-            const item2_5 = await getRandomProductByCategory([79, 108, 104], exclude2, [74, 98]);
+            const item2_5 = await getRandomProductByCategory([108], exclude2, [74, 98]);
             
             // Combo 3: Healthy Sáng -> Lấy 5 món distinct
             const exclude3 = [];
@@ -113,7 +113,7 @@ const getDailyCombo = async (req, res) => {
             if (item3_3) exclude3.push(item3_3.product_id);
             const item3_4 = await getRandomProductByCategory([90], exclude3, [130]);
             if (item3_4) exclude3.push(item3_4.product_id);
-            const item3_5 = await getRandomProductByCategory([93, 130], exclude3, [90]);
+            const item3_5 = await getRandomProductByCategory([130], exclude3, [90]);
             
             combos = [
                 {
@@ -139,11 +139,11 @@ const getDailyCombo = async (req, res) => {
             
             // Combo 1: Cơm trưa nhanh gọn -> Lấy 5 món distinct
             const exclude1 = [];
-            const item1_1 = await getRandomProductByCategory([79, 104, 108], exclude1, [74, 98]);
+            const item1_1 = await getRandomProductByCategory([98, 101, 104], exclude1, [74, 98]);
             if (item1_1) exclude1.push(item1_1.product_id);
-            const item1_2 = await getRandomProductByCategory([79, 104, 108], exclude1, [74, 98]);
+            const item1_2 = await getRandomProductByCategory([98, 101, 104], exclude1, [74, 98]);
             if (item1_2) exclude1.push(item1_2.product_id);
-            const item1_3 = await getRandomProductByCategory([79, 104, 108], exclude1, [74, 98]);
+            const item1_3 = await getRandomProductByCategory([98, 101, 104], exclude1, [74, 98]);
             if (item1_3) exclude1.push(item1_3.product_id);
             const item1_4 = await getRandomProductByCategory([83], exclude1, [3, 69]);
             if (item1_4) exclude1.push(item1_4.product_id);
@@ -163,11 +163,11 @@ const getDailyCombo = async (req, res) => {
             
             // Combo 3: Nạp đường xế chiều -> Lấy 5 món distinct
             const exclude3 = [];
-            const item3_1 = await getRandomProductByCategory([73, 95, 96], exclude3, [90]);
+            const item3_1 = await getRandomProductByCategory([93, 94, 95], exclude3, [90]);
             if (item3_1) exclude3.push(item3_1.product_id);
-            const item3_2 = await getRandomProductByCategory([73, 95, 96], exclude3, [90]);
+            const item3_2 = await getRandomProductByCategory([93, 94, 95], exclude3, [90]);
             if (item3_2) exclude3.push(item3_2.product_id);
-            const item3_3 = await getRandomProductByCategory([73, 95, 96], exclude3, [90]);
+            const item3_3 = await getRandomProductByCategory([93, 94, 95], exclude3, [90]);
             if (item3_3) exclude3.push(item3_3.product_id);
             const item3_4 = await getRandomProductByCategory([69], exclude3, [3, 82]);
             if (item3_4) exclude3.push(item3_4.product_id);
@@ -197,39 +197,39 @@ const getDailyCombo = async (req, res) => {
             
             // Combo 1: Nấu cơm gia đình -> Lấy 5 món distinct
             const exclude1 = [];
-            const item1_1 = await getRandomProductByCategory([80, 112, 113, 114, 115, 116, 117], exclude1, [79]);
+            const item1_1 = await getRandomProductByCategory([112, 113, 115, 117], exclude1, [79]);
             if (item1_1) exclude1.push(item1_1.product_id);
-            const item1_2 = await getRandomProductByCategory([80, 112, 113, 114, 115, 116, 117], exclude1, [79]);
+            const item1_2 = await getRandomProductByCategory([112, 113, 115, 117], exclude1, [79]);
             if (item1_2) exclude1.push(item1_2.product_id);
-            const item1_3 = await getRandomProductByCategory([84, 91, 92, 119, 120], exclude1, [108]);
+            const item1_3 = await getRandomProductByCategory([91, 92], exclude1, [108]);
             if (item1_3) exclude1.push(item1_3.product_id);
-            const item1_4 = await getRandomProductByCategory([84, 91, 92, 119, 120], exclude1, [108]);
+            const item1_4 = await getRandomProductByCategory([91, 92], exclude1, [108]);
             if (item1_4) exclude1.push(item1_4.product_id);
-            const item1_5 = await getRandomProductByCategory([1, 88, 89], exclude1, [90]);
+            const item1_5 = await getRandomProductByCategory([88, 89], exclude1, [90]);
             
             // Combo 2: Cú đêm ăn liền -> Lấy 5 món distinct
             const exclude2 = [];
-            const item2_1 = await getRandomProductByCategory([74, 98, 99, 100, 101], exclude2, [79]);
+            const item2_1 = await getRandomProductByCategory([98, 100], exclude2, [79]);
             if (item2_1) exclude2.push(item2_1.product_id);
-            const item2_2 = await getRandomProductByCategory([74, 98, 99, 100, 101], exclude2, [79]);
+            const item2_2 = await getRandomProductByCategory([98, 100], exclude2, [79]);
             if (item2_2) exclude2.push(item2_2.product_id);
-            const item2_3 = await getRandomProductByCategory([79, 104, 108], exclude2, [95]);
+            const item2_3 = await getRandomProductByCategory([108], exclude2, [95]);
             if (item2_3) exclude2.push(item2_3.product_id);
-            const item2_4 = await getRandomProductByCategory([79, 104, 108], exclude2, [95]);
+            const item2_4 = await getRandomProductByCategory([108], exclude2, [95]);
             if (item2_4) exclude2.push(item2_4.product_id);
-            const item2_5 = await getRandomProductByCategory([3, 69, 82], exclude2, [83]);
+            const item2_5 = await getRandomProductByCategory([69], exclude2, [83]);
             
             // Combo 3: Trái cây tráng miệng & Đồ nhắm -> Lấy 5 món distinct
             const exclude3 = [];
             const item3_1 = await getRandomProductByCategory([90], exclude3, [95]);
             if (item3_1) exclude3.push(item3_1.product_id);
-            const item3_2 = await getRandomProductByCategory([118, 85], exclude3, [3, 69, 82]);
+            const item3_2 = await getRandomProductByCategory([118], exclude3, [3, 69, 82]);
             if (item3_2) exclude3.push(item3_2.product_id);
-            const item3_3 = await getRandomProductByCategory([118, 85], exclude3, [3, 69, 82]);
+            const item3_3 = await getRandomProductByCategory([118], exclude3, [3, 69, 82]);
             if (item3_3) exclude3.push(item3_3.product_id);
-            const item3_4 = await getRandomProductByCategory([95, 96], exclude3, [90]);
+            const item3_4 = await getRandomProductByCategory([96], exclude3, [90]);
             if (item3_4) exclude3.push(item3_4.product_id);
-            const item3_5 = await getRandomProductByCategory([95, 96], exclude3, [90]);
+            const item3_5 = await getRandomProductByCategory([96], exclude3, [90]);
             
             combos = [
                 {
