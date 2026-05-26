@@ -6,6 +6,7 @@ const { authMiddleware, adminMiddleware } = require('../middleware/authMiddlewar
 // Public
 router.get('/', categoryController.getCategories);
 router.get('/tree', categoryController.getCategoryTree);
+router.get('/footer', categoryController.getFooterCategories);
 router.get('/:id', categoryController.getCategoryById);
 
 // Admin

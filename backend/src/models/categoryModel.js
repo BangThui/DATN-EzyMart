@@ -5,6 +5,10 @@ const CategoryModel = {
         return db.query('SELECT * FROM categories ORDER BY category_id ASC');
     },
 
+    getFooterCategories: () => {
+        return db.query('SELECT * FROM categories WHERE parent_id IS NULL LIMIT 5');
+    },
+
     getById: (id) => {
         return db.query('SELECT * FROM categories WHERE category_id = ?', [id]);
     },

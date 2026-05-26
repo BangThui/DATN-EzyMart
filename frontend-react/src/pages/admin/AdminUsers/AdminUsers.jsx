@@ -12,6 +12,7 @@ const AdminUsers = () => {
     const [loading, setLoading] = useState(false);
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
+    const [saving, setSaving] = useState(false);
     const [form] = Form.useForm();
     const [searchText, setSearchText] = useState('');
     const [selectedRole, setSelectedRole] = useState('all');
@@ -62,6 +63,7 @@ const AdminUsers = () => {
     };
 
     const handleSubmit = async (values) => {
+        setSaving(true);
         try {
             if (editingUser) {
                 // Sửa
@@ -80,6 +82,8 @@ const AdminUsers = () => {
             } else {
                 message.error(editingUser ? 'Lỗi cập nhật tài khoản' : 'Lỗi thêm tài khoản');
             }
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -309,9 +313,10 @@ const AdminUsers = () => {
                         <Button 
                             type="primary" 
                             htmlType="submit"
+                            loading={saving}
                             className="admin-btn-primary"
                         >
-                            Lưu
+                            {editingUser ? "Cập nhật" : "Thêm mới"}
                         </Button>
                     </div>
                 </Form>

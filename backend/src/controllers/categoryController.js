@@ -11,6 +11,17 @@ exports.getCategories = async (req, res) => {
     }
 };
 
+// Lấy 5 danh mục gốc cho Footer
+exports.getFooterCategories = async (req, res) => {
+    try {
+        const [rows] = await CategoryModel.getFooterCategories();
+        res.json(rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Lỗi lấy danh mục cho footer' });
+    }
+};
+
 // Lấy danh sách danh mục phân cấp (Nested JSON)
 exports.getCategoryTree = async (req, res) => {
     try {

@@ -66,6 +66,30 @@ const UserModel = {
   delete: id => {
     return db.query("DELETE FROM users WHERE user_id = ?", [id]);
   },
+
+  // ─── OTP Reset Password ──────────────────────────────────────────────────────
+  // Lưu OTP 6 số vào cột reset_password_token, hết hạn 5 phút
+  saveOtp: (email, otp) => {
+    return db.query(
+      "UPDATE users SET reset_password_token = ?, reset_password_expires = DATE_ADD(NOW(), INTERVAL 5 MINUTE) WHERE user_email = ?",
+      [otp, email]
+    );
+  },
+
+  // Tìm user theo email + OTP còn hạn
+  findByEmailAndOtp: (email, otp) => {
+    return db.query(
+      "SELECT * FROM users WHERE user_email = ? AND reset_password_token = ? AND reset_password_expires > NOW()",
+      [email, otp]
+    );
+  },
+
+  clearOtp: (userId) => {
+    return db.query(
+      "UPDATE users SET reset_password_token = NULL, reset_password_expires = NULL WHERE user_id = ?",
+      [userId]
+    );
+  },
 };
 
 module.exports = UserModel;

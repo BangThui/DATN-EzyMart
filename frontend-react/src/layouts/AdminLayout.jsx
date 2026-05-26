@@ -110,8 +110,8 @@ const AdminLayout = () => {
         />
       </Sider>
 
-      <Layout>
-        <Header className="admin-header">
+      <Layout style={{ marginLeft: collapsed ? 80 : 200, transition: "margin-left 0.2s ease" }}>
+        <Header className="admin-header" style={{ left: collapsed ? 80 : 200, transition: "left 0.2s ease" }}>
           <Button
             type="text"
             icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}

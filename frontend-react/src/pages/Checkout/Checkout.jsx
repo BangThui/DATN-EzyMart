@@ -123,6 +123,7 @@ const Checkout = () => {
 
             message.success('Thanh toán đơn hàng qua PayPal thành công!');
             setOrderedMahang(localOrderIdRef.current || tempOrderId);
+            window.dispatchEvent(new Event("cart-updated"));
         } catch (err) {
             console.error('PayPal Capture Error:', err);
             message.error(err.response?.data?.error || 'Xác nhận thanh toán thất bại');
@@ -151,6 +152,7 @@ const Checkout = () => {
                 }))
             });
             setOrderedMahang(res.mahang);
+            window.dispatchEvent(new Event("cart-updated"));
             message.success('Đặt hàng thành công!');
         } catch (err) {
             message.error(err.response?.data?.error || 'Đặt hàng thất bại');

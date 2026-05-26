@@ -370,6 +370,8 @@ ul {
   padding: 0 24px;
   display: flex;
   align-items: center;
+  justify-content: center;
+  gap: 20px;
 }
 .navbar-nav-link {
   display: inline-flex;
@@ -430,8 +432,13 @@ ul {
 }
 .modal-header {
   background: linear-gradient(135deg, #15803d, #22c55e);
-  padding: 28px 28px 24px;
+  padding: 28px 60px 24px 28px !important;
   position: relative;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  justify-content: center !important;
+  border-bottom: none !important;
 }
 .modal-title {
   font-size: 22px;
@@ -658,6 +665,9 @@ ul {
 .ant-select:not(.ant-select-disabled).ant-select-focused .ant-select-selector {
   border-color: var(--green-primary) !important;
   box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.1) !important;
+}
+.ant-message {
+  z-index: 99999 !important;
 }
 
 /* ================================================================

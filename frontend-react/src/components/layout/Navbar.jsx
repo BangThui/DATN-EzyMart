@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Avatar, Dropdown, Button, message } from "antd";
+import { Avatar, Dropdown, Button, message, Typography, Divider, Steps, Input } from "antd";
+import { GoogleLogin } from "@react-oauth/google";
+import { authService } from "../../services/authService";
 import {
   ShoppingCartOutlined,
   UserOutlined,
@@ -13,7 +15,6 @@ import {
   PhoneOutlined,
 } from "@ant-design/icons";
 import { useAuth } from "../../context/AuthContext";
-import { authService } from "../../services/authService";
 import { cartService } from "../../services/cartService";
 import { categoryService } from "../../services/categoryService";
 import { buildCategoryTree, buildMenuItems } from "../../utils";
@@ -31,6 +32,13 @@ const Navbar = () => {
   const [loadingAuth, setLoadingAuth] = useState(false);
   const [loginError, setLoginError] = useState("");
   const [registerError, setRegisterError] = useState("");
+  const [forgotVisible, setForgotVisible] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotStep, setForgotStep] = useState(0); // 0: Nhập email, 1: Nhập OTP & MK mới
+  const [otpCode, setOtpCode] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loginData, setLoginData] = useState({ email: "", password: "" });
   const [registerData, setRegisterData] = useState({
     name: "",
@@ -58,16 +66,25 @@ const Navbar = () => {
   // Fetch cart count
   useEffect(() => {
     const fetch = async () => {
+      if (!user?.user_id) {
+        setCartCount(0);
+        return;
+      }
       try {
-        const data = await cartService.getCart(user?.user_id);
+        const data = await cartService.getCart(user.user_id);
         setCartCount(Array.isArray(data) ? data.length : 0);
       } catch {
         setCartCount(0);
       }
     };
     fetch();
+
+    window.addEventListener("cart-updated", fetch);
     const t = setInterval(fetch, 6000);
-    return () => clearInterval(t);
+    return () => {
+      window.removeEventListener("cart-updated", fetch);
+      clearInterval(t);
+    };
   }, [user]);
 
   const handleLogin = async e => {
@@ -76,22 +93,87 @@ const Navbar = () => {
     setLoadingAuth(true);
     try {
       const res = await authService.login(loginData);
-
       login(res.user, res.token);
       setLoginVisible(false);
       setLoginData({ email: "", password: "" });
-
-      if (res.user.role === 0 || res.user.role === "0") {
-        message.success(`Xin chào, ${res.user.user_name}! 🎉`);
-      } else {
-        message.success(`Xin chào, ${res.user.user_name}! 🎉`);
-      }
+      message.success(`Xin chào, ${res.user.user_name}! 🎉`);
     } catch (err) {
       setLoginError(
         err.response?.data?.error || "Email hoặc mật khẩu không đúng",
       );
     } finally {
       setLoadingAuth(false);
+    }
+  };
+
+  const handleGoogleLoginSuccess = async (credentialResponse) => {
+    try {
+      const res = await authService.googleLogin(credentialResponse.credential);
+      login(res.user, res.token);
+      setLoginVisible(false);
+      message.success(`Xin chào, ${res.user.user_name}! 🎉`);
+    } catch (err) {
+      message.error(err.response?.data?.error || "Đăng nhập Google thất bại");
+    }
+  };
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    if (!forgotEmail) return;
+    setForgotLoading(true);
+    try {
+      await authService.forgotPassword({ email: forgotEmail });
+      message.success("Mã OTP đã được gửi vào Email của bạn. Vui lòng kiểm tra hộp thư!", 5);
+      setForgotStep(1); // Chuyển sang bước nhập OTP
+    } catch (err) {
+      message.error(err.response?.data?.error || "Gửi yêu cầu thất bại. Vui lòng thử lại.");
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    if (otpCode.length !== 6) {
+      return message.error("Vui lòng nhập đủ 6 số OTP.");
+    }
+    setForgotLoading(true);
+    try {
+      await authService.verifyOtp({ email: forgotEmail, otp: otpCode });
+      message.success("Xác thực thành công. Vui lòng nhập mật khẩu mới.");
+      setForgotStep(2); // Chuyển sang bước điền mật khẩu
+    } catch (err) {
+      message.error(err.response?.data?.error || "Mã OTP không đúng hoặc đã hết hạn.");
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleVerifyOtpReset = async (e) => {
+    e.preventDefault();
+    if (!otpCode || !newPassword || !confirmPassword) return;
+    if (newPassword !== confirmPassword) {
+      return message.error("Hai mật khẩu không khớp!");
+    }
+    if (newPassword.length < 6) {
+      return message.error("Mật khẩu phải có ít nhất 6 ký tự!");
+    }
+    setForgotLoading(true);
+    try {
+      await authService.verifyOtpReset({ email: forgotEmail, otp: otpCode, newPassword });
+      message.success("Đặt lại mật khẩu thành công! Vui lòng đăng nhập với mật khẩu mới.", 5);
+      // Đóng modal forgot và mở modal login, reset state
+      setForgotVisible(false);
+      setLoginVisible(true);
+      setForgotStep(0);
+      setForgotEmail("");
+      setOtpCode("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err) {
+      message.error(err.response?.data?.error || "Mã OTP không đúng hoặc đã hết hạn.");
+    } finally {
+      setForgotLoading(false);
     }
   };
 
@@ -420,6 +502,15 @@ const Navbar = () => {
                     }
                     required
                   />
+                  <Typography.Link
+                    style={{ float: "right", fontSize: "13px", color: "#8c8c8c", marginTop: 6 }}
+                    onClick={() => {
+                      setLoginVisible(false);
+                      setForgotVisible(true);
+                    }}
+                  >
+                    Quên mật khẩu?
+                  </Typography.Link>
                 </div>
                 <button
                   type="submit"
@@ -429,7 +520,23 @@ const Navbar = () => {
                   {loadingAuth ? "⏳ Đang xử lý..." : "🚀 Đăng nhập"}
                 </button>
               </form>
-              <div className="modal-footer-text">
+
+              <Divider style={{ margin: "16px 0", color: "#8c8c8c", fontSize: 13 }}>Hoặc tiếp tục với</Divider>
+
+              <div style={{ display: "flex", justifyContent: "center" }}>
+                <GoogleLogin
+                  onSuccess={handleGoogleLoginSuccess}
+                  onError={() => message.error("Đăng nhập Google thất bại")}
+                  width="100%"
+                  theme="outline"
+                  size="large"
+                  text="signin_with"
+                  shape="rectangular"
+                  locale="vi"
+                />
+              </div>
+
+              <div className="modal-footer-text" style={{ marginTop: 16 }}>
                 Chưa có tài khoản?{" "}
                 <span
                   className="modal-footer-link"
@@ -541,6 +648,142 @@ const Navbar = () => {
                   Đăng nhập
                 </span>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══ FORGOT PASSWORD MODAL ══ */}
+      {forgotVisible && (
+        <div
+          className="modal-overlay"
+          onClick={e => e.target === e.currentTarget && setForgotVisible(false)}
+        >
+          <div className="modal-box">
+            <div className="modal-header">
+              <div className="modal-title">🔑 Quên mật khẩu</div>
+              <div className="modal-subtitle">Nhập email để nhận liên kết khôi phục</div>
+              <button className="modal-close" onClick={() => {
+                setForgotVisible(false);
+                setForgotStep(0);
+                setOtpCode("");
+                setNewPassword("");
+                setConfirmPassword("");
+              }}>✕</button>
+            </div>
+            <div className="modal-body" style={{ padding: "0 24px 24px" }}>
+              <Steps 
+                current={forgotStep} 
+                style={{ marginBottom: 24, padding: "20px 0" }}
+                items={[
+                  { title: "Nhập Email" },
+                  { title: "Xác thực OTP" },
+                  { title: "Mật khẩu mới" }
+                ]}
+              />
+
+              {forgotStep === 0 && (
+                <form onSubmit={handleForgotPassword}>
+                  <div className="modal-form-group">
+                    <label className="modal-label">Địa chỉ Email của bạn</label>
+                    <input
+                      className="modal-input"
+                      type="email"
+                      placeholder="example@email.com"
+                      value={forgotEmail}
+                      onChange={e => setForgotEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="modal-btn"
+                    disabled={forgotLoading}
+                  >
+                    {forgotLoading ? "⏳ Đang gửi..." : "📩 Gửi mã OTP khôi phục"}
+                  </button>
+                </form>
+              )}
+
+              {forgotStep === 1 && (
+                <form onSubmit={handleVerifyOtp}>
+                  <div className="modal-form-group" style={{ textAlign: "center" }}>
+                    <label className="modal-label" style={{ display: "block", marginBottom: 12 }}>
+                      Nhập mã OTP (6 số) gửi về email
+                    </label>
+                    <Input.OTP 
+                      length={6} 
+                      value={otpCode}
+                      onChange={setOtpCode}
+                      style={{ margin: "0 auto 16px" }}
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="modal-btn"
+                    disabled={forgotLoading || otpCode.length !== 6}
+                    style={{ marginTop: 8 }}
+                  >
+                    {forgotLoading ? "⏳ Đang xác thực..." : "✅ Xác thực OTP"}
+                  </button>
+                  <div style={{ textAlign: "center", marginTop: 16 }}>
+                    <Typography.Link onClick={() => setForgotStep(0)} style={{ fontSize: 13 }}>
+                      ← Quay lại nhập email
+                    </Typography.Link>
+                  </div>
+                </form>
+              )}
+
+              {forgotStep === 2 && (
+                <form onSubmit={handleVerifyOtpReset}>
+                  <div className="modal-form-group">
+                    <label className="modal-label">Mật khẩu mới</label>
+                    <Input.Password
+                      placeholder="Tối thiểu 6 ký tự"
+                      value={newPassword}
+                      onChange={e => setNewPassword(e.target.value)}
+                      style={{ borderRadius: 8, height: 44 }}
+                      required
+                    />
+                  </div>
+                  <div className="modal-form-group">
+                    <label className="modal-label">Xác nhận mật khẩu</label>
+                    <Input.Password
+                      placeholder="Nhập lại mật khẩu mới"
+                      value={confirmPassword}
+                      onChange={e => setConfirmPassword(e.target.value)}
+                      style={{ borderRadius: 8, height: 44 }}
+                      required
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="modal-btn"
+                    disabled={forgotLoading}
+                    style={{ marginTop: 8 }}
+                  >
+                    {forgotLoading ? "⏳ Đang xử lý..." : "🔑 Xác nhận đổi mật khẩu"}
+                  </button>
+                </form>
+              )}
+
+              {forgotStep === 0 && (
+                <div className="modal-footer-text" style={{ marginTop: 16 }}>
+                  Nhớ mật khẩu rồi?{" "}
+                  <span
+                    className="modal-footer-link"
+                    onClick={() => {
+                      setForgotVisible(false);
+                      setLoginVisible(true);
+                      setForgotStep(0);
+                    }}
+                  >
+                    Đăng nhập
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>
