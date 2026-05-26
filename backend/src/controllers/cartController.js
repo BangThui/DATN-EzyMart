@@ -97,3 +97,57 @@ exports.clearCart = async (req, res) => {
         res.status(500).json({ error: 'Lỗi xóa giỏ hàng' });
     }
 };
+
+// Khôi phục chi tiết giỏ hàng cho khách (Guest)
+exports.hydrateGuestCart = async (req, res) => {
+    try {
+        const { items } = req.body; // [{product_id, variant_id, quantity}]
+        if (!items || items.length === 0) return res.json([]);
+
+        const [details] = await CartModel.hydrateItems(items);
+        const hydratedCart = items.map(item => {
+            const detail = details.find(d => d.variant_id == item.variant_id) || {};
+            return {
+                cart_id: `${item.product_id}_${item.variant_id}`,
+                product_id: item.product_id,
+                variant_id: item.variant_id,
+                product_quantity: item.quantity,
+                product_name: detail.product_name,
+                product_image: detail.product_image,
+                variant_name: detail.variant_name,
+                variant_price: detail.variant_price,
+                variant_discount: detail.variant_discount,
+            };
+        });
+        res.json(hydratedCart);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Lỗi lấy giỏ hàng khách' });
+    }
+};
+
+// Gộp giỏ hàng khách vào user sau khi login
+exports.mergeCart = async (req, res) => {
+    try {
+        const { user_id, items } = req.body;
+        if (!user_id || !items) return res.status(400).json({ error: 'Thiếu dữ liệu' });
+
+        for (const item of items) {
+            const [existing] = await CartModel.findItem(item.product_id, item.variant_id, user_id);
+            if (existing.length > 0) {
+                const newQty = existing[0].product_quantity + parseInt(item.quantity);
+                await CartModel.increaseQuantity(existing[0].cart_id, newQty);
+            } else {
+                await CartModel.addItem({
+                    product_id: item.product_id,
+                    variant_id: item.variant_id,
+                    product_quantity: item.quantity
+                }, user_id);
+            }
+        }
+        res.json({ message: 'Đã gộp giỏ hàng' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Lỗi gộp giỏ hàng' });
+    }
+};

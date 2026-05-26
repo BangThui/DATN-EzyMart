@@ -78,6 +78,19 @@ const CartModel = {
 
     clearAll: () => {
         return db.query('DELETE FROM cart');
+    },
+
+    hydrateItems: (items) => {
+        if (!items || items.length === 0) return Promise.resolve([[]]);
+        const variantIds = items.map(i => i.variant_id);
+        return db.query(
+            `SELECT p.product_id, p.product_name, p.product_image,
+                    pv.variant_id, pv.variant_name, pv.variant_price, pv.variant_discount
+             FROM product_variants pv
+             JOIN products p ON pv.product_id = p.product_id
+             WHERE pv.variant_id IN (?)`,
+            [variantIds]
+        );
     }
 };
 

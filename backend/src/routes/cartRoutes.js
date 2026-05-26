@@ -4,6 +4,8 @@ const cartController = require('../controllers/cartController');
 
 router.get('/', cartController.getCart);
 router.post('/', cartController.addToCart);
+router.post('/guest', cartController.hydrateGuestCart);
+router.post('/merge', cartController.mergeCart);
 router.put('/:cart_id', cartController.updateCartItem);
 router.delete('/clear', cartController.clearCart);
 router.delete('/:cart_id', cartController.removeFromCart);

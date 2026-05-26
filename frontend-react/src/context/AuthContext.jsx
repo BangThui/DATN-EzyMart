@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { cartService } from "../services/cartService";
 
 const AuthContext = createContext(null);
 
@@ -26,6 +27,9 @@ export const AuthProvider = ({ children }) => {
     setToken(userToken);
     localStorage.setItem(tokenKey, userToken);
     localStorage.setItem(userKey, JSON.stringify(userData));
+
+    // Thực hiện merge cart nếu có giỏ hàng khách
+    cartService.mergeCart(userData.user_id).catch(err => console.error("Lỗi merge giỏ hàng", err));
   };
 
   const logout = () => {

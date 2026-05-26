@@ -66,12 +66,8 @@ const Navbar = () => {
   // Fetch cart count
   useEffect(() => {
     const fetch = async () => {
-      if (!user?.user_id) {
-        setCartCount(0);
-        return;
-      }
       try {
-        const data = await cartService.getCart(user.user_id);
+        const data = await cartService.getCart(user?.user_id);
         setCartCount(Array.isArray(data) ? data.length : 0);
       } catch {
         setCartCount(0);

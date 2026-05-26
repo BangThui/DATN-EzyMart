@@ -43,11 +43,6 @@ const TimeBasedCombo = () => {
   }, []);
 
   const handleAddAllToCart = async () => {
-    if (!user) {
-      message.warning('Vui lòng đăng nhập để thêm vào giỏ hàng!');
-      return;
-    }
-    
     if (!comboData || !comboData.combos || comboData.combos.length === 0) return;
 
     // Tìm combo đang hiển thị ở tab hiện tại
@@ -65,7 +60,7 @@ const TimeBasedCombo = () => {
               product_id: product.product_id,
               variant_id: defaultVariantId,
               quantity: 1,
-              user_id: user.user_id,
+              user_id: user?.user_id,
             });
          }
       }
