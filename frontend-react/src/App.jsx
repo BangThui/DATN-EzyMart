@@ -12,9 +12,9 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { SocketProvider } from "./context/SocketContext";
 
-// Layout
 import Navbar from "./components/layout/Navbar";
 import Footer from "./components/layout/Footer";
+import ChatbotDrawer from "./components/chatbot/ChatbotDrawer";
 import AdminLayout from "./layouts/AdminLayout";
 
 // Public Pages
@@ -52,12 +52,12 @@ const AdminRoute = ({ children }) => {
   return children;
 };
 
-// Main layout wrapper
 const MainLayout = ({ children }) => (
   <div className="app-container">
     <Navbar />
     <main className="main-content">{children}</main>
     <Footer />
+    <ChatbotDrawer />
   </div>
 );
 
