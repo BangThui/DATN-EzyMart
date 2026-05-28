@@ -331,6 +331,15 @@ function isShippingQuery(msg) {
     return keys.some(kw => msg.toLowerCase().includes(kw));
 }
 
+function isReturnPolicyQuery(msg) {
+    const keys = ['hàng hỏng', 'lỗi', 'đổi trả', 'trả hàng', 'đổi hàng', 'hỏng', 'bảo hành'];
+    return keys.some(kw => msg.toLowerCase().includes(kw));
+}
+
+function buildReturnPolicyContext() {
+    return `Chính sách đổi trả EzyMart: Đổi trả miễn phí trong 24h cho hàng tươi sống.`;
+}
+
 // ─── Main handler ────────────────────────────────────────────────────────────
 exports.chat = async (req, res) => {
     try {
@@ -345,6 +354,7 @@ exports.chat = async (req, res) => {
         // ── Kiểm tra loại câu hỏi để quyết định nên fetch data nào ────────
         const needsCombo    = isComboQuery(trimmedMessage);
         const needsShipping = isShippingQuery(trimmedMessage);
+        const needsReturnPolicy = isReturnPolicyQuery(trimmedMessage);
 
         // Xác nhận timeSlot hợp lệ (phòng thủ)
         const validSlots = ['Sáng', 'Trưa', 'Chiều', 'Tối', 'Khuya'];
@@ -360,27 +370,28 @@ exports.chat = async (req, res) => {
         const comboContext  = comboResult?.context  || null;
         const comboProducts = comboResult?.comboProducts || [];
         const shippingContext = needsShipping ? buildShippingContext() : null;
+        const returnPolicyContext = needsReturnPolicy ? buildReturnPolicyContext() : null;
 
-        // Ghép KnowledgeContext: sản phẩm → combo → shipping
-        const contextParts = [productContext, comboContext, shippingContext].filter(Boolean);
+        // Ghép Danh sách thông tin: sản phẩm → combo → shipping → returnPolicy
+        const contextParts = [productContext, comboContext, shippingContext, returnPolicyContext].filter(Boolean);
         const knowledgeContext = contextParts.length > 0
             ? contextParts.join('\n\n')
             : null;
 
-        // ── System Prompt với quy tắc nghiêm ngặt cho Combo ───────────────
+        // ── System Prompt với quy tắc nghiêm ngặt ───────────────
         const systemPrompt = [
             `Bạn là nhân viên tư vấn khách hàng thân thiện của siêu thị tiện lợi EzyMart.`,
-            `Câu trả lời phải ngắn gọn, súc tích (tối đa 3–4 câu), thân thiện và dùng emoji phù hợp.`,
+            `Câu trả lời phải ngắn gọn, súc tích (tối đa 3–4 câu), tự nhiên như con người, tuyệt đối KHÔNG được dùng các từ máy móc như 'KnowledgeContext', 'hệ thống', 'dữ liệu', 'AI'.`,
             `Hiện tại đang là buổi ${safeTimeSlot || 'trong ngày'}.`,
             '',
             `📌 QUY TẮC BẮT BUỘC:`,
-            `1. LUÔN ưu tiên dữ liệu thực tế trong KnowledgeContext để trả lời. Không được tự suy diễn hay bịa thêm thông tin.`,
-            `2. Giá sản phẩm: TUYỆT ĐỐI không tự bịa giá. Chỉ báo đúng giá từ KnowledgeContext.`,
-            `3. Combo: CHỈ ĐƯỢC PHÉP đề cập các Combo có tên trong KnowledgeContext. Tuyệt đối không tự bịa tên Combo hay món ăn không có trong danh sách. Khi khách hỏi về combo, hãy liệt kê tên combo và giá trọn bộ sau khi đã cộng tổng, không được đưa ra dải giá gây hiểu lầm.`,
-            `4. Nếu không có dữ liệu phù hợp: thành thật nói không tìm thấy và gợi ý khách xem trực tiếp trên website EzyMart.`,
+            `1. LUÔN ưu tiên Thông tin cung cấp để trả lời. Không được tự suy diễn hay bịa thêm thông tin.`,
+            `2. Giá sản phẩm: TUYỆT ĐỐI không tự bịa giá. Chỉ báo đúng giá từ Thông tin cung cấp.`,
+            `3. Combo: CHỈ ĐƯỢC PHÉP đề cập các Combo có tên trong Thông tin cung cấp. Tuyệt đối không tự bịa tên Combo hay món ăn không có trong danh sách. Khi khách hỏi về combo, hãy liệt kê tên combo và giá trọn bộ sau khi đã cộng tổng, không được đưa ra dải giá gây hiểu lầm.`,
+            `4. Nếu khách hỏi thông tin không có trong danh sách cung cấp: hãy trả lời khéo léo đúng nguyên văn: "Dạ, về vấn đề này bạn vui lòng liên hệ hotline 0349484515 để nhân viên Ecomarket hỗ trợ kiểm tra trực tiếp cho mình ngay ạ!".`,
             knowledgeContext
-                ? `\n📚 KnowledgeContext (dữ liệu chính xác từ hệ thống — chỉ dùng thông tin này):\n${knowledgeContext}`
-                : `\n📚 KnowledgeContext: Không có dữ liệu phù hợp. Hãy trả lời trung thực và hướng khách lên website.`
+                ? `\n📚 Danh sách thông tin cung cấp (chỉ dùng thông tin này):\n${knowledgeContext}`
+                : `\n📚 Danh sách thông tin cung cấp: Trống. (Hãy áp dụng quy tắc 4).`
         ].join('\n');
 
         // ── Gọi Groq / Llama ──────────────────────────────────────────────

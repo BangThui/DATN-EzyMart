@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Button, Spin, Tag } from "antd";
+import { Button, Spin, Tag, FloatButton } from "antd";
 import {
   ArrowRightOutlined,
   FireOutlined,
   AppleOutlined,
+  ArrowUpOutlined,
 } from "@ant-design/icons";
 import ProductCard from "../../components/product/ProductCard";
 import { productService } from "../../services/productService";
@@ -282,6 +283,14 @@ const Home = () => {
           )}
         </div>
       </div>
+      
+      {/* Nút cuộn lên đầu trang */}
+      <FloatButton.BackTop 
+        className="custom-back-top"
+        visibilityHeight={300} 
+        icon={<ArrowUpOutlined style={{ color: '#ff4d4f', fontSize: '24px', fontWeight: 'bold' }} />}
+        style={{ right: 39, bottom: 105 }} 
+      />
     </div>
   );
 };

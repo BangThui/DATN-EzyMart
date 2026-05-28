@@ -331,3 +331,22 @@
 .home-load-more-btn:active {
   transform: translateY(0);
 }
+
+/* ── Nút cuộn lên (Back To Top) tùy chỉnh ── */
+.custom-back-top {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  width: 40px !important;
+  height: 40px !important;
+}
+.custom-back-top .ant-float-btn-body {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.custom-back-top .ant-float-btn-icon {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+}
