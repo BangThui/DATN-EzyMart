@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const comboCache = require('../utils/comboCache');
 
 // Hàm helper để lấy các biến thể của sản phẩm
 const getVariantsForProduct = async (productId) => {
@@ -65,10 +66,22 @@ const getDailyCombo = async (req, res) => {
         let hour = new Date().getHours();
         
         // Hỗ trợ tham số query ?hour để phục vụ việc test
-        if (req.query.hour !== undefined) {
+        const isTest = req.query.hour !== undefined;
+        if (isTest) {
             const parsedHour = parseInt(req.query.hour, 10);
             if (!isNaN(parsedHour) && parsedHour >= 0 && parsedHour <= 23) {
                 hour = parsedHour;
+            }
+        }
+        
+        if (!isTest) {
+            const cached = comboCache.getCache(hour);
+            if (cached) {
+                return res.json({
+                    success: true,
+                    title: cached.title,
+                    combos: cached.combos
+                });
             }
         }
         
@@ -257,6 +270,10 @@ const getDailyCombo = async (req, res) => {
                     item.variants = await getVariantsForProduct(item.product_id);
                 }
             }
+        }
+        
+        if (!isTest) {
+            comboCache.setCache(hour, title, combos);
         }
         
         return res.json({

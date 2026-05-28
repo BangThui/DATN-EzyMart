@@ -1,169 +1,727 @@
-.chatbot-floating-btn {
+/* ═══════════════════════════════════════════════════════
+   CHATBOT DRAWER — Premium UI
+   ═══════════════════════════════════════════════════════ */
+
+/* ── Floating Action Button ──────────────────────────── */
+.cb-fab {
   position: fixed;
-  bottom: 30px;
-  right: 30px;
-  width: 60px;
-  height: 60px;
-  background-color: #16a34a;
+  bottom: 28px;
+  right: 28px;
+  width: 62px;
+  height: 62px;
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
   border-radius: 50%;
+  border: none;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.4);
+  box-shadow: 0 6px 20px rgba(22, 163, 74, 0.45);
   z-index: 999;
-  transition: all 0.3s ease;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  outline: none;
 }
 
-.chatbot-floating-btn:hover {
-  transform: scale(1.1);
-  background-color: #15803d;
+.cb-fab:hover {
+  transform: scale(1.1) translateY(-2px);
+  box-shadow: 0 10px 28px rgba(22, 163, 74, 0.55);
 }
 
-.chatbot-icon {
-  font-size: 28px;
-  color: white;
+.cb-fab__icon {
+  font-size: 26px;
+  color: #fff;
 }
 
-/* Chatbot Window Styles */
-.chatbot-window {
+/* Pulse ring */
+.cb-fab__pulse {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid rgba(22, 163, 74, 0.4);
+  animation: cbPulse 2.4s ease-out infinite;
+}
+
+@keyframes cbPulse {
+  0%   { transform: scale(1);   opacity: 0.7; }
+  70%  { transform: scale(1.35); opacity: 0; }
+  100% { transform: scale(1.35); opacity: 0; }
+}
+
+/* ── Chat Window ─────────────────────────────────────── */
+.cb-window {
   position: fixed;
-  bottom: 30px;
-  right: 30px;
-  width: 360px;
-  height: 550px;
-  background-color: #f8fafc;
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  bottom: 28px;
+  right: 28px;
+  width: 375px;
+  height: 580px;
+  background: #f8fafc;
+  border-radius: 20px;
+  box-shadow:
+    0 4px 6px -1px rgba(0,0,0,.07),
+    0 20px 60px -10px rgba(0,0,0,.18);
   display: flex;
   flex-direction: column;
   z-index: 1000;
   overflow: hidden;
-  animation: slideUp 0.3s ease-out forwards;
+  animation: cbSlideUp 0.28s cubic-bezier(.22,.68,0,1.2) forwards;
 }
 
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+@keyframes cbSlideUp {
+  from { opacity: 0; transform: translateY(24px) scale(.97); }
+  to   { opacity: 1; transform: translateY(0)   scale(1);   }
 }
 
-.chatbot-window-header {
+/* ── Header ──────────────────────────────────────────── */
+.cb-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
-  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
-  color: white;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, #16a34a 0%, #0d9f3f 100%);
+  flex-shrink: 0;
 }
 
-.chatbot-header-left {
+.cb-header__left {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-.chatbot-header-icon {
-  font-size: 24px;
+.cb-header__logo-wrap {
+  width: 38px;
+  height: 38px;
+  background: #fff;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0,0,0,.15);
 }
 
-.chatbot-header-title {
-  font-weight: 600;
-  font-size: 16px;
+.cb-header__logo {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
 }
 
-.chatbot-close-btn:hover {
-  background-color: rgba(255, 255, 255, 0.2) !important;
-}
-
-.chatbot-messages-container {
-  flex: 1;
-  overflow-y: auto;
-  padding: 20px;
+.cb-header__info {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 2px;
 }
 
-.chatbot-message-wrapper {
+.cb-header__name {
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.cb-header__status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: rgba(255,255,255,.85);
+  font-size: 11.5px;
+}
+
+.cb-header__dot {
+  width: 7px;
+  height: 7px;
+  background: #4ade80;
+  border-radius: 50%;
+  animation: cbBlink 1.8s ease-in-out infinite;
+}
+
+@keyframes cbBlink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: .35; }
+}
+
+.cb-header__close {
+  border: none !important;
+  background: transparent !important;
+  padding: 4px !important;
+  min-width: unset !important;
+  border-radius: 8px !important;
+  transition: background 0.2s !important;
+}
+
+.cb-header__close:hover {
+  background: rgba(255,255,255,.2) !important;
+}
+
+/* ── Messages Scroll Area ────────────────────────────── */
+.cb-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  scroll-behavior: smooth;
+}
+
+.cb-messages::-webkit-scrollbar { width: 4px; }
+.cb-messages::-webkit-scrollbar-track { background: transparent; }
+.cb-messages::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+
+/* ── Row (message group) ─────────────────────────────── */
+.cb-row {
   display: flex;
   align-items: flex-end;
   gap: 8px;
-  max-width: 90%;
+  max-width: 88%;
 }
 
-.chatbot-message-wrapper.bot {
-  align-self: flex-start;
+.cb-row--bot  { align-self: flex-start; }
+.cb-row--user { align-self: flex-end; flex-direction: row-reverse; }
+
+/* col holds bubble + products + feedback */
+.cb-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
 }
 
-.chatbot-message-wrapper.user {
-  align-self: flex-end;
-}
-
-.chatbot-avatar {
-  width: 32px;
-  height: 32px;
+/* ── Avatars ─────────────────────────────────────────── */
+.cb-avatar {
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  overflow: hidden;
 }
 
-.chatbot-avatar.bot {
-  background-color: #e2e8f0;
+.cb-avatar--bot {
+  background: #fff;
+  border: 1.5px solid #e2e8f0;
+  box-shadow: 0 1px 4px rgba(0,0,0,.08);
+}
+
+.cb-avatar-logo {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+}
+
+.cb-avatar--user {
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  color: #fff;
+  font-size: 13px;
+}
+
+/* ── Bubbles ─────────────────────────────────────────── */
+.cb-bubble {
+  padding: 10px 14px;
+  border-radius: 18px;
+  word-break: break-word;
+  line-height: 1.55;
+  font-size: 13.5px;
+  max-width: 100%;
+  position: relative;
+}
+
+.cb-bubble--bot {
+  background: #fff;
+  color: #1e293b;
+  border-bottom-left-radius: 5px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.07);
+}
+
+.cb-bubble--user {
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  color: #fff;
+  border-bottom-right-radius: 5px;
+}
+
+.cb-bubble__text {
+  margin: 0;
+}
+
+/* Bold highlight for prices */
+.cb-highlight {
+  color: #16a34a;
+  font-weight: 700;
+}
+
+.cb-highlight--combo {
+  color: #047857;
+  background: #d1fae5;
+  padding: 0 4px;
+  border-radius: 4px;
+}
+
+.cb-bubble--user .cb-highlight {
+  color: #bbf7d0;
+}
+
+/* ── Typing indicator ────────────────────────────────── */
+.cb-bubble--typing {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 12px 16px;
+}
+
+.cb-dot {
+  width: 7px;
+  height: 7px;
+  background: #94a3b8;
+  border-radius: 50%;
+  animation: cbTyping 1.2s ease-in-out infinite;
+}
+
+.cb-dot:nth-child(2) { animation-delay: 0.2s; }
+.cb-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes cbTyping {
+  0%, 60%, 100% { transform: translateY(0);   opacity: .5; }
+  30%            { transform: translateY(-5px); opacity: 1; }
+}
+
+.cb-typing-label {
+  font-size: 11.5px;
+  color: #64748b;
+  margin-left: 6px;
+  font-weight: 500;
+  animation: cbFadeIn 0.3s ease;
+}
+
+@keyframes cbFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ── Product Mini Cards ──────────────────────────────── */
+.cb-products {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 264px;
+}
+
+.cb-product-card {
+  background: #fff;
+  border: 1px solid #e8f5e9;
+  border-radius: 14px;
+  display: flex;
+  gap: 0;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(22,163,74,.08);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.cb-product-card:hover {
+  box-shadow: 0 6px 18px rgba(22,163,74,.16);
+  transform: translateY(-1px);
+}
+
+.cb-product-card__img-wrap {
+  position: relative;
+  width: 74px;
+  flex-shrink: 0;
+  display: block;
+  overflow: hidden;
+}
+
+.cb-product-card__img {
+  width: 74px;
+  height: 74px;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.3s;
+}
+
+.cb-product-card:hover .cb-product-card__img {
+  transform: scale(1.05);
+}
+
+.cb-product-card__badge {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 20px;
+  letter-spacing: .3px;
+}
+
+.cb-product-card__body {
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex: 1;
+  min-width: 0;
+}
+
+.cb-product-card__name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e293b;
+  text-decoration: none;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.4;
+  transition: color 0.2s;
+}
+
+.cb-product-card__name:hover {
   color: #16a34a;
 }
 
-.chatbot-avatar.user {
-  background-color: #16a34a;
-  color: white;
-}
-
-.chatbot-message-bubble {
-  padding: 10px 14px;
-  border-radius: 16px;
-  background-color: white;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-  word-break: break-word;
-}
-
-.chatbot-message-wrapper.user .chatbot-message-bubble {
-  background-color: #16a34a;
-  color: white;
-  border-bottom-right-radius: 4px;
-}
-
-.chatbot-message-wrapper.user .chatbot-message-bubble .ant-typography {
-  color: white;
-}
-
-.chatbot-message-wrapper.bot .chatbot-message-bubble {
-  border-bottom-left-radius: 4px;
-}
-
-.chatbot-message-bubble.loading {
+.cb-product-card__prices {
   display: flex;
   align-items: center;
-  color: #64748b;
+  gap: 5px;
+  margin: 3px 0;
 }
 
-.chatbot-input-container {
-  padding: 16px;
-  background-color: white;
-  border-top: 1px solid #e2e8f0;
+.cb-product-card__price {
+  font-size: 13px;
+  font-weight: 700;
+  color: #16a34a;
 }
 
-.chatbot-input .ant-input {
+.cb-product-card__original {
+  font-size: 11px;
+  color: #94a3b8;
+  text-decoration: line-through;
+}
+
+.cb-product-card__btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s;
+  width: 100%;
+  justify-content: center;
+}
+
+.cb-product-card__btn:hover:not(:disabled) {
+  opacity: .9;
+  transform: scale(1.02);
+}
+
+.cb-product-card__btn:disabled {
+  opacity: .6;
+  cursor: not-allowed;
+}
+
+/* ── Feedback Buttons ────────────────────────────────── */
+.cb-feedback {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  padding-left: 2px;
+}
+
+.cb-feedback__btn {
+  background: none;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 3px 7px;
+  cursor: pointer;
+  color: #94a3b8;
+  font-size: 12px;
+  line-height: 1;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+}
+
+.cb-feedback__btn:hover {
+  border-color: #16a34a;
+  color: #16a34a;
+  background: #f0fdf4;
+}
+
+.cb-feedback__btn.active.like {
+  background: #f0fdf4;
+  border-color: #16a34a;
+  color: #16a34a;
+}
+
+.cb-feedback__btn.active.dislike {
+  background: #fef2f2;
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+/* ── Input Area ──────────────────────────────────────── */
+.cb-input-area {
+  padding: 12px 14px;
+  background: #fff;
+  border-top: 1px solid #e8f5e9;
+  flex-shrink: 0;
+}
+
+.cb-input .ant-input {
+  border-radius: 22px !important;
+  border-color: #d1fae5 !important;
+  padding: 8px 14px !important;
+  font-size: 13.5px !important;
+  background: #f8fafc !important;
+  transition: border-color 0.2s, box-shadow 0.2s !important;
+}
+
+.cb-input .ant-input:focus {
+  border-color: #16a34a !important;
+  box-shadow: 0 0 0 3px rgba(22,163,74,.12) !important;
+  background: #fff !important;
+}
+
+.cb-input .ant-input-suffix {
+  margin-left: 6px !important;
+}
+
+.cb-send-btn {
+  background: linear-gradient(135deg, #16a34a, #15803d) !important;
+  border: none !important;
+  box-shadow: 0 2px 6px rgba(22,163,74,.3) !important;
+  transition: opacity 0.2s, transform 0.15s !important;
+}
+
+.cb-send-btn:not(:disabled):hover {
+  opacity: .9 !important;
+  transform: scale(1.05) !important;
+}
+
+/* ── Combo Group Cards ───────────────────────────────── */
+.cb-combos {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 310px;
+}
+
+.cb-combo-group {
+  background: #fff;
+  border: 1.5px solid #d1fae5;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 3px 12px rgba(22,163,74,.1);
+  transition: box-shadow 0.2s;
+}
+
+.cb-combo-group:hover {
+  box-shadow: 0 6px 20px rgba(22,163,74,.18);
+}
+
+.cb-combo-group__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #16a34a, #15803d);
+}
+
+.cb-combo-group__name {
+  color: #fff;
+  font-weight: 700;
+  font-size: 12.5px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cb-combo-group__count {
+  background: rgba(255,255,255,.22);
+  color: #fff;
+  font-size: 10.5px;
+  padding: 2px 7px;
   border-radius: 20px;
-  padding-left: 12px;
+  flex-shrink: 0;
+  margin-left: 6px;
 }
 
-.chatbot-input .ant-input-suffix {
-  margin-left: 8px;
+/* Horizontal scroll strip */
+.cb-combo-group__items {
+  display: flex;
+  gap: 8px;
+  padding: 10px 10px 6px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
 }
+
+.cb-combo-group__items::-webkit-scrollbar { height: 3px; }
+.cb-combo-group__items::-webkit-scrollbar-thumb { background: #d1fae5; border-radius: 4px; }
+
+/* Individual item inside combo strip */
+.cb-combo-item {
+  flex: 0 0 78px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  scroll-snap-align: start;
+}
+
+.cb-combo-item__img-wrap {
+  position: relative;
+  width: 70px;
+  height: 70px;
+  border-radius: 10px;
+  overflow: hidden;
+  display: block;
+  flex-shrink: 0;
+  background: #f1f5f9;
+  transition: transform 0.25s;
+}
+
+.cb-combo-item__img-wrap:hover {
+  transform: scale(1.05);
+}
+
+.cb-combo-item__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cb-combo-item__badge {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 8.5px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 12px;
+}
+
+.cb-combo-item__name {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #1e293b;
+  text-align: center;
+  width: 100%;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.35;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.cb-combo-item__name:hover {
+  color: #16a34a;
+}
+
+.cb-combo-item__prices {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.cb-combo-item__price {
+  font-size: 11px;
+  font-weight: 700;
+  color: #16a34a;
+}
+
+.cb-combo-item__original {
+  font-size: 9.5px;
+  color: #94a3b8;
+  text-decoration: line-through;
+}
+
+/* "More items" hint styles */
+.cb-combo-item--more {
+  justify-content: center;
+  padding-bottom: 24px;
+}
+
+.cb-combo-item__more-circle {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #16a34a;
+  transition: all 0.2s;
+}
+
+.cb-combo-group__items:hover .cb-combo-item__more-circle {
+  background: #e8f5e9;
+  transform: scale(1.05);
+}
+
+.cb-combo-item__more-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #64748b;
+  text-align: center;
+  line-height: 1.25;
+}
+
+/* Divider before button to give spacing */
+.cb-combo-group__divider {
+  height: 1px;
+  background: #e2e8f0;
+  margin: 6px 12px 10px;
+}
+
+/* "Thêm nhanh combo vào giỏ" button */
+.cb-combo-group__add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 9px 12px;
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  color: #fff;
+  border: none;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: .3px;
+  transition: opacity 0.2s, transform 0.15s;
+}
+
+.cb-combo-group__add-btn:hover:not(:disabled) {
+  opacity: .88;
+}
+
+.cb-combo-group__add-btn:active:not(:disabled) {
+  transform: scale(.98);
+}
+
+.cb-combo-group__add-btn:disabled {
+  opacity: .6;
+  cursor: not-allowed;
+}
+
