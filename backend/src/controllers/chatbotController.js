@@ -1,10 +1,6 @@
-const Groq = require('groq-sdk');
 const db = require('../config/db');
 const comboCache = require('../utils/comboCache');
-
-const groq = new Groq({
-    apiKey: process.env.GROQ_API_KEY
-});
+const groqService = require('../services/GroqService');
 
 // ─── Truy xuất sản phẩm liên quan từ DB ──────────────────────────────────────
 async function fetchProductContext(userMessage) {
@@ -321,10 +317,6 @@ function buildShippingContext() {
     );
 }
 
-function isComboQuery(msg) {
-    const comboKeywords = ['combo', 'thực đơn', 'gợi ý mua', 'mua gì', 'ăn gì', 'nên ăn', 'nên mua', 'gợi ý'];
-    return comboKeywords.some(kw => msg.toLowerCase().includes(kw));
-}
 
 function isShippingQuery(msg) {
     const keys = ['ship', 'vận chuyển', 'giao hàng', 'freeship', 'phí ship', 'đặt trước', 'click', 'collect'];
@@ -340,6 +332,45 @@ function buildReturnPolicyContext() {
     return `Chính sách đổi trả EzyMart: Đổi trả miễn phí trong 24h cho hàng tươi sống.`;
 }
 
+// ─── NLU: Phân loại intent bằng Groq/Llama ───────────────────────────────────
+const VALID_INTENTS = ['chat', 'get_price', 'get_combo', 'policy', 'support_issue', 'small_talk'];
+
+const NLU_SYSTEM_PROMPT = `Bạn là bộ phân loại intent cho chatbot siêu thị EzyMart.
+Chỉ trả về đúng một nhãn, không thêm bất kỳ text nào khác.
+
+INTENT:
+- chat: Chào hỏi, cảm ơn, tạm biệt. KHÔNG bao gồm câu hỏi có nội dung.
+- get_price: Hỏi giá, tồn kho, còn hàng không. Phải liên quan sản phẩm cụ thể.
+- get_combo: Hỏi gợi ý món ăn, ăn gì, nên mua gì, combo theo buổi.
+- policy: Hỏi ship, giao hàng, freeship, đổi trả, bảo hành, thanh toán.
+- support_issue: Khiếu nại, phản ánh hàng hóa CÓ VẤN ĐỀ (hỏng, mốc, có mùi, rò rỉ, nhầm lẫn), yêu cầu xử lý sự cố cụ thể.
+- small_talk: Mọi câu hỏi ngoài lề không liên quan siêu thị.
+
+COUNTER-EXAMPLES (tránh nhầm):
+- "ship bao nhiêu tiền?" → policy (không phải get_price)
+- "tỷ giá đô la hôm nay?" → small_talk (không liên quan shop)
+- "bạn là AI không?" → small_talk (không phải chat)
+- "nhận bánh bao bị mốc, làm sao?" → support_issue (không phải policy)
+- "còn hàng không?" → get_price
+
+Phân loại câu sau:`;
+
+async function classifyIntent(message) {
+    try {
+        const raw = await groqService.getChatCompletion(
+            NLU_SYSTEM_PROMPT,
+            message,
+            0,   // temperature: 0 — ổn định tối đa
+            20   // max_tokens: 20 — chỉ cần 1 từ
+        );
+        const intent = raw?.trim().toLowerCase().replace(/[^a-z_]/g, '');
+        return VALID_INTENTS.includes(intent) ? intent : 'get_price';
+    } catch (err) {
+        console.error('[NLU] classifyIntent lỗi:', err.message);
+        return 'get_price'; // fallback an toàn
+    }
+}
+
 // ─── Main handler ────────────────────────────────────────────────────────────
 exports.chat = async (req, res) => {
     try {
@@ -351,26 +382,39 @@ exports.chat = async (req, res) => {
 
         const trimmedMessage = message.trim();
 
-        // ── Kiểm tra loại câu hỏi để quyết định nên fetch data nào ────────
-        const needsCombo    = isComboQuery(trimmedMessage);
-        const needsShipping = isShippingQuery(trimmedMessage);
-        const needsReturnPolicy = isReturnPolicyQuery(trimmedMessage);
-
         // Xác nhận timeSlot hợp lệ (phòng thủ)
         const validSlots = ['Sáng', 'Trưa', 'Chiều', 'Tối', 'Khuya'];
         const safeTimeSlot = validSlots.includes(timeSlot) ? timeSlot : null;
 
-        // Chạy song song tất cả truy vấn cần thiết
-        const [productResult, comboResult] = await Promise.all([
-            fetchProductContext(trimmedMessage),
-            needsCombo ? fetchComboContext(safeTimeSlot) : Promise.resolve(null),
-        ]);
+        // ── NLU: Phân loại intent trước, chỉ fetch data phù hợp ─────────────
+        const intent = await classifyIntent(trimmedMessage);
+        console.log(`[NLU] intent: ${intent} | message: "${trimmedMessage.substring(0, 50)}"`);
+
+        let productResult = { context: null, products: [] };
+        let comboResult   = null;
+        let shippingContext     = null;
+        let returnPolicyContext = null;
+
+        if (intent === 'get_price') {
+            productResult = await fetchProductContext(trimmedMessage);
+        }
+        if (intent === 'get_combo') {
+            comboResult = await fetchComboContext(safeTimeSlot);
+        }
+        if (intent === 'policy') {
+            shippingContext     = isShippingQuery(trimmedMessage)     ? buildShippingContext()     : null;
+            returnPolicyContext = isReturnPolicyQuery(trimmedMessage) ? buildReturnPolicyContext() : null;
+            // Nếu policy chung chung (không khớp từ khoá cụ thể) → cung cấp cả 2
+            if (!shippingContext && !returnPolicyContext) {
+                shippingContext     = buildShippingContext();
+                returnPolicyContext = buildReturnPolicyContext();
+            }
+        }
+        // intent === 'chat' | 'small_talk' → không fetch gì → knowledgeContext trống → áp dụng quy tắc 4
 
         const { context: productContext, products } = productResult;
-        const comboContext  = comboResult?.context  || null;
+        const comboContext  = comboResult?.context      || null;
         const comboProducts = comboResult?.comboProducts || [];
-        const shippingContext = needsShipping ? buildShippingContext() : null;
-        const returnPolicyContext = needsReturnPolicy ? buildReturnPolicyContext() : null;
 
         // Ghép Danh sách thông tin: sản phẩm → combo → shipping → returnPolicy
         const contextParts = [productContext, comboContext, shippingContext, returnPolicyContext].filter(Boolean);
@@ -388,25 +432,16 @@ exports.chat = async (req, res) => {
             `1. LUÔN ưu tiên Thông tin cung cấp để trả lời. Không được tự suy diễn hay bịa thêm thông tin.`,
             `2. Giá sản phẩm: TUYỆT ĐỐI không tự bịa giá. Chỉ báo đúng giá từ Thông tin cung cấp.`,
             `3. Combo: CHỈ ĐƯỢC PHÉP đề cập các Combo có tên trong Thông tin cung cấp. Tuyệt đối không tự bịa tên Combo hay món ăn không có trong danh sách. Khi khách hỏi về combo, hãy liệt kê tên combo và giá trọn bộ sau khi đã cộng tổng, không được đưa ra dải giá gây hiểu lầm.`,
-            `4. Nếu khách hỏi thông tin không có trong danh sách cung cấp: hãy trả lời khéo léo đúng nguyên văn: "Dạ, về vấn đề này bạn vui lòng liên hệ hotline 0349484515 để nhân viên Ecomarket hỗ trợ kiểm tra trực tiếp cho mình ngay ạ!".`,
+            `4. Nếu khách hỏi thông tin không có trong danh sách cung cấp: hãy trả lời khéo léo đúng nguyên văn: "Dạ, về vấn đề này bạn vui lòng liên hệ hotline 0349484515 để nhân viên EzyMart hỗ trợ kiểm tra trực tiếp cho mình ngay ạ!".`,
             knowledgeContext
                 ? `\n📚 Danh sách thông tin cung cấp (chỉ dùng thông tin này):\n${knowledgeContext}`
                 : `\n📚 Danh sách thông tin cung cấp: Trống. (Hãy áp dụng quy tắc 4).`
         ].join('\n');
 
-        // ── Gọi Groq / Llama ──────────────────────────────────────────────
-        const chatCompletion = await groq.chat.completions.create({
-            messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user',   content: trimmedMessage }
-            ],
-            model: 'llama-3.1-8b-instant',
-            temperature: 0.4,   // Giảm thêm để bám sát fact
-            max_tokens: 300,
-        });
+        // ── Gọi Groq / Llama qua Service ──────────────────────────────────────────────
+        const replyContent = await groqService.getChatCompletion(systemPrompt, trimmedMessage);
 
-        const reply = chatCompletion.choices[0]?.message?.content
-            || 'Xin lỗi, mình không thể trả lời lúc này. Bạn vui lòng thử lại nhé!';
+        const reply = replyContent || 'Xin lỗi, mình không thể trả lời lúc này. Bạn vui lòng thử lại nhé!';
 
         // products: sản phẩm tìm theo từ khoá
         // comboProducts: mảng combo [{comboName, items[]}] để render combo card

@@ -1,0 +1,60 @@
+[
+
+  { "input": "Xin chào shop!", "expected_intent": "chat" },
+  { "input": "Hello EzyMart ơi", "expected_intent": "chat" },
+  { "input": "Cảm ơn bạn nhiều lắm nha", "expected_intent": "chat" },
+  { "input": "Cám ơn shop đã tư vấn", "expected_intent": "chat" },
+  { "input": "ok cảm ơn nhé", "expected_intent": "chat" },
+  { "input": "chào buổi sáng shop ơi", "expected_intent": "chat" },
+  { "input": "hi shop có ai online ko", "expected_intent": "chat" },
+  { "input": "tks b nhiều nhe", "expected_intent": "chat" },
+  { "input": "gút mồ ninh shop", "expected_intent": "chat" },
+  { "input": "alo có ai đó ko", "expected_intent": "chat" },
+
+
+  { "input": "Ba chỉ bò Mỹ bao nhiêu tiền vậy?", "expected_intent": "get_price" },
+  { "input": "Tôm thẻ hôm nay còn hàng k?", "expected_intent": "get_price" },
+  { "input": "Giá sữa TH True Milk 1 lít là bao nhiêu ạ?", "expected_intent": "get_price" },
+  { "input": "bia heineken thùng mấy tiền", "expected_intent": "get_price" },
+  { "input": "Shop có bán chả mực không giá sao?", "expected_intent": "get_price" },
+  { "input": "kim chi ong kims con hang khong", "expected_intent": "get_price" },
+  { "input": "Cho hỏi đùi bò hôm nay có không, giá kg bao nhiêu?", "expected_intent": "get_price" },
+  { "input": "dầu ăn tường an 5l giá bao nhiêu", "expected_intent": "get_price" },
+  { "input": "Bánh bao kim sa Kitkool còn bán không shop ơi?", "expected_intent": "get_price" },
+  { "input": "lạp xưởng tôm vissan bao tiền 1 gói", "expected_intent": "get_price" },
+
+
+  { "input": "Cho mình gợi ý bữa sáng đơn giản, tiện lợi?", "expected_intent": "get_combo" },
+  { "input": "Sáng nay không biết ăn gì, shop gợi ý combo sáng nhẹ nhàng giúp mình với?", "expected_intent": "get_combo" },
+  { "input": "Trưa nay ăn gì ngon bên shop nhỉ?", "expected_intent": "get_combo" },
+  { "input": "Trưa ít thời gian, shop gợi ý mình nên mua gì nấu nhanh?", "expected_intent": "get_combo" },
+  { "input": "Tối nay muốn làm lẩu, mua những gì?", "expected_intent": "get_combo" },
+  { "input": "Cần mua đồ để nấu lẩu tối nay, shop liệt kê giúp mình combo với?", "expected_intent": "get_combo" },
+  { "input": "combo ăn khuya có không shop", "expected_intent": "get_combo" },
+  { "input": "Hay thức khuya làm việc, shop gợi ý đồ ăn khuya tiện lợi?", "expected_intent": "get_combo" },
+  { "input": "Bạn gợi ý thực đơn BBQ cuối tuần cho mình với?", "expected_intent": "get_combo" },
+  { "input": "Đ đói khuya nhưng sợ béo, shop gợi ý mình ăn gì healthy?", "expected_intent": "get_combo" },
+
+
+  { "input": "Ship bao nhiêu tiền vậy shop?", "expected_intent": "policy" },
+  { "input": "Đơn 150k có miễn phí giao hàng không?", "expected_intent": "policy" },
+  { "input": "Mua bao nhiêu thì được freeship ở EzyMart?", "expected_intent": "policy" },
+  { "input": "Tại sao đơn tôi 180k mà vẫn bị thu phí ship?", "expected_intent": "policy" },
+  { "input": "phí vận chuyển tính như thế nào shop", "expected_intent": "policy" },
+  { "input": "Đơn hàng dưới 200k thì phí giao hàng tính sao ạ?", "expected_intent": "policy" },
+  { "input": "Chính sách hoàn tiền của shop là gì?", "expected_intent": "policy" },
+  { "input": "Mua đơn bao nhiêu tiền mới được miễn phí ship?", "expected_intent": "policy" },
+  { "input": "Shop có ship ngoại thành không vậy", "expected_intent": "policy" },
+  { "input": "mình muốn hỏi về chính sách giao nhận hàng", "expected_intent": "policy" },
+
+  { "input": "Tôi vừa nhận hàng, bánh bao bị ẩm mốc, phải làm sao?", "expected_intent": "support_issue" },
+  { "input": "Nhận bánh bao bị mốc, mình cần liên hệ đâu để đổi hàng?", "expected_intent": "support_issue" },
+  { "input": "Tôm tôi mua bị có mùi lạ khi mở ra, làm thế nào?", "expected_intent": "support_issue" },
+  { "input": "Bia giao đến bị móp lon, còn dùng được không, có đổi không?", "expected_intent": "support_issue" },
+  { "input": "Dầu ăn tôi đặt bị rò rỉ khi giao đến, xử lý thế nào?", "expected_intent": "support_issue" },
+  { "input": "Tôi nhận được thịt bò bị đổi màu, không còn tươi, cần hoàn tiền?", "expected_intent": "support_issue" },
+  { "input": "Kim chi tôi mua bị chua quá, hỏng rồi, đổi được không?", "expected_intent": "support_issue" },
+  { "input": "Sữa của tôi bị phồng hộp, có an toàn không, đổi được không?", "expected_intent": "support_issue" },
+  { "input": "Tôi đặt hàng mà giao nhầm sản phẩm, phải làm sao?", "expected_intent": "support_issue" },
+  { "input": "Tôi muốn hủy đơn vì đặt nhầm, còn kịp không?", "expected_intent": "support_issue" }
+]

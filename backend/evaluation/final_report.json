@@ -1,0 +1,359 @@
+{
+  "total": 50,
+  "passed": 45,
+  "failed": 5,
+  "accuracy": "90.00%",
+  "run_at": "2026-05-29T10:17:13.095Z",
+  "report": [
+    {
+      "input": "Xin chào shop!",
+      "expected_intent": "chat",
+      "actual_intent": "chat",
+      "actual_response": "chat",
+      "result": "PASS"
+    },
+    {
+      "input": "Hello EzyMart ơi",
+      "expected_intent": "chat",
+      "actual_intent": "chat",
+      "actual_response": "chat",
+      "result": "PASS"
+    },
+    {
+      "input": "Cảm ơn bạn nhiều lắm nha",
+      "expected_intent": "chat",
+      "actual_intent": "chat",
+      "actual_response": "chat",
+      "result": "PASS"
+    },
+    {
+      "input": "Cám ơn shop đã tư vấn",
+      "expected_intent": "chat",
+      "actual_intent": "chat",
+      "actual_response": "chat",
+      "result": "PASS"
+    },
+    {
+      "input": "ok cảm ơn nhé",
+      "expected_intent": "chat",
+      "actual_intent": "chat",
+      "actual_response": "chat",
+      "result": "PASS"
+    },
+    {
+      "input": "chào buổi sáng shop ơi",
+      "expected_intent": "chat",
+      "actual_intent": "small_talk",
+      "actual_response": "small_talk",
+      "result": "FAIL"
+    },
+    {
+      "input": "hi shop có ai online ko",
+      "expected_intent": "chat",
+      "actual_intent": "chat",
+      "actual_response": "chat",
+      "result": "PASS"
+    },
+    {
+      "input": "tks b nhiều nhe",
+      "expected_intent": "chat",
+      "actual_intent": "small_talk",
+      "actual_response": "small_talk",
+      "result": "FAIL"
+    },
+    {
+      "input": "gút mồ ninh shop",
+      "expected_intent": "chat",
+      "actual_intent": "small_talk",
+      "actual_response": "small_talk",
+      "result": "FAIL"
+    },
+    {
+      "input": "alo có ai đó ko",
+      "expected_intent": "chat",
+      "actual_intent": "small_talk",
+      "actual_response": "small_talk",
+      "result": "FAIL"
+    },
+    {
+      "input": "Ba chỉ bò Mỹ bao nhiêu tiền vậy?",
+      "expected_intent": "get_price",
+      "actual_intent": "get_price",
+      "actual_response": "get_price",
+      "result": "PASS"
+    },
+    {
+      "input": "Tôm thẻ hôm nay còn hàng k?",
+      "expected_intent": "get_price",
+      "actual_intent": "get_price",
+      "actual_response": "get_price",
+      "result": "PASS"
+    },
+    {
+      "input": "Giá sữa TH True Milk 1 lít là bao nhiêu ạ?",
+      "expected_intent": "get_price",
+      "actual_intent": "get_price",
+      "actual_response": "get_price",
+      "result": "PASS"
+    },
+    {
+      "input": "bia heineken thùng mấy tiền",
+      "expected_intent": "get_price",
+      "actual_intent": "get_price",
+      "actual_response": "get_price",
+      "result": "PASS"
+    },
+    {
+      "input": "Shop có bán chả mực không giá sao?",
+      "expected_intent": "get_price",
+      "actual_intent": "get_price",
+      "actual_response": "get_price",
+      "result": "PASS"
+    },
+    {
+      "input": "kim chi ong kims con hang khong",
+      "expected_intent": "get_price",
+      "actual_intent": "small_talk",
+      "actual_response": "small_talk",
+      "result": "FAIL"
+    },
+    {
+      "input": "Cho hỏi đùi bò hôm nay có không, giá kg bao nhiêu?",
+      "expected_intent": "get_price",
+      "actual_intent": "get_price",
+      "actual_response": "get_price",
+      "result": "PASS"
+    },
+    {
+      "input": "dầu ăn tường an 5l giá bao nhiêu",
+      "expected_intent": "get_price",
+      "actual_intent": "get_price",
+      "actual_response": "get_price",
+      "result": "PASS"
+    },
+    {
+      "input": "Bánh bao kim sa Kitkool còn bán không shop ơi?",
+      "expected_intent": "get_price",
+      "actual_intent": "get_price",
+      "actual_response": "get_price",
+      "result": "PASS"
+    },
+    {
+      "input": "lạp xưởng tôm vissan bao tiền 1 gói",
+      "expected_intent": "get_price",
+      "actual_intent": "get_price",
+      "actual_response": "get_price",
+      "result": "PASS"
+    },
+    {
+      "input": "Cho mình gợi ý bữa sáng đơn giản, tiện lợi?",
+      "expected_intent": "get_combo",
+      "actual_intent": "get_combo",
+      "actual_response": "get_combo",
+      "result": "PASS"
+    },
+    {
+      "input": "Sáng nay không biết ăn gì, shop gợi ý combo sáng nhẹ nhàng giúp mình với?",
+      "expected_intent": "get_combo",
+      "actual_intent": "get_combo",
+      "actual_response": "get_combo",
+      "result": "PASS"
+    },
+    {
+      "input": "Trưa nay ăn gì ngon bên shop nhỉ?",
+      "expected_intent": "get_combo",
+      "actual_intent": "get_combo",
+      "actual_response": "get_combo",
+      "result": "PASS"
+    },
+    {
+      "input": "Trưa ít thời gian, shop gợi ý mình nên mua gì nấu nhanh?",
+      "expected_intent": "get_combo",
+      "actual_intent": "get_combo",
+      "actual_response": "get_combo",
+      "result": "PASS"
+    },
+    {
+      "input": "Tối nay muốn làm lẩu, mua những gì?",
+      "expected_intent": "get_combo",
+      "actual_intent": "get_combo",
+      "actual_response": "get_combo",
+      "result": "PASS"
+    },
+    {
+      "input": "Cần mua đồ để nấu lẩu tối nay, shop liệt kê giúp mình combo với?",
+      "expected_intent": "get_combo",
+      "actual_intent": "get_combo",
+      "actual_response": "get_combo",
+      "result": "PASS"
+    },
+    {
+      "input": "combo ăn khuya có không shop",
+      "expected_intent": "get_combo",
+      "actual_intent": "get_combo",
+      "actual_response": "get_combo",
+      "result": "PASS"
+    },
+    {
+      "input": "Hay thức khuya làm việc, shop gợi ý đồ ăn khuya tiện lợi?",
+      "expected_intent": "get_combo",
+      "actual_intent": "get_combo",
+      "actual_response": "get_combo",
+      "result": "PASS"
+    },
+    {
+      "input": "Bạn gợi ý thực đơn BBQ cuối tuần cho mình với?",
+      "expected_intent": "get_combo",
+      "actual_intent": "get_combo",
+      "actual_response": "get_combo",
+      "result": "PASS"
+    },
+    {
+      "input": "Đ đói khuya nhưng sợ béo, shop gợi ý mình ăn gì healthy?",
+      "expected_intent": "get_combo",
+      "actual_intent": "get_combo",
+      "actual_response": "get_combo",
+      "result": "PASS"
+    },
+    {
+      "input": "Ship bao nhiêu tiền vậy shop?",
+      "expected_intent": "policy",
+      "actual_intent": "policy",
+      "actual_response": "policy",
+      "result": "PASS"
+    },
+    {
+      "input": "Đơn 150k có miễn phí giao hàng không?",
+      "expected_intent": "policy",
+      "actual_intent": "policy",
+      "actual_response": "policy",
+      "result": "PASS"
+    },
+    {
+      "input": "Mua bao nhiêu thì được freeship ở EzyMart?",
+      "expected_intent": "policy",
+      "actual_intent": "policy",
+      "actual_response": "policy",
+      "result": "PASS"
+    },
+    {
+      "input": "Tại sao đơn tôi 180k mà vẫn bị thu phí ship?",
+      "expected_intent": "policy",
+      "actual_intent": "policy",
+      "actual_response": "policy",
+      "result": "PASS"
+    },
+    {
+      "input": "phí vận chuyển tính như thế nào shop",
+      "expected_intent": "policy",
+      "actual_intent": "policy",
+      "actual_response": "policy",
+      "result": "PASS"
+    },
+    {
+      "input": "Đơn hàng dưới 200k thì phí giao hàng tính sao ạ?",
+      "expected_intent": "policy",
+      "actual_intent": "policy",
+      "actual_response": "policy",
+      "result": "PASS"
+    },
+    {
+      "input": "Chính sách hoàn tiền của shop là gì?",
+      "expected_intent": "policy",
+      "actual_intent": "policy",
+      "actual_response": "policy",
+      "result": "PASS"
+    },
+    {
+      "input": "Mua đơn bao nhiêu tiền mới được miễn phí ship?",
+      "expected_intent": "policy",
+      "actual_intent": "policy",
+      "actual_response": "policy",
+      "result": "PASS"
+    },
+    {
+      "input": "Shop có ship ngoại thành không vậy",
+      "expected_intent": "policy",
+      "actual_intent": "policy",
+      "actual_response": "policy",
+      "result": "PASS"
+    },
+    {
+      "input": "mình muốn hỏi về chính sách giao nhận hàng",
+      "expected_intent": "policy",
+      "actual_intent": "policy",
+      "actual_response": "policy",
+      "result": "PASS"
+    },
+    {
+      "input": "Tôi vừa nhận hàng, bánh bao bị ẩm mốc, phải làm sao?",
+      "expected_intent": "support_issue",
+      "actual_intent": "support_issue",
+      "actual_response": "support_issue",
+      "result": "PASS"
+    },
+    {
+      "input": "Nhận bánh bao bị mốc, mình cần liên hệ đâu để đổi hàng?",
+      "expected_intent": "support_issue",
+      "actual_intent": "support_issue",
+      "actual_response": "support_issue",
+      "result": "PASS"
+    },
+    {
+      "input": "Tôm tôi mua bị có mùi lạ khi mở ra, làm thế nào?",
+      "expected_intent": "support_issue",
+      "actual_intent": "support_issue",
+      "actual_response": "support_issue",
+      "result": "PASS"
+    },
+    {
+      "input": "Bia giao đến bị móp lon, còn dùng được không, có đổi không?",
+      "expected_intent": "support_issue",
+      "actual_intent": "support_issue",
+      "actual_response": "support_issue",
+      "result": "PASS"
+    },
+    {
+      "input": "Dầu ăn tôi đặt bị rò rỉ khi giao đến, xử lý thế nào?",
+      "expected_intent": "support_issue",
+      "actual_intent": "support_issue",
+      "actual_response": "support_issue",
+      "result": "PASS"
+    },
+    {
+      "input": "Tôi nhận được thịt bò bị đổi màu, không còn tươi, cần hoàn tiền?",
+      "expected_intent": "support_issue",
+      "actual_intent": "support_issue",
+      "actual_response": "support_issue",
+      "result": "PASS"
+    },
+    {
+      "input": "Kim chi tôi mua bị chua quá, hỏng rồi, đổi được không?",
+      "expected_intent": "support_issue",
+      "actual_intent": "support_issue",
+      "actual_response": "support_issue",
+      "result": "PASS"
+    },
+    {
+      "input": "Sữa của tôi bị phồng hộp, có an toàn không, đổi được không?",
+      "expected_intent": "support_issue",
+      "actual_intent": "support_issue",
+      "actual_response": "support_issue",
+      "result": "PASS"
+    },
+    {
+      "input": "Tôi đặt hàng mà giao nhầm sản phẩm, phải làm sao?",
+      "expected_intent": "support_issue",
+      "actual_intent": "support_issue",
+      "actual_response": "support_issue",
+      "result": "PASS"
+    },
+    {
+      "input": "Tôi muốn hủy đơn vì đặt nhầm, còn kịp không?",
+      "expected_intent": "support_issue",
+      "actual_intent": "support_issue",
+      "actual_response": "support_issue",
+      "result": "PASS"
+    }
+  ]
+}
