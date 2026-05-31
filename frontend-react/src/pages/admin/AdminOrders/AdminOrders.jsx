@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Table, Tag, Select, Typography, message, Modal, Tooltip, Descriptions, Button, Input, Space, Row, Col, Popconfirm } from 'antd';
 import { EyeOutlined, SearchOutlined, ClockCircleOutlined, ShopOutlined } from '@ant-design/icons';
 import { orderService } from '../../../services/orderService';
@@ -46,6 +46,7 @@ const AdminOrders = () => {
     const [filterStatus, setFilterStatus] = useState('all');
     const [filterMethod, setFilterMethod] = useState('all');
     const { socket } = useSocket();
+    const searchTimeout = useRef(null);
 
     const fetchData = useCallback(async (params = {}) => {
         setLoading(true);
@@ -396,11 +397,20 @@ const AdminOrders = () => {
                     <Col xs={24} sm={10} md={8}>
                         <Input.Search
                             id="order-search-input"
-                            placeholder="Tìm mã đơn, số điện thoại..."
+                            placeholder="Tìm mã đơn, tên, số điện thoại..."
                             allowClear
                             prefix={<SearchOutlined />}
                             value={filterSearch}
-                            onChange={e => setFilterSearch(e.target.value)}
+                            onChange={e => {
+                                const val = e.target.value;
+                                setFilterSearch(val);
+                                if (searchTimeout.current) {
+                                    clearTimeout(searchTimeout.current);
+                                }
+                                searchTimeout.current = setTimeout(() => {
+                                    handleFilter({ search: val });
+                                }, 500);
+                            }}
                             onSearch={val => {
                                 setFilterSearch(val);
                                 handleFilter({ search: val });

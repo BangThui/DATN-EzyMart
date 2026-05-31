@@ -67,6 +67,20 @@
   border: 2px solid #52c41a !important;
 }
 
+.ant-upload-list-picture-card .ant-upload-list-picture-card-container,
+.ant-upload-list-item {
+  overflow: visible !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+.ant-upload-animate-inline-appear,
+.ant-upload-animate-inline-enter,
+.ant-upload-animate-inline-leave {
+  animation: none !important;
+  transition: none !important;
+}
+
 /* ── AdminProducts: VariantSubTable ── */
 .admin-subtable {
   margin: 0 48px;

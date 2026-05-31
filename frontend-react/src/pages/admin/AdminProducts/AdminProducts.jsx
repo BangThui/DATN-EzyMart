@@ -960,19 +960,45 @@ const AdminProducts = () => {
               beforeUpload={() => false}
               multiple
               accept="image/*"
+              style={{ marginTop: '16px' }}
+              className="admin-upload-list-custom"
               itemRender={(originNode, file, currFileList) => {
                 const index = currFileList.indexOf(file);
-                if (index === 0) {
-                  return (
-                    <Badge
-                      count="Ảnh chính"
-                      className="main-image-badge admin-badge-main"
-                    >
-                      {originNode}
-                    </Badge>
-                  );
-                }
-                return originNode;
+                const isMain = index === 0;
+
+                const node = isMain ? (
+                  <Badge
+                    count="Ảnh chính"
+                    className="main-image-badge admin-badge-main"
+                  >
+                    {originNode}
+                  </Badge>
+                ) : (
+                  originNode
+                );
+
+                return (
+                  <div
+                    draggable
+                    onDragStart={e => {
+                      e.dataTransfer.setData("dragIndex", index);
+                    }}
+                    onDragOver={e => e.preventDefault()}
+                    onDrop={e => {
+                      const dragIndex = Number(e.dataTransfer.getData("dragIndex"));
+                      const dropIndex = index;
+                      if (dragIndex !== dropIndex) {
+                        const newFileList = [...fileList];
+                        const item = newFileList.splice(dragIndex, 1)[0];
+                        newFileList.splice(dropIndex, 0, item);
+                        setFileList(newFileList);
+                      }
+                    }}
+                    style={{ cursor: "grab", display: "inline-block", height: "100%" }}
+                  >
+                    {node}
+                  </div>
+                );
               }}
             >
               {fileList.length < 10 && (
@@ -984,9 +1010,7 @@ const AdminProducts = () => {
             </Upload>
             {fileList.length > 0 && (
               <Typography.Text type="secondary" className="admin-hint-text">
-                Gợi ý: Ảnh ở vị trí <b>đầu tiên</b> sẽ được chọn làm{" "}
-                <b>ảnh đại diện chính</b>. Bạn có thể xóa ảnh đầu tiên để ảnh
-                tiếp theo thay thế.
+                Gợi ý: Bạn có thể <b>kéo thả (drag & drop)</b> các ảnh để sắp xếp lại. Ảnh ở vị trí <b>đầu tiên</b> sẽ được chọn làm <b>ảnh đại diện chính</b>.
               </Typography.Text>
             )}
           </Form.Item>

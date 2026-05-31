@@ -219,11 +219,11 @@ const OrderModel = {
       const trimmed = search.trim();
       const isNumeric = /^\d+$/.test(trimmed);
       if (isNumeric) {
-        conditions.push('(o.order_id = ? OR u.user_phone LIKE ?)');
-        params.push(Number(trimmed), `%${trimmed}%`);
+        conditions.push('(o.order_id = ? OR u.user_phone LIKE ? OR u.user_name LIKE ?)');
+        params.push(Number(trimmed), `%${trimmed}%`, `%${trimmed}%`);
       } else {
-        conditions.push('u.user_phone LIKE ?');
-        params.push(`%${trimmed}%`);
+        conditions.push('(u.user_phone LIKE ? OR u.user_name LIKE ?)');
+        params.push(`%${trimmed}%`, `%${trimmed}%`);
       }
     }
 

@@ -352,7 +352,12 @@ const ProductDetail = () => {
                       <div
                         key={idx}
                         className={`detail-gallery-thumb-item ${idx === mainImageIndex ? "active" : ""}`}
-                        onClick={() => setMainImageIndex(idx)}
+                        onClick={() => {
+                          setMainImageIndex(idx);
+                          if (product.variants && product.variants[idx]) {
+                            setSelectedVariant(product.variants[idx]);
+                          }
+                        }}
                       >
                         <img
                           src={getImageSrc(img)}
@@ -413,13 +418,16 @@ const ProductDetail = () => {
                     <Radio.Group
                       buttonStyle="solid"
                       value={selectedVariant?.variant_id}
-                      onChange={e =>
-                        setSelectedVariant(
-                          product.variants.find(
-                            v => v.variant_id === e.target.value,
-                          ),
-                        )
-                      }
+                      onChange={e => {
+                        const variantId = e.target.value;
+                        const idx = product.variants.findIndex(v => v.variant_id === variantId);
+                        if (idx !== -1) {
+                          setSelectedVariant(product.variants[idx]);
+                          if (idx < galleryImages.length) {
+                            setMainImageIndex(idx);
+                          }
+                        }
+                      }}
                     >
                       {product.variants.map(v => (
                         <Radio.Button key={v.variant_id} value={v.variant_id}>
