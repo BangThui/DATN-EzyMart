@@ -92,12 +92,17 @@ exports.captureOrder = async (req, res) => {
 
             await connection.commit();
 
+            // Lấy user_id để gửi socket
+            const [orderRows] = await connection.query('SELECT user_id FROM orders WHERE order_id = ?', [order_id]);
+            const userId = orderRows.length > 0 ? orderRows[0].user_id : null;
+
             // Gửi socket thông báo trạng thái đơn hàng thay đổi real-time
             try {
                 const io = getIO();
                 io.emit('order_status_updated', {
                     order_id: Number(order_id),
-                    order_status: 'confirmed'
+                    order_status: 'confirmed',
+                    user_id: userId
                 });
             } catch (socketErr) {
                 console.warn('[Socket] Emit error (non-critical):', socketErr.message);

@@ -3,6 +3,7 @@ import { Badge, Popover, List, Typography, Empty, Button } from "antd";
 import { BellOutlined } from "@ant-design/icons";
 import { useSocket } from "../../context/SocketContext";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 import "./NotificationBell.css";
 
 const { Text } = Typography;
@@ -10,6 +11,7 @@ const { Text } = Typography;
 const NotificationBell = ({ isAdmin = false }) => {
   const { socket } = useSocket();
   const navigate = useNavigate();
+  const { user } = useAuth();
   // Khôi phục thông báo từ LocalStorage ngay khi khởi tạo state để tránh race-condition trong React 18 StrictMode
   const [notifications, setNotifications] = useState(() => {
     const saved = localStorage.getItem(
@@ -80,6 +82,17 @@ const NotificationBell = ({ isAdmin = false }) => {
           });
         }
       } else {
+        // Chỉ hiện thông báo cho khách hàng nếu user_id khớp, hoặc nếu data chưa có user_id (để fallback) 
+        // thì ít nhất cũng tránh hiện cho admin đang ở trang khách hàng (nếu role không phải là khách)
+        if (data.user_id && user && user.user_id !== data.user_id) {
+          return; // Bỏ qua nếu thông báo không thuộc về user hiện tại
+        }
+
+        // Bỏ qua nếu admin đang xem giao diện cửa hàng (không phải luồng mua hàng của họ)
+        if (user && (user.role === 0 || user.role === 2) && data.user_id !== user.user_id) {
+            return;
+        }
+
         addNotification({
           id: Date.now(),
           order_id: data.order_id,
@@ -99,7 +112,7 @@ const NotificationBell = ({ isAdmin = false }) => {
       socket.off("new_order_alert", handleNewOrder);
       socket.off("order_status_updated", handleStatusUpdate);
     };
-  }, [socket, isAdmin, addNotification]);
+  }, [socket, isAdmin, addNotification, user]);
 
   const getStatusLabel = status => {
     const map = {

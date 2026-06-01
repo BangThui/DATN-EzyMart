@@ -170,6 +170,7 @@ exports.updateOrderStatus = async (req, res) => {
             io.emit('order_status_updated', {
                 order_id: Number(id),
                 order_status: statusValue,
+                user_id: orderInfo ? orderInfo.user_id : null
             });
         } catch (socketErr) {
             console.warn('[Socket] Emit error (non-critical):', socketErr.message);
@@ -203,6 +204,7 @@ exports.customerUpdateOrderStatus = async (req, res) => {
                 order_id: Number(id),
                 order_status: 'completed',
                 updated_by: 'customer',
+                user_id: rows[0].user_id
             });
         } catch (socketErr) {
             console.warn('[Socket] Emit error (non-critical):', socketErr.message);
@@ -238,6 +240,7 @@ exports.customerCancelOrder = async (req, res) => {
                 order_id: Number(id),
                 order_status: 'cancelled',
                 updated_by: 'customer',
+                user_id: orderInfo ? orderInfo.user_id : null
             });
         } catch (socketErr) {
             console.warn('[Socket] Emit error (non-critical):', socketErr.message);
@@ -296,11 +299,14 @@ exports.updatePickupStatus = async (req, res) => {
 
             // 2. Emit order_status khi có thay đổi (prepared → processing, received → completed)
             if (result.was_prepared || result.was_completed) {
+                // Fetch user_id for socket notification
+                const [[orderInfo]] = await OrderModel.getOrderUserInfo(id);
                 io.emit('order_status_updated', {
                     order_id: Number(id),
                     order_status: result.order_status,
                     pickup_status: result.pickup_status,
                     updated_by: 'admin_pickup',
+                    user_id: orderInfo ? orderInfo.user_id : null
                 });
             }
         } catch (socketErr) {
