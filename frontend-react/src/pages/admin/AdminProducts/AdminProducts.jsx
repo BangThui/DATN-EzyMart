@@ -37,6 +37,7 @@ import {
   StopOutlined,
   QuestionCircleOutlined,
   InboxOutlined,
+  EyeOutlined,
 } from "@ant-design/icons";
 import { productService } from "../../../services/productService";
 import { categoryService } from "../../../services/categoryService";
@@ -45,6 +46,7 @@ import { supplierService } from "../../../services/supplierService";
 import { stockService } from "../../../services/stockService";
 import { formatCurrency, buildCategoryTree } from "../../../utils";
 import { getImageUrl } from "../../../utils/imageHelper";
+import { useAuth } from "../../../context/AuthContext";
 import "../Admin.css";
 import "./AdminProducts.css";
 
@@ -176,13 +178,18 @@ const VariantSubTable = ({ variants }) => {
 
 // ─── Component chính ─────────────────────────────────────────────────────────
 const AdminProducts = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 0;
+
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
+  const [viewModalVisible, setViewModalVisible] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
+  const [viewRecord, setViewRecord] = useState(null);
   const [saving, setSaving] = useState(false);
   const [form] = Form.useForm();
   const [fileList, setFileList] = useState([]);
@@ -316,6 +323,11 @@ const AdminProducts = () => {
     form.resetFields();
     setFileList([]);
     setModalVisible(true);
+  };
+
+  const handleViewDetails = (record) => {
+    setViewRecord(record);
+    setViewModalVisible(true);
   };
 
   const openEdit = record => {
@@ -650,23 +662,36 @@ const AdminProducts = () => {
       title: "Thao tác",
       render: (_, r) => (
         <Space>
-          <Button
-            icon={<EditOutlined />}
-            size="small"
-            onClick={() => openEdit(r)}
-          >
-            Sửa
-          </Button>
-          <Popconfirm
-            title="Chuyển sản phẩm này vào thùng rác?"
-            onConfirm={() => handleSoftDelete(r.product_id)}
-            okText="Đồng ý"
-            cancelText="Hủy"
-          >
-            <Button icon={<DeleteOutlined />} size="small" danger>
-              Xóa
+          {!isAdmin && (
+            <Button
+              icon={<EyeOutlined />}
+              size="small"
+              onClick={() => handleViewDetails(r)}
+            >
+              Xem chi tiết
             </Button>
-          </Popconfirm>
+          )}
+          {isAdmin && (
+            <>
+              <Button
+                icon={<EditOutlined />}
+                size="small"
+                onClick={() => openEdit(r)}
+              >
+                Sửa
+              </Button>
+              <Popconfirm
+                title="Chuyển sản phẩm này vào thùng rác?"
+                onConfirm={() => handleSoftDelete(r.product_id)}
+                okText="Đồng ý"
+                cancelText="Hủy"
+              >
+                <Button icon={<DeleteOutlined />} size="small" danger>
+                  Xóa
+                </Button>
+              </Popconfirm>
+            </>
+          )}
         </Space>
       ),
     },
@@ -803,14 +828,16 @@ const AdminProducts = () => {
           >
             Thùng rác
           </Button>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={openAdd}
-            className="admin-btn-primary"
-          >
-            Thêm sản phẩm
-          </Button>
+          {isAdmin && (
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={openAdd}
+              className="admin-btn-primary"
+            >
+              Thêm sản phẩm
+            </Button>
+          )}
         </Space>
       </div>
 
@@ -1260,6 +1287,63 @@ const AdminProducts = () => {
             showTotal: (total) => `Tổng ${total} sản phẩm đã xóa`,
           }}
         />
+      </Modal>
+      {/* ─── Modal Xem chi tiết sản phẩm (Read-only) ──────────────────────── */}
+      <Modal
+        title="Chi tiết sản phẩm"
+        open={viewModalVisible}
+        onCancel={() => setViewModalVisible(false)}
+        footer={[
+          <Button key="close" onClick={() => setViewModalVisible(false)}>Đóng</Button>
+        ]}
+        width={800}
+      >
+        {viewRecord && (
+          <Row gutter={24}>
+            <Col span={8}>
+              <Image 
+                src={getImgSrc(viewRecord.product_image)} 
+                fallback="/placeholder.png" 
+                style={{ width: '100%', borderRadius: 8, border: '1px solid #f0f0f0' }} 
+              />
+            </Col>
+            <Col span={16}>
+              <Title level={4} style={{ marginTop: 0 }}>{viewRecord.product_name}</Title>
+              <div style={{ marginBottom: 16 }}>
+                <Space wrap>
+                  <Tag color="blue">{viewRecord.brand_name || "Khác"}</Tag>
+                  <Tag color="cyan">
+                    {viewRecord.category_name || categories.find(c => c.category_id === viewRecord.category_id)?.category_name || "--"}
+                  </Tag>
+                  <StockBadge qty={getTotalStock(viewRecord)} />
+                </Space>
+              </div>
+              
+              <Table 
+                dataSource={viewRecord.variants || []} 
+                columns={[
+                  { title: "SKU", dataIndex: "sku", key: "sku" },
+                  { title: "Tên biến thể", dataIndex: "variant_name", key: "variant_name" },
+                  { title: "Giá bán", key: "price", render: (_, v) => formatCurrency(v.variant_price) },
+                  { title: "Khuyến mãi", key: "discount", render: (_, v) => Number(v.variant_discount) > 0 ? formatCurrency(v.variant_discount) : "--" },
+                  { title: "Tồn kho", dataIndex: "variant_quantity", key: "qty" }
+                ]}
+                rowKey="variant_id"
+                pagination={false}
+                size="small"
+                bordered
+              />
+              
+              {(!viewRecord.variants || viewRecord.variants.length === 0) && (
+                <div style={{ marginTop: 16 }}>
+                  <Text strong>Giá bán lẻ: </Text> <Text>{formatCurrency(viewRecord.product_price || 0)}</Text><br/>
+                  <Text strong>Khuyến mãi: </Text> <Text>{Number(viewRecord.product_discount) > 0 ? formatCurrency(viewRecord.product_discount) : "--"}</Text><br/>
+                  <Text strong>Tồn kho: </Text> <Text>{getTotalStock(viewRecord)}</Text>
+                </div>
+              )}
+            </Col>
+          </Row>
+        )}
       </Modal>
     </div>
   );

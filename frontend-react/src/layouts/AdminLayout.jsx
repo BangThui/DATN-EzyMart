@@ -30,53 +30,65 @@ const AdminLayout = () => {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
 
-  const menuItems = [
+  const allMenuItems = [
     {
       key: "/admin",
       icon: <DashboardOutlined />,
       label: <Link to="/admin">Dashboard</Link>,
+      roles: [0, 2], // Cả Admin và Nhân viên
     },
     {
       key: "/admin/orders",
       icon: <OrderedListOutlined />,
       label: <Link to="/admin/orders">Đơn hàng</Link>,
+      roles: [0, 2],
     },
     {
       key: "/admin/users",
       icon: <TeamOutlined />,
       label: <Link to="/admin/users">Tài khoản</Link>,
+      roles: [0], // Chỉ Admin
     },
     {
       key: "/admin/products",
       icon: <ShoppingOutlined />,
       label: <Link to="/admin/products">Sản phẩm</Link>,
+      roles: [0, 2],
     },
     {
       key: "/admin/categories",
       icon: <AppstoreOutlined />,
       label: <Link to="/admin/categories">Danh mục</Link>,
+      roles: [0],
     },
     {
       key: "/admin/brands",
       icon: <TagOutlined />,
       label: <Link to="/admin/brands">Thương hiệu</Link>,
+      roles: [0],
     },
     {
       key: "/admin/stock",
       icon: <InboxOutlined />,
       label: <Link to="/admin/stock">Nhập kho</Link>,
+      roles: [0, 2],
     },
     {
       key: "/admin/suppliers",
       icon: <ShopOutlined />,
       label: <Link to="/admin/suppliers">Nhà cung cấp</Link>,
+      roles: [0],
     },
     {
       key: "/admin/news",
       icon: <FileTextOutlined />,
       label: <Link to="/admin/news">Bài viết / Tin tức</Link>,
+      roles: [0],
     },
   ];
+
+  // Lọc menu dựa vào role của user đăng nhập
+  const menuItems = allMenuItems.filter(item => item.roles.includes(user?.role));
 
   const handleLogout = () => {
     logout();

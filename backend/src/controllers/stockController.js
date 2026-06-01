@@ -3,6 +3,7 @@ const pool = require('../config/db');
 // [ADMIN] Tạo phiếu nhập kho (dùng transaction)
 exports.importStock = async (req, res) => {
   const { supplier_id, note, items } = req.body;
+  const user_id = req.user.user_id;
 
   // --- Validation đầu vào ---
   if (!items || !Array.isArray(items) || items.length === 0) {
@@ -48,8 +49,8 @@ exports.importStock = async (req, res) => {
 
     // --- Hành động 1: Lưu phiếu nhập (dùng cả supplier_id và supplier_name để đảm bảo tương thích ngược) ---
     const [receiptResult] = await connection.execute(
-      `INSERT INTO stock_receipts (supplier_id, supplier_name, total_cost, note) VALUES (?, ?, ?, ?)`,
-      [supplier_id || null, supplier_name, total_cost, note || null]
+      `INSERT INTO stock_receipts (supplier_id, supplier_name, total_cost, note, user_id) VALUES (?, ?, ?, ?, ?)`,
+      [supplier_id || null, supplier_name, total_cost, note || null, user_id]
     );
     const receipt_id = receiptResult.insertId;
 
@@ -102,6 +103,7 @@ exports.importStock = async (req, res) => {
 // [ADMIN] Nhập kho hàng loạt nhiều sản phẩm cùng lúc (Bulk Import)
 exports.bulkImportStock = async (req, res) => {
   const { supplier_id, note, items } = req.body;
+  const user_id = req.user.user_id;
 
   // --- Validation ---
   if (!items || !Array.isArray(items) || items.length === 0) {
@@ -147,8 +149,8 @@ exports.bulkImportStock = async (req, res) => {
 
     // Bước 1: INSERT vào stock_receipts để lấy receipt_id
     const [receiptResult] = await connection.execute(
-      `INSERT INTO stock_receipts (supplier_id, supplier_name, total_cost, note) VALUES (?, ?, ?, ?)`,
-      [supplier_id || null, supplier_name, total_cost, note || null]
+      `INSERT INTO stock_receipts (supplier_id, supplier_name, total_cost, note, user_id) VALUES (?, ?, ?, ?, ?)`,
+      [supplier_id || null, supplier_name, total_cost, note || null, user_id]
     );
     const receipt_id = receiptResult.insertId;
 
@@ -214,12 +216,14 @@ exports.getReceipts = async (req, res) => {
     const [rows] = await pool.execute(
       `SELECT sr.receipt_id, sr.supplier_id, s.supplier_name,
               sr.total_cost, sr.note, sr.created_at,
+              u.user_name AS creator_name,
               COUNT(srd.detail_id) AS item_count
        FROM stock_receipts sr
        LEFT JOIN suppliers s ON sr.supplier_id = s.supplier_id AND s.is_deleted = 0
+       LEFT JOIN users u ON sr.user_id = u.user_id
        LEFT JOIN stock_receipt_details srd ON sr.receipt_id = srd.receipt_id
        ${timeCondition}
-       GROUP BY sr.receipt_id, sr.supplier_id, s.supplier_name, sr.total_cost, sr.note, sr.created_at
+       GROUP BY sr.receipt_id, sr.supplier_id, s.supplier_name, sr.total_cost, sr.note, sr.created_at, u.user_name
        ORDER BY sr.created_at DESC`,
       params
     );

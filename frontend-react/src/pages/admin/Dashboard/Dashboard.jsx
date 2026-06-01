@@ -23,6 +23,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { useAuth } from "../../../context/AuthContext";
 import axiosClient from "../../../services/axiosClient";
 import { formatCurrency } from "../../../utils";
 import "./Dashboard.css";
@@ -63,6 +64,9 @@ const CustomTooltip = ({ active, payload, label }) => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const Dashboard = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 0;
+
   const [stats,         setStats]         = useState(null);
   const [chartData,     setChartData]     = useState([]);
   const [topProducts,   setTopProducts]   = useState([]);
@@ -161,7 +165,7 @@ const Dashboard = () => {
   const statCards = [
     { label: "Tổng đơn hàng",    value: stats?.total_orders    || 0, icon: <ShoppingCartOutlined />, color: "#3b82f6", bg: "#eff6ff",  currency: false },
     { label: "Tổng doanh thu",   value: stats?.total_revenue   || 0, icon: <DollarOutlined />,       color: "#dc2626", bg: "#fef2f2",  currency: true  },
-    { label: "Tổng lợi nhuận",   value: stats?.total_profit    || 0, icon: <DollarCircleOutlined />, color: "#52c41a", bg: "#f6ffed",  currency: true  },
+    ...(isAdmin ? [{ label: "Tổng lợi nhuận",   value: stats?.total_profit    || 0, icon: <DollarCircleOutlined />, color: "#52c41a", bg: "#f6ffed",  currency: true  }] : []),
     { label: "Tổng tiền nhập kho",  value: stats?.total_import_cost   || 0, icon: <InboxOutlined />,          color: "#f59e0b", bg: "#fffbeb",  currency: true  },
     { label: "Khách hàng",       value: stats?.total_customers || 0, icon: <TeamOutlined />,          color: "#10b981", bg: "#f0fdf4",  currency: false },
     { label: "Tổng sản phẩm",   value: stats?.total_products  || 0, icon: <AppstoreOutlined />,      color: "#8b5cf6", bg: "#faf5ff",  currency: false },
@@ -265,7 +269,8 @@ const Dashboard = () => {
       {/* ── Khu vực 2: Biểu đồ + Đơn hàng mới nhất ── */}
       <Row gutter={[16, 16]} className="dashboard-row-mt">
         {/* Cột trái: Bar Chart */}
-        <Col xs={24} lg={16}>
+        {isAdmin && (
+          <Col xs={24} lg={16}>
           <Card
             className="dashboard-section-card"
             title={
@@ -301,9 +306,10 @@ const Dashboard = () => {
             )}
           </Card>
         </Col>
+        )}
 
         {/* Cột phải: 5 Đơn mới nhất */}
-        <Col xs={24} lg={8}>
+        <Col xs={24} lg={isAdmin ? 8 : 24}>
           <Card
             className="dashboard-section-card"
             title={

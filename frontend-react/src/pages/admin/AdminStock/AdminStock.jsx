@@ -198,6 +198,12 @@ const AdminStock = () => {
       render: (text) => text || <Text type="secondary">---</Text>,
     },
     {
+      title: "Người tạo phiếu",
+      dataIndex: "creator_name",
+      key: "creator_name",
+      render: (text) => <span className="font-medium text-gray-700">{text || "---"}</span>,
+    },
+    {
       title: "Tổng tiền",
       dataIndex: "total_cost",
       key: "total_cost",
