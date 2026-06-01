@@ -43,21 +43,30 @@ const DashboardModel = {
     getRevenueChart: (startDate, endDate) => {
         let sql = `
             SELECT 
-                DATE(order_date) as date,
-                COALESCE(SUM(total_price), 0) as revenue,
-                COUNT(*) as order_count
-            FROM orders
-            WHERE order_status != 'cancelled'
+                DATE(o.order_date) as date,
+                COALESCE(SUM(o.total_price), 0) as revenue,
+                COUNT(DISTINCT o.order_id) as order_count,
+                COALESCE(SUM(
+                    (
+                        SELECT COALESCE(SUM(oi.price * oi.quantity), 0) - COALESCE(SUM(
+                            COALESCE((SELECT import_price FROM stock_receipt_details WHERE variant_id = oi.variant_id ORDER BY detail_id DESC LIMIT 1), 0) * oi.quantity
+                        ), 0)
+                        FROM order_items oi 
+                        WHERE oi.order_id = o.order_id
+                    )
+                ), 0) as profit
+            FROM orders o
+            WHERE o.order_status != 'cancelled'
         `;
         const params = [];
         if (startDate && endDate) {
-            sql += ' AND DATE(order_date) >= ? AND DATE(order_date) <= ?';
+            sql += ' AND DATE(o.order_date) >= ? AND DATE(o.order_date) <= ?';
             params.push(startDate, endDate);
         } else {
-            sql += ' AND order_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)';
+            sql += ' AND o.order_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)';
         }
         sql += `
-            GROUP BY DATE(order_date)
+            GROUP BY DATE(o.order_date)
             ORDER BY date ASC
         `;
         return db.query(sql, params);

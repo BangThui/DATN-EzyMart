@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Row, Col, Card, Tag, Table, Spin, Typography, Empty, DatePicker } from "antd";
+import { Row, Col, Card, Tag, Table, Spin, Typography, Empty, DatePicker, Button, Space, message } from "antd";
 import dayjs from "dayjs";
 import {
   ShoppingCartOutlined,
@@ -12,6 +12,7 @@ import {
   RiseOutlined,
   DollarCircleOutlined,
   InboxOutlined,
+  FileExcelOutlined,
 } from "@ant-design/icons";
 import {
   BarChart,
@@ -25,6 +26,7 @@ import {
 import axiosClient from "../../../services/axiosClient";
 import { formatCurrency } from "../../../utils";
 import "./Dashboard.css";
+import * as XLSX from "xlsx";
 
 const { Title, Text } = Typography;
 
@@ -67,6 +69,43 @@ const Dashboard = () => {
   const [recentOrders,  setRecentOrders]  = useState([]);
   const [loading,       setLoading]       = useState(true);
   const [dateRange,     setDateRange]     = useState([dayjs().startOf("month"), dayjs()]);
+
+  const handleExportExcel = () => {
+    if (!chartData || chartData.length === 0) {
+      message.warning("Không có dữ liệu doanh thu để xuất!");
+      return;
+    }
+
+    const excelData = chartData.map((item) => ({
+      "Ngày": item.date,
+      "Số đơn hàng": item.order_count || 0,
+      "Tổng doanh thu": item.revenue || 0,
+      "Tổng lợi nhuận": item.profit ? Number(item.profit) : 0,
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+
+    const wscols = [
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 20 },
+      { wch: 20 },
+    ];
+    worksheet["!cols"] = wscols;
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Doanh Thu");
+
+    const currentDate = new Date();
+    const day = String(currentDate.getDate()).padStart(2, "0");
+    const month = String(currentDate.getMonth() + 1).padStart(2, "0");
+    const year = currentDate.getFullYear();
+    const dateString = `${day}_${month}_${year}`;
+
+    const fileName = `Bao_cao_doanh_thu_EzyMart_${dateString}.xlsx`;
+
+    XLSX.writeFile(workbook, fileName);
+  };
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -179,17 +218,27 @@ const Dashboard = () => {
     <div>
       <div className="dashboard-header-wrap">
         <Title level={2} className="dashboard-title">📊 Dashboard</Title>
-        <DatePicker.RangePicker
-          value={dateRange}
-          onChange={(dates) => setDateRange(dates)}
-          format="DD/MM/YYYY"
-          allowClear={true}
-          presets={[
-            { label: 'Hôm nay', value: [dayjs().startOf('day'), dayjs().endOf('day')] },
-            { label: '7 ngày gần đây', value: [dayjs().subtract(7, 'd'), dayjs()] },
-            { label: 'Tháng này', value: [dayjs().startOf('month'), dayjs().endOf('month')] },
-          ]}
-        />
+        <Space>
+          <DatePicker.RangePicker
+            value={dateRange}
+            onChange={(dates) => setDateRange(dates)}
+            format="DD/MM/YYYY"
+            allowClear={true}
+            presets={[
+              { label: 'Hôm nay', value: [dayjs().startOf('day'), dayjs().endOf('day')] },
+              { label: '7 ngày gần đây', value: [dayjs().subtract(7, 'd'), dayjs()] },
+              { label: 'Tháng này', value: [dayjs().startOf('month'), dayjs().endOf('month')] },
+            ]}
+          />
+          <Button
+            type="primary"
+            icon={<FileExcelOutlined />}
+            onClick={handleExportExcel}
+            style={{ backgroundColor: '#107c41', borderColor: '#107c41' }}
+          >
+            Xuất Excel
+          </Button>
+        </Space>
       </div>
 
       {/* ── Khu vực 1: Stat Cards ── */}

@@ -52,9 +52,21 @@ app.use('/api/suppliers', supplierRoutes);
 app.use('/api/payment/paypal', paypalRoutes);
 app.use('/api/recommendations', recommendationRoutes);
 app.use('/api/chatbot', chatbotRoutes);
+
+// // Endpoint xem dữ liệu comboCache
+// const comboCacheObj = require('./src/utils/comboCache');
+// app.get('/api/debug-cache', (req, res) => {
+//     const currentHour = new Date().getHours();
+//     res.json({
+//         timeSlot: comboCacheObj.getTimeSlotIdentifier(currentHour),
+//         currentHour: currentHour,
+//         cacheData: comboCacheObj.getCache(currentHour)
+//     });
+// });
+
 // Health check
 app.get('/', (req, res) => {
-    res.json({ message: 'XDPTPM Backend API đang chạy ✅', version: '2.0.0' });
+    res.json({ message: 'EzyMart Backend API đang chạy ✅', version: '2.0.0' });
 });
 
 // 404 handler

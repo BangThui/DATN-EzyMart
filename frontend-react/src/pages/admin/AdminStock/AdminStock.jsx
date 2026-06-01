@@ -23,7 +23,9 @@ import {
   MinusCircleOutlined,
   EyeOutlined,
   PlusCircleOutlined,
+  FileExcelOutlined,
 } from "@ant-design/icons";
+import * as XLSX from "xlsx";
 import { stockService } from "../../../services/stockService";
 import { supplierService } from "../../../services/supplierService";
 import { productService } from "../../../services/productService";
@@ -107,6 +109,49 @@ const AdminStock = () => {
       console.error("Lỗi lấy chi tiết phiếu nhập:", error);
       message.error("Lỗi khi tải chi tiết phiếu nhập!");
     }
+  };
+
+  const handleExportGoodsReceipt = () => {
+    if (!receipts || receipts.length === 0) {
+      message.warning("Không có dữ liệu phiếu nhập để xuất!");
+      return;
+    }
+
+    const excelData = receipts.map((item, index) => ({
+      "STT": index + 1,
+      "Mã phiếu nhập": item.receipt_id,
+      "Nhà cung cấp": item.supplier_name || "---",
+      "Tổng tiền nhập": Number(item.total_cost || 0).toLocaleString("vi-VN"),
+      "Số sản phẩm": item.item_count || 0,
+      "Ngày nhập kho": dayjs(item.created_at).format("DD/MM/YYYY HH:mm"),
+      "Trạng thái": item.status || "Hoàn thành",
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+
+    const wscols = [
+      { wch: 5 },  
+      { wch: 15 }, 
+      { wch: 25 }, 
+      { wch: 20 }, 
+      { wch: 15 }, 
+      { wch: 20 }, 
+      { wch: 15 }, 
+    ];
+    worksheet["!cols"] = wscols;
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Nhập Kho");
+
+    const currentDate = new Date();
+    const day = String(currentDate.getDate()).padStart(2, "0");
+    const month = String(currentDate.getMonth() + 1).padStart(2, "0");
+    const year = currentDate.getFullYear();
+    const dateString = `${day}_${month}_${year}`;
+
+    const fileName = `Nhat_ky_nhap_kho_EzyMart_${dateString}.xlsx`;
+
+    XLSX.writeFile(workbook, fileName);
   };
 
   // === Quick Add Supplier ===
@@ -252,12 +297,22 @@ const AdminStock = () => {
       </div>
 
       <div style={{ marginBottom: 16 }}>
-        <DatePicker.RangePicker 
-          value={dateRange} 
-          onChange={(dates) => setDateRange(dates)}
-          format="DD/MM/YYYY"
-          placeholder={['Từ ngày', 'Đến ngày']}
-        />
+        <Space>
+          <DatePicker.RangePicker 
+            value={dateRange} 
+            onChange={(dates) => setDateRange(dates)}
+            format="DD/MM/YYYY"
+            placeholder={['Từ ngày', 'Đến ngày']}
+          />
+          <Button
+            type="primary"
+            icon={<FileExcelOutlined />}
+            onClick={handleExportGoodsReceipt}
+            style={{ backgroundColor: '#107c41', borderColor: '#107c41' }}
+          >
+            Xuất Excel
+          </Button>
+        </Space>
       </div>
 
       <Row gutter={16} style={{ marginBottom: 16 }}>

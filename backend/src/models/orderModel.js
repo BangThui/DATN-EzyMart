@@ -428,12 +428,12 @@ const OrderModel = {
       let wasPrepared = false;
       let wasCompleted = false;
 
-      // 3a. 'prepared' → order_status = 'processing' (Chờ đến lấy)
+      // 3a. 'prepared' → order_status = 'confirmed' (Chờ đến lấy)
       if (pickup_status === 'prepared') {
-        newOrderStatus = 'processing';
+        newOrderStatus = 'confirmed';
         wasPrepared = true;
         await connection.query(
-          "UPDATE orders SET order_status = 'processing' WHERE order_id = ?",
+          "UPDATE orders SET order_status = 'confirmed' WHERE order_id = ?",
           [order_id]
         );
       }

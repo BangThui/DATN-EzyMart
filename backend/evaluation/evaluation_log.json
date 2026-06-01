@@ -56,5 +56,16 @@
   { "input": "Kim chi tôi mua bị chua quá, hỏng rồi, đổi được không?", "expected_intent": "support_issue" },
   { "input": "Sữa của tôi bị phồng hộp, có an toàn không, đổi được không?", "expected_intent": "support_issue" },
   { "input": "Tôi đặt hàng mà giao nhầm sản phẩm, phải làm sao?", "expected_intent": "support_issue" },
-  { "input": "Tôi muốn hủy đơn vì đặt nhầm, còn kịp không?", "expected_intent": "support_issue" }
+  { "input": "Tôi muốn hủy đơn vì đặt nhầm, còn kịp không?", "expected_intent": "support_issue" },
+
+  { "input": "Thời tiết Hà Nội hôm nay thế nào bạn?", "expected_intent": "small_talk" },
+  { "input": "Bạn có biết làm thơ không, tả con mèo đi", "expected_intent": "small_talk" },
+  { "input": "Thủ đô của nước Pháp là gì nhỉ?", "expected_intent": "small_talk" },
+  { "input": "1 cộng 1 bằng mấy hả bot", "expected_intent": "small_talk" },
+  { "input": "Viết hộ tôi đoạn code Python in ra Hello World với", "expected_intent": "small_talk" },
+  { "input": "Bạn là con trai hay con gái thế", "expected_intent": "small_talk" },
+  { "input": "Hôm nay ngày mấy thế shop ơi", "expected_intent": "small_talk" },
+  { "input": "Mấy giờ rồi b", "expected_intent": "small_talk" },
+  { "input": "bạn có người yêu chưa", "expected_intent": "small_talk" },
+  { "input": "kể một câu chuyện cười đi shop", "expected_intent": "small_talk" }
 ]
