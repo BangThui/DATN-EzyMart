@@ -113,7 +113,7 @@ const ProductModel = {
   },
 
   filterProducts: async (filters = {}) => {
-    const { category_id, brand_id, minPrice, maxPrice } = filters;
+    const { category_id, brand_id, minPrice, maxPrice, hot } = filters;
     let query = `
       SELECT p.product_id,
              p.category_id,
@@ -150,6 +150,11 @@ const ProductModel = {
     if (brand_id) {
       query += " AND p.brand_id = ?";
       params.push(brand_id);
+    }
+
+    if (hot !== undefined) {
+      query += " AND p.product_hot = ?";
+      params.push(hot);
     }
 
     query += " GROUP BY p.product_id";
@@ -263,10 +268,11 @@ const ProductModel = {
         product_description,
         category_id,
         brand_id,
+        product_hot,
       } = data;
 
       const [result] = await connection.query(
-        "INSERT INTO products (product_name, product_image, product_details, product_description, category_id, brand_id, product_active) VALUES (?, ?, ?, ?, ?, ?, 1)",
+        "INSERT INTO products (product_name, product_image, product_details, product_description, category_id, brand_id, product_hot, product_active) VALUES (?, ?, ?, ?, ?, ?, ?, 1)",
         [
           product_name,
           product_image,
@@ -274,6 +280,7 @@ const ProductModel = {
           product_description || "",
           category_id,
           brand_id || null,
+          product_hot !== undefined ? product_hot : 0,
         ],
       );
 
@@ -322,10 +329,11 @@ const ProductModel = {
         product_description,
         category_id,
         brand_id,
+        product_hot,
       } = data;
 
       await connection.query(
-        "UPDATE products SET product_name=?, product_image=?, product_details=?, product_description=?, category_id=?, brand_id=? WHERE product_id=?",
+        "UPDATE products SET product_name=?, product_image=?, product_details=?, product_description=?, category_id=?, brand_id=?, product_hot=? WHERE product_id=?",
         [
           product_name,
           product_image,
@@ -333,6 +341,7 @@ const ProductModel = {
           product_description,
           category_id,
           brand_id || null,
+          product_hot !== undefined ? product_hot : 0,
           id,
         ],
       );

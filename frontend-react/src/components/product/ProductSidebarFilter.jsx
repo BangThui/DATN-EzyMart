@@ -24,6 +24,7 @@ const ProductSidebarFilter = () => {
     const minPrice = searchParams.get('minPrice') ? Number(searchParams.get('minPrice')) : 0;
     const maxPrice = searchParams.get('maxPrice') ? Number(searchParams.get('maxPrice')) : 5000000;
     const [priceRange, setPriceRange] = useState([minPrice, maxPrice]);
+    const isHotPage = searchParams.get('hot') === '1';
 
     // Lấy danh mục 1 lần khi mount
     useEffect(() => {
@@ -151,20 +152,22 @@ const ProductSidebarFilter = () => {
 
     return (
         <Sider width={260} className="product-sidebar" theme="light">
-            <div className="filter-section">
-                {loading ? (
-                    <div style={{ textAlign: 'center', padding: '20px 0' }}><Spin /></div>
-                ) : (
-                    <Menu
-                        mode="inline"
-                        selectedKeys={[currentCategoryId]}
-                        defaultOpenKeys={openKeys}
-                        onClick={handleCategoryClick}
-                        items={formatMenu(displayCategories)}
-                        className="category-menu"
-                    />
-                )}
-            </div>
+            {!isHotPage && (
+                <div className="filter-section">
+                    {loading ? (
+                        <div style={{ textAlign: 'center', padding: '20px 0' }}><Spin /></div>
+                    ) : (
+                        <Menu
+                            mode="inline"
+                            selectedKeys={[currentCategoryId]}
+                            defaultOpenKeys={openKeys}
+                            onClick={handleCategoryClick}
+                            items={formatMenu(displayCategories)}
+                            className="category-menu"
+                        />
+                    )}
+                </div>
+            )}
 
             <div className="filter-section">
                 <Title level={5} className="filter-title">Thương hiệu</Title>

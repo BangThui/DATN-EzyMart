@@ -22,6 +22,7 @@ import {
   TreeSelect,
   Tabs,
   Avatar,
+  Switch,
 } from "antd";
 import {
   PlusOutlined,
@@ -336,6 +337,7 @@ const AdminProducts = () => {
       ...record,
       brand_id: record.brand_id ? Number(record.brand_id) : undefined,
       category_id: record.category_id ? Number(record.category_id) : undefined,
+      product_hot: record.product_hot === 1,
     };
     form.setFieldsValue(formattedRecord);
 
@@ -424,6 +426,8 @@ const AdminProducts = () => {
             );
             formData.append("variants", JSON.stringify(cleanVariants));
           }
+        } else if (k === "product_hot") {
+          formData.append(k, values[k] ? 1 : 0);
         } else if (values[k] !== undefined && k !== "images") {
           formData.append(k, values[k]);
         }
@@ -1241,6 +1245,22 @@ const AdminProducts = () => {
               showSearch
               treeNodeFilterProp="title"
             />
+          </Form.Item>
+
+          <Form.Item
+            label={
+              <span>
+                Sản phẩm nổi bật (Hot)
+                <br />
+                <span style={{ fontSize: "12px", color: "#888", fontWeight: "normal" }}>
+                  Bật để đưa sản phẩm này lên khối nổi bật tại trang chủ
+                </span>
+              </span>
+            }
+            name="product_hot"
+            valuePropName="checked"
+          >
+            <Switch checkedChildren="Bật" unCheckedChildren="Tắt" />
           </Form.Item>
 
           <Form.Item label="Mô tả" name="product_description">

@@ -22,16 +22,19 @@ exports.getProducts = async (req, res) => {
 // Lọc sản phẩm
 exports.filterProducts = async (req, res) => {
   try {
-    let { category_id, brand_id, minPrice, maxPrice } = req.query;
+    let { category_id, brand_id, minPrice, maxPrice, hot } = req.query;
 
-    if (category_id) {
+    if (category_id && category_id !== 'all') {
       const childIds = await CategoryModel.getChildIds(category_id);
       if (childIds.length > 0) {
         category_id = [Number(category_id), ...childIds];
       }
     }
 
-    const filters = { category_id, brand_id, minPrice, maxPrice };
+    const filters = { 
+      category_id: category_id === 'all' ? null : category_id, 
+      brand_id, minPrice, maxPrice, hot 
+    };
     const [rows] = await ProductModel.filterProducts(filters);
     res.json(rows);
   } catch (err) {
@@ -65,6 +68,17 @@ exports.getSimilarProducts = async (req, res) => {
   }
 };
 
+// Lấy sản phẩm nổi bật (hot = 1)
+exports.getHotProducts = async (req, res) => {
+  try {
+    const [rows] = await ProductModel.getAll({ hot: 1 });
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Lỗi lấy danh sách sản phẩm nổi bật" });
+  }
+};
+
 // [ADMIN] Tạo sản phẩm mới (hỗ trợ nhiều ảnh)
 exports.createProduct = async (req, res) => {
   try {
@@ -76,6 +90,7 @@ exports.createProduct = async (req, res) => {
       brand_id,
       variants,
       final_image_order,
+      product_hot,
     } = req.body;
 
     const files = req.files || [];
@@ -137,6 +152,7 @@ exports.createProduct = async (req, res) => {
         product_description,
         category_id,
         brand_id,
+        product_hot,
       },
       parsedVariants,
       galleryImages,
@@ -164,6 +180,7 @@ exports.updateProduct = async (req, res) => {
       brand_id,
       variants,
       final_image_order,
+      product_hot,
     } = req.body;
 
     let parsedVariants = [];
@@ -234,6 +251,7 @@ exports.updateProduct = async (req, res) => {
         product_description,
         category_id,
         brand_id,
+        product_hot,
       },
       parsedVariants,
       galleryImages,

@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { Card, Button, message, Typography, Tooltip } from "antd";
+import { Card, Button, message, Typography, Tooltip, Badge } from "antd";
 import { ShoppingCartOutlined, EyeOutlined } from "@ant-design/icons";
 import { cartService } from "../../services/cartService";
 import { useAuth } from "../../context/AuthContext";
@@ -57,8 +57,7 @@ const ProductCard = ({ product }) => {
 
   const imgSrc = getInitialImgSrc(targetImage);
 
-  return (
-    <div className="product-card-wrap">
+  const cardContent = (
       <Card
         className="product-card"
         hoverable
@@ -127,6 +126,17 @@ const ProductCard = ({ product }) => {
           </div>
         </div>
       </Card>
+  );
+
+  return (
+    <div className="product-card-wrap">
+      {product.product_hot === 1 ? (
+        <Badge.Ribbon text="HOT" color="red">
+          {cardContent}
+        </Badge.Ribbon>
+      ) : (
+        cardContent
+      )}
     </div>
   );
 };

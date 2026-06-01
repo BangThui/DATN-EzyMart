@@ -188,10 +188,9 @@ async function getRandomProduct(categoryIds, excludeIds = [], fallbackIds = []) 
 async function fetchComboContext(timeSlot) {
     try {
         const hour = new Date().getHours();
-        
+
         // --- ĐỌC TỪ CACHE TRƯỚC ---
         const cachedData = comboCache.getCache(hour);
-        console.log("=== COMBO CACHE DATA ===", JSON.stringify(cachedData, null, 2)); // Thêm dòng này để xem dữ liệu
         if (cachedData) {
             const comboProducts = cachedData.combos.map(combo => {
                 return {

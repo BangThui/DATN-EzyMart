@@ -8,6 +8,7 @@ const upload = require('../middleware/uploadMiddleware');
 router.get('/', productController.getProducts);
 router.get('/filter', productController.filterProducts);
 router.get('/similar', productController.getSimilarProducts);
+router.get('/hot', productController.getHotProducts);
 router.get('/:id', productController.getProductById);
 
 // Admin routes (require auth + admin role)

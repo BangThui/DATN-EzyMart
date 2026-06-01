@@ -18,6 +18,7 @@ const Category = () => {
     const brandId = searchParams.get('brand_id');
     const minPrice = searchParams.get('minPrice');
     const maxPrice = searchParams.get('maxPrice');
+    const hot = searchParams.get('hot');
 
     const [products, setProducts] = useState([]);
     const [categories, setCategories] = useState([]);
@@ -36,7 +37,8 @@ const Category = () => {
                         category_id: categoryId,
                         brand_id: brandId,
                         minPrice,
-                        maxPrice
+                        maxPrice,
+                        hot
                     }),
                     categoryService.getAll(),
                 ]);
@@ -47,17 +49,29 @@ const Category = () => {
         };
         fetchData();
         window.scrollTo(0, 0);
-    }, [categoryId, brandId, minPrice, maxPrice]);
+    }, [categoryId, brandId, minPrice, maxPrice, hot]);
 
     const currentCat = categories.find(c => c.category_id == categoryId);
     
+    // Helper to get display price
+    const getDisplayPrice = (product) => {
+        const v = product.variants?.[0] || {};
+        const p = Number(v.variant_price) || 0;
+        const d = Number(v.variant_discount) || 0;
+        return (d > 0 && d < p) ? d : p;
+    };
+
     // Sort logic (products are already filtered by backend)
     const sorted = [...products].sort((a, b) => {
-        if (sortBy === 'price_asc') return (a.product_discount || a.product_price) - (b.product_discount || b.product_price);
-        if (sortBy === 'price_desc') return (b.product_discount || b.product_price) - (a.product_discount || a.product_price);
+        if (sortBy === 'price_asc') return getDisplayPrice(a) - getDisplayPrice(b);
+        if (sortBy === 'price_desc') return getDisplayPrice(b) - getDisplayPrice(a);
         if (sortBy === 'name') return a.product_name.localeCompare(b.product_name);
         return 0;
     });
+
+    const isHotPage = hot === '1';
+    const pageTitle = isHotPage ? 'Sản Phẩm Bán Chạy' : (currentCat?.category_name || 'Tất cả sản phẩm');
+    const breadcrumbCurrent = isHotPage ? 'Sản Phẩm Bán Chạy' : (currentCat?.category_name || 'Cửa hàng');
 
     return (
         <div>
@@ -65,7 +79,7 @@ const Category = () => {
             <div className="page-breadcrumb">
                 <Breadcrumb items={[
                     { title: <Link to="/">Trang chủ</Link> },
-                    { title: currentCat?.category_name || 'Cửa hàng' },
+                    { title: breadcrumbCurrent },
                 ]} />
             </div>
 
@@ -77,7 +91,7 @@ const Category = () => {
                         {/* Header */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
                             <div>
-                                <h2 className="section-title">{currentCat?.category_name || 'Tất cả sản phẩm'}</h2>
+                                <h2 className="section-title">{pageTitle}</h2>
                                 <p style={{ color: '#94a3b8', fontSize: 14, margin: '8px 0 0' }}>
                                     {sorted.length} sản phẩm
                                 </p>
