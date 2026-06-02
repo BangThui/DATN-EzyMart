@@ -34,6 +34,26 @@ const Checkout = () => {
     const [tempOrderId, setTempOrderId] = useState(null);
     const localOrderIdRef = useRef(null);
 
+    const [settings, setSettings] = useState({
+        shipping_fee: 30000,
+        free_ship_threshold: 200000
+    });
+
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const timestamp = new Date().getTime();
+                const res = await axiosClient.get(`/settings?t=${timestamp}`);
+                if (res) {
+                    setSettings(prev => ({ ...prev, ...res }));
+                }
+            } catch (err) {
+                console.error("Lỗi lấy cấu hình:", err);
+            }
+        };
+        fetchSettings();
+    }, []);
+
     useEffect(() => {
         if (!user) { navigate('/'); return; }
         // Điền thông tin user vào form
@@ -57,6 +77,8 @@ const Checkout = () => {
     };
 
     const total = cartItems.reduce((sum, item) => sum + getItemPrice(item) * item.product_quantity, 0);
+    const shippingFee = shippingMethod === 'pickup' ? 0 : (total >= Number(settings.free_ship_threshold) ? 0 : Number(settings.shipping_fee));
+    const finalTotal = total + shippingFee;
 
     const handlePaypalCreateOrder = async () => {
         try {
@@ -399,11 +421,11 @@ const Checkout = () => {
                         </div>
                         <Divider />
                         <div className="checkout-shipping-row">
-                            <Text>Phí vận chuyển:</Text><Text>Miễn phí</Text>
+                            <Text>Phí vận chuyển:</Text><Text>{shippingFee === 0 ? 'Miễn phí' : formatCurrency(shippingFee)}</Text>
                         </div>
                         <div className="checkout-total-row--mt">
                             <Text strong className="checkout-total-label">Tổng thanh toán:</Text>
-                            <Text strong className="checkout-total-value">{formatCurrency(total)}</Text>
+                            <Text strong className="checkout-total-value">{formatCurrency(finalTotal)}</Text>
                         </div>
                     </Card>
                     <div className="checkout-back-btn-wrap">

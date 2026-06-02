@@ -10,6 +10,11 @@ export const getImageUrl = imagePath => {
     return imagePath;
   }
 
-  // Trường hợp 2: Nếu vẫn còn tên file cũ mà không tìm thấy trên Cloudinary
+  // Trường hợp 2: Nếu là đường dẫn tĩnh cục bộ (như /images/...)
+  if (imagePath.startsWith("/")) {
+    return imagePath;
+  }
+
+  // Trường hợp 3: Nếu vẫn còn tên file cũ mà không tìm thấy trên Cloudinary
   return "/placeholder.png";
 };

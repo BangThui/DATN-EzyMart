@@ -20,6 +20,8 @@ import { categoryService } from "../../services/categoryService";
 import { buildCategoryTree, buildMenuItems } from "../../utils";
 import "./Navbar.css";
 import NotificationBell from "./NotificationBell";
+import axiosClient from "../../services/axiosClient";
+import { getImageUrl } from "../../utils/imageHelper";
 
 const Navbar = () => {
   const { user, login, logout, isAdmin } = useAuth();
@@ -50,6 +52,29 @@ const Navbar = () => {
   const [productsOpen, setProductsOpen] = useState(false);
   const productsDropdownRef = useRef(null);
   const [categories, setCategories] = useState([]);
+
+  // Fetch settings from API
+  const [settings, setSettings] = useState({
+    store_name: "EzyMart",
+    hotline: "0123-456-789",
+    slogan: "THỰC PHẨM SẠCH",
+    logo: "/images/EzyMart_final.png"
+  });
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const timestamp = new Date().getTime();
+        const res = await axiosClient.get(`/settings?t=${timestamp}`);
+        if (res) {
+          setSettings(prev => ({ ...prev, ...res, logo: res.logo || prev.logo }));
+        }
+      } catch (error) {
+        console.error("Lỗi lấy cấu hình navbar:", error);
+      }
+    };
+    fetchSettings();
+  }, []);
 
   // Fetch categories from API
   useEffect(() => {
@@ -288,7 +313,7 @@ const Navbar = () => {
           <div className="topbar-left">
             <span>
               <PhoneOutlined className="navbar-top-icon" />
-              0123-456-789
+              {settings.hotline}
             </span>
             <span>|</span>
             <span>
@@ -329,14 +354,14 @@ const Navbar = () => {
           <Link to="/" className="navbar-logo">
             <div className="navbar-logo-icon">
               <img
-                src="/images/EzyMart_final.png"
-                alt="EzyMart Logo"
+                src={getImageUrl(settings.logo)}
+                alt={`${settings.store_name} Logo`}
                 className="navbar-logo-image"
               />
             </div>
             <div className="navbar-logo-text">
-              <span className="navbar-logo-name">EzyMart</span>
-              <span className="navbar-logo-tagline">THỰC PHẨM SẠCH</span>
+              <span className="navbar-logo-name">{settings.store_name}</span>
+              <span className="navbar-logo-tagline">{settings.slogan}</span>
             </div>
           </Link>
 

@@ -15,6 +15,7 @@ import {
   FileTextOutlined,
   TagOutlined,
   SafetyCertificateOutlined,
+  SettingOutlined,
 } from "@ant-design/icons";
 import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -84,6 +85,12 @@ const AdminLayout = () => {
       icon: <FileTextOutlined />,
       label: <Link to="/admin/news">Bài viết / Tin tức</Link>,
       roles: [0],
+    },
+    {
+      key: "/admin/settings",
+      icon: <SettingOutlined />,
+      label: <Link to="/admin/settings">Cài đặt</Link>,
+      roles: [0], // Chỉ Admin
     },
   ];
 

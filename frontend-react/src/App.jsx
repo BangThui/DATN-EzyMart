@@ -1,4 +1,6 @@
-import React from "react";
+import React, { useEffect } from "react";
+import axiosClient from "./services/axiosClient";
+import { getImageUrl } from "./utils/imageHelper";
 import {
   BrowserRouter as Router,
   Routes,
@@ -43,6 +45,7 @@ import AdminSuppliers from "./pages/admin/AdminSuppliers/AdminSuppliers";
 import AdminNews from "./pages/admin/AdminNews/AdminNews";
 import CreateStockReceipt from "./pages/admin/AdminStock/CreateStockReceipt";
 import AdminUsers from "./pages/admin/AdminUsers/AdminUsers";
+import SystemSettings from "./pages/admin/SystemSettings/SystemSettings";
 
 // Admin Route Guard
 const AdminRoute = ({ children }) => {
@@ -62,6 +65,34 @@ const MainLayout = ({ children }) => (
 );
 
 function AppRoutes() {
+  useEffect(() => {
+    const fetchGlobalSettings = async () => {
+      try {
+        const timestamp = new Date().getTime();
+        const res = await axiosClient.get(`/settings?t=${timestamp}`);
+        if (res) {
+          // Cập nhật title
+          if (res.store_name) {
+            document.title = res.store_name;
+          }
+          // Cập nhật favicon
+          if (res.favicon) {
+            let link = document.querySelector("link[rel~='icon']");
+            if (!link) {
+              link = document.createElement('link');
+              link.rel = 'icon';
+              document.getElementsByTagName('head')[0].appendChild(link);
+            }
+            link.href = getImageUrl(res.favicon);
+          }
+        }
+      } catch (err) {
+        console.error("Lỗi lấy cấu hình chung:", err);
+      }
+    };
+    fetchGlobalSettings();
+  }, []);
+
   return (
     <Router>
       <Routes>
@@ -201,6 +232,7 @@ function AppRoutes() {
           <Route path="stock/create" element={<CreateStockReceipt />} />
           <Route path="suppliers" element={<AdminSuppliers />} />
           <Route path="news" element={<AdminNews />} />
+          <Route path="settings" element={<SystemSettings />} />
         </Route>
       </Routes>
     </Router>

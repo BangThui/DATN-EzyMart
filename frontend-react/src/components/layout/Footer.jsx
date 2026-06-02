@@ -15,6 +15,8 @@ import {
   LikeOutlined,
 } from "@ant-design/icons";
 import { categoryService } from "../../services/categoryService";
+import axiosClient from "../../services/axiosClient";
+import { getImageUrl } from "../../utils/imageHelper";
 import "./Footer.css";
 
 const Footer = () => {
@@ -25,6 +27,21 @@ const Footer = () => {
     { category_id: 4, category_name: "Sữa các loại" },
     { category_id: 5, category_name: "Thực phẩm khô" },
   ]);
+
+  const [settings, setSettings] = useState({
+    store_name: "EzyMart",
+    hotline: "0349484515",
+    email: "support@ezymart.com",
+    address: "123 Phường Yên Nghĩa, TP.Hà Nội",
+    slogan: "Thực phẩm sạch",
+    footer_copyright: "© 2026 EzyMart. All rights reserved.",
+    facebook_link: "https://facebook.com",
+    zalo_link: "https://zalo.me",
+    logo: "/images/EzyMart_final.png",
+    open_time: "07:00",
+    close_time: "22:00",
+    free_ship_threshold: 200000
+  });
 
   useEffect(() => {
     categoryService
@@ -37,6 +54,23 @@ const Footer = () => {
       .catch(err => {
         console.error("Error fetching footer categories:", err);
       });
+  }, []);
+
+  // Gọi API lấy cấu hình hệ thống
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        // Thêm tham số ?t= timestamp để tránh trình duyệt cache lại kết quả cũ
+        const timestamp = new Date().getTime();
+        const res = await axiosClient.get(`/settings?t=${timestamp}`);
+        if (res) {
+          setSettings(prev => ({ ...prev, ...res, logo: res.logo || prev.logo }));
+        }
+      } catch (error) {
+        console.error("Lỗi lấy cấu hình footer:", error);
+      }
+    };
+    fetchSettings();
   }, []);
 
   const links = {
@@ -58,7 +92,9 @@ const Footer = () => {
             <ShoppingCartOutlined className="footer-trust-icon" />
             <div className="footer-trust-info">
               <span className="footer-trust-title">Miễn phí vận chuyển</span>
-              <span className="footer-trust-sub">Đơn hàng trên 1 triệu</span>
+              <span className="footer-trust-sub">
+                Đơn hàng trên {settings.free_ship_threshold >= 1000 ? (settings.free_ship_threshold / 1000) + 'k' : settings.free_ship_threshold}
+              </span>
             </div>
           </div>
           <div className="footer-trust-item">
@@ -83,16 +119,16 @@ const Footer = () => {
           {/* Brand col */}
           <div className="footer-brand-col">
             <div className="footer-brand-header">
-              {/* <div className="footer-brand-logo">
+              <div className="footer-brand-logo">
                 <img
-                  src="/images/EzyMart_final.png"
-                  alt="EzyMart Logo"
+                  src={getImageUrl(settings.logo)}
+                  alt={`${settings.store_name} Logo`}
                   className="footer-logo-image"
                 />
-              </div> */}
+              </div>
               <div className="footer-brand-text">
-                <span className="footer-brand-name">EzyMart</span>
-                <span className="footer-brand-tagline">THỰC PHẨM SẠCH</span>
+                <span className="footer-brand-name">{settings.store_name}</span>
+                <span className="footer-brand-tagline">{settings.slogan}</span>
               </div>
             </div>
             <p className="brand-desc">
@@ -100,16 +136,12 @@ const Footer = () => {
               Cam kết chất lượng — Tốt cho sức khỏe gia đình bạn.
             </p>
             <div className="footer-social">
-              {[
-                FacebookOutlined,
-                InstagramOutlined,
-                YoutubeOutlined,
-                TwitterOutlined,
-              ].map((Icon, i) => (
-                <button key={i} className="footer-social-btn">
-                  <Icon />
-                </button>
-              ))}
+              <a href={settings.facebook_link} className="footer-social-btn" target="_blank" rel="noreferrer">
+                <FacebookOutlined />
+              </a>
+              <button className="footer-social-btn"><InstagramOutlined /></button>
+              <button className="footer-social-btn"><YoutubeOutlined /></button>
+              <button className="footer-social-btn"><TwitterOutlined /></button>
             </div>
           </div>
 
@@ -142,19 +174,19 @@ const Footer = () => {
             <div className="footer-col-title">Liên hệ</div>
             <div className="footer-contact-item">
               <EnvironmentOutlined className="footer-contact-icon" />
-              <span>123 Phường Yên Nghĩa, TP.Hà Nội</span>
+              <span>{settings.address}</span>
             </div>
             <div className="footer-contact-item">
               <PhoneOutlined className="footer-contact-icon" />
-              <span>Hotline: 1800 6789 (Miễn phí)</span>
+              <span>Hotline: {settings.hotline}</span>
             </div>
             <div className="footer-contact-item">
               <MailOutlined className="footer-contact-icon" />
-              <span>info@ezymart.vn</span>
+              <span>{settings.email}</span>
             </div>
             <div className="footer-contact-item">
               <ClockCircleOutlined className="footer-contact-icon" />
-              <span>T2 – CN: 7:00 – 22:00</span>
+              <span>T2 – CN: {settings.open_time} – {settings.close_time}</span>
             </div>
 
             <div className="footer-newsletter-wrap">
@@ -172,7 +204,7 @@ const Footer = () => {
         {/* Bottom bar */}
         <div className="footer-bottom">
           <span className="footer-bottom-text">
-            © 2026 EzyMart. All rights reserved.
+            {settings.footer_copyright}
           </span>
           <div className="footer-bottom-links">
             <Link to="/privacy">Chính sách bảo mật</Link>

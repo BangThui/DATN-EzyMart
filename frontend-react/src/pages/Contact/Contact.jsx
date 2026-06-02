@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Row,
   Col,
@@ -21,6 +21,7 @@ import {
   MessageOutlined,
 } from "@ant-design/icons";
 import "./Contact.css";
+import axiosClient from "../../services/axiosClient";
 
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
@@ -28,6 +29,33 @@ const { Option } = Select;
 const Contact = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+
+  const [settings, setSettings] = useState({
+    store_name: "EzyMart",
+    hotline: "0349484515",
+    email: "support@ezymart.com",
+    address: "Tổ 123, Phường Yên Nghĩa, Hà Đông, Hà Nội",
+    facebook_link: "https://facebook.com",
+    zalo_link: "https://zalo.me",
+    google_maps: "",
+    open_time: "07:00",
+    close_time: "22:00"
+  });
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const timestamp = new Date().getTime();
+        const res = await axiosClient.get(`/settings?t=${timestamp}`);
+        if (res) {
+          setSettings(prev => ({ ...prev, ...res }));
+        }
+      } catch (error) {
+        console.error("Lỗi lấy cấu hình trang liên hệ:", error);
+      }
+    };
+    fetchSettings();
+  }, []);
 
   const onFinish = values => {
     setLoading(true);
@@ -50,7 +78,7 @@ const Contact = () => {
           <Col xs={24} lg={10} className="contact-info-col">
             <div className="contact-info-content">
               <Title level={2} className="contact-info-title">
-                Liên hệ với EzyMart
+                Liên hệ với {settings.store_name}
               </Title>
               <Paragraph className="contact-info-desc">
                 Chúng tôi luôn sẵn sàng lắng nghe ý kiến đóng góp, phản hồi cũng
@@ -70,7 +98,7 @@ const Contact = () => {
                   <div className="contact-info-text-wrapper">
                     <Text className="contact-info-label">Địa chỉ</Text>
                     <Text className="contact-info-val">
-                      Tổ 123, Phường Yên Nghĩa, Hà Đông, Hà Nội
+                      {settings.address}
                     </Text>
                   </div>
                 </div>
@@ -82,10 +110,10 @@ const Contact = () => {
                   <div className="contact-info-text-wrapper">
                     <Text className="contact-info-label">Hotline</Text>
                     <a
-                      href="tel:0349484515"
+                      href={`tel:${settings.hotline}`}
                       className="contact-info-val contact-link"
                     >
-                      0349484515
+                      {settings.hotline}
                     </a>
                   </div>
                 </div>
@@ -97,10 +125,10 @@ const Contact = () => {
                   <div className="contact-info-text-wrapper">
                     <Text className="contact-info-label">Email</Text>
                     <a
-                      href="mailto:support@ezymart.com"
+                      href={`mailto:${settings.email}`}
                       className="contact-info-val contact-link"
                     >
-                      support@ezymart.com
+                      {settings.email}
                     </a>
                   </div>
                 </div>
@@ -112,7 +140,7 @@ const Contact = () => {
                   <div className="contact-info-text-wrapper">
                     <Text className="contact-info-label">Giờ mở cửa</Text>
                     <Text className="contact-info-val">
-                      07:00 - 22:00 hằng ngày
+                      {settings.open_time} - {settings.close_time} hằng ngày
                     </Text>
                   </div>
                 </div>
@@ -123,7 +151,7 @@ const Contact = () => {
                 <Text className="contact-social-title">Theo dõi chúng tôi</Text>
                 <div className="contact-social-icons">
                   <a
-                    href="https://facebook.com"
+                    href={settings.facebook_link}
                     target="_blank"
                     rel="noreferrer"
                     className="contact-social-btn facebook"
@@ -131,7 +159,7 @@ const Contact = () => {
                     <FacebookOutlined />
                   </a>
                   <a
-                    href="https://zalo.me"
+                    href={settings.zalo_link}
                     target="_blank"
                     rel="noreferrer"
                     className="contact-social-btn zalo"
@@ -242,16 +270,20 @@ const Contact = () => {
 
       {/* Khối chân trang: Bản đồ nhúng Google Maps */}
       <div className="contact-map-wrap">
-        <iframe
-          title="Google Maps Đồng Mai"
-          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1083.2548618734693!2d105.73915548869296!3d20.93668875207881!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31345302312d9367%3A0xb3e1f04d06d97111!2zS2h1IMSQ4bqldCBE4buLY2ggVuG7pSDEkOG7k25nIE1haQ!5e0!3m2!1svi!2s!4v1779098610203!5m2!1svi!2s"
-          width="100%"
-          height="400"
-          style={{ border: 0 }}
-          allowFullScreen=""
-          loading="lazy"
-          referrerPolicy="no-referrer-when-downgrade"
-        ></iframe>
+        {settings.google_maps ? (
+          <div dangerouslySetInnerHTML={{ __html: settings.google_maps }} />
+        ) : (
+          <iframe
+            title="Google Maps"
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1083.2548618734693!2d105.73915548869296!3d20.93668875207881!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31345302312d9367%3A0xb3e1f04d06d97111!2zS2h1IMSQ4bqldCBE4buLY2ggVuG7pSDEkOG7k25nIE1haQ!5e0!3m2!1svi!2s!4v1779098610203!5m2!1svi!2s"
+            width="100%"
+            height="400"
+            style={{ border: 0 }}
+            allowFullScreen=""
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+          ></iframe>
+        )}
       </div>
     </div>
   );
