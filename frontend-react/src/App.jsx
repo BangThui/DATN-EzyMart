@@ -32,6 +32,8 @@ import NewsListPage from "./pages/News/NewsListPage";
 import NewsDetailPage from "./pages/News/NewsDetailPage";
 import AboutPage from "./pages/About/AboutPage";
 import Contact from "./pages/Contact/Contact";
+import ShippingPage from "./pages/Shipping/ShippingPage";
+import ReturnPage from "./pages/Return/ReturnPage";
 import ResetPassword from "./pages/ResetPassword/ResetPassword";
 
 // Admin Pages
@@ -174,6 +176,22 @@ function AppRoutes() {
           element={
             <MainLayout>
               <AboutPage />
+            </MainLayout>
+          }
+        />
+        <Route
+          path="/shipping"
+          element={
+            <MainLayout>
+              <ShippingPage />
+            </MainLayout>
+          }
+        />
+        <Route
+          path="/returns"
+          element={
+            <MainLayout>
+              <ReturnPage />
             </MainLayout>
           }
         />

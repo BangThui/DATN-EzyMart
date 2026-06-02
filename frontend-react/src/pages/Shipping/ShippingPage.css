@@ -1,0 +1,75 @@
+.shipping-page-wrap {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 20px;
+  background-color: #fff;
+  min-height: 80vh;
+}
+
+.shipping-main-title {
+  text-align: center;
+  margin-bottom: 40px !important;
+  font-size: 24px !important;
+  font-weight: bold;
+  color: #333;
+}
+
+.shipping-content {
+  color: #333;
+  line-height: 1.6;
+}
+
+.shipping-section-title {
+  font-size: 16px !important;
+  font-weight: bold;
+  margin-top: 30px !important;
+  margin-bottom: 15px !important;
+  color: #333;
+}
+
+.shipping-subsection {
+  margin-bottom: 20px;
+  padding-left: 20px;
+}
+
+.shipping-sub-title {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.shipping-list {
+  list-style-type: none;
+  padding-left: 20px;
+  margin: 0;
+}
+
+.shipping-list > li {
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.shipping-list-long {
+  line-height: 1.8;
+  text-align: justify;
+}
+
+.shipping-sublist {
+  list-style-type: none;
+  padding-left: 30px;
+  margin-top: 5px;
+  margin-bottom: 10px;
+}
+
+.shipping-sublist > li {
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.shipping-footer-title {
+  text-align: center;
+  margin-top: 50px !important;
+  font-size: 18px !important;
+  font-weight: bold;
+  color: #333;
+}
