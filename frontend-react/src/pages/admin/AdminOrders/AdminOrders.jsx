@@ -341,8 +341,13 @@ const AdminOrders = () => {
                                 </Option>
                             ))}
                         </Select>
-                        {isPaypal && currentStatus !== 'pending' && currentStatus !== 'cancelled' && <Tag color="purple" style={{ fontSize: '11px', margin: 0, textAlign: 'center', width: 140 }}>Đã thanh toán qua PayPal</Tag>}
-                        {isPaypal && (currentStatus === 'pending' || currentStatus === 'cancelled') && <Tag color="default" style={{ fontSize: '11px', margin: 0, textAlign: 'center', width: 140 }}>Chưa thanh toán PayPal</Tag>}
+                        {isPaypal && record.payment_status === 'paid' && <Tag color="purple" style={{ fontSize: '11px', margin: 0, textAlign: 'center', width: 140 }}>Đã thanh toán qua PayPal</Tag>}
+                        {isPaypal && record.payment_status !== 'paid' && <Tag color="default" style={{ fontSize: '11px', margin: 0, textAlign: 'center', width: 140 }}>Chưa thanh toán PayPal</Tag>}
+                        {currentStatus === 'cancelled' && record.shipping_method === 'pickup' && (
+                            <div style={{ color: '#cf1322', fontSize: '11px', textAlign: 'center', fontStyle: 'italic', marginTop: 4 }}>
+                                Khách không đến lấy
+                            </div>
+                        )}
                     </Space>
                 );
             }
@@ -496,6 +501,11 @@ const AdminOrders = () => {
                                 <Tag className="custom-status-tag" color={STATUS_MAP[selectedOrder.order_status || 'pending']?.color} style={{ margin: 0 }}>
                                     {STATUS_MAP[selectedOrder.order_status || 'pending']?.label}
                                 </Tag>
+                                {selectedOrder.order_status === 'cancelled' && selectedOrder.shipping_method === 'pickup' && (
+                                    <div style={{ color: '#cf1322', fontSize: '12px', fontStyle: 'italic', marginTop: 4 }}>
+                                        (Khách không đến lấy)
+                                    </div>
+                                )}
                             </Descriptions.Item>
                             <Descriptions.Item label="Địa chỉ chi tiết" span={2}>
                                 {selectedOrder.shipping_method === 'pickup'

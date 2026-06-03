@@ -12,6 +12,11 @@ const socketModule = require('./src/socket');
 socketModule.init(httpServer);
 // ────────────────────────────────────────────────────────────────────────────
 
+// ─── Khởi tạo Cron Jobs ──────────────────────────────────────────────────────
+const cronService = require('./src/services/cronService');
+cronService.initCronJobs();
+// ────────────────────────────────────────────────────────────────────────────
+
 // Middleware
 app.use(cors({
     origin: ['http://localhost:5173', 'http://localhost:3000'],

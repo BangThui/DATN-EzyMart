@@ -26,10 +26,18 @@ const STATUS_MAP = {
  * - Với đơn giao thường, dùng STATUS_MAP bình thường
  */
 const getOrderStatusDisplay = (order) => {
-  const { order_status, pickup_status, shipping_method } = order;
+  const { order_status, pickup_status, shipping_method, note } = order;
 
   // ── Đơn Click & Collect ──
   if (shipping_method === 'pickup') {
+    // Ưu tiên trạng thái hủy
+    if (order_status === 'cancelled') {
+      if (note && note.includes('Khách không đến lấy')) {
+        return { label: 'Quá hạn lấy hàng', color: 'error' };
+      }
+      return STATUS_MAP['cancelled'];
+    }
+
     // Đã soạn xong: nhân viên đã chuẩn bị, khách cần đến lấy
     if (pickup_status === 'prepared') {
       return { label: '🏪 Sẵn sàng nhận hàng', color: 'blue' };
@@ -444,7 +452,7 @@ const Orders = () => {
               <p>
                 <Text type="secondary">Phương thức thanh toán:</Text>{" "}
                 {selectedOrder.payment_method === "PAYPAL" || selectedOrder.payment_method === "paypal"
-                  ? (selectedOrder.order_status === "pending" || selectedOrder.order_status === "cancelled" ? "Thanh toán qua PayPal (Chưa thanh toán)" : "Thanh toán qua PayPal (Đã thanh toán)")
+                  ? (selectedOrder.payment_status === "paid" ? "Thanh toán qua PayPal (Đã thanh toán)" : "Thanh toán qua PayPal (Chưa thanh toán)")
                   : selectedOrder.payment_method === "BANK"
                   ? "Chuyển khoản (ATM)"
                   : selectedOrder.payment_method === "MOMO"

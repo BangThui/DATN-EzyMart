@@ -149,7 +149,7 @@ const AdminLayout = () => {
               onClick={() => window.open("/", "_blank")}
               className="admin-mr-sm"
             >
-              Xem cửa hàng
+              Về trang chủ
             </Button>
             <Button
               icon={<LogoutOutlined />}
