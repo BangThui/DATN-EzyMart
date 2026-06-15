@@ -306,6 +306,76 @@ async function fetchComboContext(timeSlot) {
     }
 }
 
+// ─── Lấy sản phẩm để tự động lên thực đơn theo ngân sách/bữa ──────────
+// budget: số nguyên (VD: 50000) hoặc null
+// meals: mảng ['morning','noon','night'] hoặc []
+async function fetchCustomMenuContext(budget, meals = []) {
+    try {
+        // Tập hợp danh mục đồ ăn (sáng, trưa, tối, ăn vặt, nước)
+        const foodCats = [125,126,130,107,109,98,101,104,83,90,93,94,95,69,112,113,115,117,91,92,88,89,100,108,118,96];
+
+        const budgetHaving = budget ? `AND min_price <= ${Number(budget)}` : '';
+
+        const baseQuery = `
+            SELECT
+                p.product_id,
+                p.product_name,
+                p.product_image,
+                MIN(IF(v.variant_discount > 0 AND v.variant_discount < v.variant_price, v.variant_discount, v.variant_price)) AS min_price,
+                MIN(v.variant_price) AS original_price,
+                (SELECT pv2.variant_id FROM product_variants pv2 WHERE pv2.product_id = p.product_id ORDER BY pv2.variant_id ASC LIMIT 1) AS default_variant_id
+             FROM products p
+             LEFT JOIN product_variants v ON p.product_id = v.product_id
+             WHERE p.is_deleted = 0 AND p.product_active = 1
+               {CAT_FILTER}
+             GROUP BY p.product_id
+             HAVING min_price > 0 ${budgetHaving}
+             ORDER BY RAND()
+             LIMIT 30
+        `;
+
+        let [rows] = await db.query(baseQuery.replace('{CAT_FILTER}', `AND p.category_id IN (${foodCats.join(',')})`));
+
+        // Fallback: nếu danh mục đồ ăn không ra kết quả, lấy bất kỳ sản phẩm nào
+        if (rows.length === 0) {
+            [rows] = await db.query(baseQuery.replace('{CAT_FILTER}', ''));
+        }
+
+        if (rows.length === 0) return null;
+
+        const lines = rows.map(r => `• ${r.product_name}: ${Number(r.min_price).toLocaleString('vi-VN')}đ`);
+        
+        // Map meal codes sang tên tiếng Việt để đưa vào prompt
+        const mealLabelMap = { morning: 'bữa sáng', noon: 'bữa trưa', afternoon: 'bữa chiều', night: 'bữa tối' };
+        const mealLabels = meals.length > 0
+            ? meals.map(m => mealLabelMap[m] || m).join(', ')
+            : 'các bữa trong ngày';
+
+        let context = `🛒 YÊU CẦU ĐẶC BIỆT: Khách hàng muốn LÊN THỰC ĐƠN cho ${mealLabels}.`;
+        if (budget) context += ` Ngân sách tối đa: ${Number(budget).toLocaleString('vi-VN')}đ.`;
+        context += `\nNhiệm vụ: Hãy CHỌN các món từ danh sách dưới đây để tạo thực đơn hợp lý.`;
+        context += `\nYêu cầu trình bày: Phân chia rõ từng bữa ăn, TÊN MÓN (ghi chính xác nguyên văn tên món từ danh sách), giá tiền, và tính TỔNG TIỀN cuối cùng.`;
+        if (budget) context += ` TỔNG TIỀN phải <= ${Number(budget).toLocaleString('vi-VN')}đ.`;
+        context += `\nTUYỆT ĐỐI KHÔNG bịa thêm món ngoài danh sách.`;
+        context += `\n\nDanh sách món ăn có thể chọn (CHỈ ĐƯỢC CHỌN TỪ ĐÂY):\n${lines.join('\n')}`;
+
+        const products = rows.map(r => ({
+            product_id:         r.product_id,
+            product_name:       r.product_name,
+            product_image:      r.product_image,
+            display_price:      Number(r.min_price),
+            original_price:     Number(r.original_price),
+            has_discount:       Number(r.min_price) < Number(r.original_price),
+            default_variant_id: r.default_variant_id,
+        }));
+
+        return { context, products };
+    } catch (e) {
+        console.error('[RAG] Lỗi fetchCustomMenuContext:', e);
+        return null;
+    }
+}
+
 // ─── Xử lý context đặc biệt theo từ khoá ────────────────────────────────────
 function buildShippingContext() {
     return (
@@ -332,42 +402,169 @@ function buildReturnPolicyContext() {
     return `Chính sách đổi trả EzyMart: Đổi trả miễn phí trong 24h cho hàng tươi sống.`;
 }
 
-// ─── NLU: Phân loại intent bằng Groq/Llama ───────────────────────────────────
-const VALID_INTENTS = ['chat', 'get_price', 'get_combo', 'policy', 'support_issue', 'small_talk'];
+// ─── NLU: Phân loại intent + trích xuất entities bằng Groq (JSON mode) ────────
+const VALID_INTENTS = ['chat', 'get_price', 'get_combo', 'custom_menu_budget', 'policy', 'support_issue', 'small_talk'];
 
-const NLU_SYSTEM_PROMPT = `Bạn là bộ phân loại intent cho chatbot siêu thị EzyMart.
-Chỉ trả về đúng một nhãn, không thêm bất kỳ text nào khác.
+const NLU_SYSTEM_PROMPT = `Bạn là một bộ phân loại Hiểu Ngôn Ngữ Tự Nhiên (NLU) nghiêm ngặt dành cho trợ lý ảo siêu thị EzyMart.
+Nhiệm vụ duy nhất của bạn là phân tích tin nhắn đầu vào và trả về đúng một đối tượng JSON thô.
+Tuyệt đối KHÔNG bao gồm văn bản giải thích, lời chào, hay ký tự markdown (\`\`\`json) nào ngoài JSON.
 
-INTENT:
-- chat: Chào hỏi, cảm ơn, tạm biệt. KHÔNG bao gồm câu hỏi có nội dung.
-- get_price: Hỏi giá, tồn kho, còn hàng không. Phải liên quan sản phẩm cụ thể.
-- get_combo: Hỏi gợi ý món ăn, ăn gì, nên mua gì, combo theo buổi.
-- policy: Hỏi ship, giao hàng, freeship, đổi trả, bảo hành, thanh toán.
-- support_issue: Khiếu nại, phản ánh hàng hóa CÓ VẤN ĐỀ (hỏng, mốc, có mùi, rò rỉ, nhầm lẫn), yêu cầu xử lý sự cố cụ thể.
-- small_talk: Mọi câu hỏi ngoài lề không liên quan siêu thị.
+## INTENT DEFINITIONS
+- "chat": Chào hỏi, cảm ơn, xã giao đơn thuần. Không có yêu cầu về thực phẩm hay mua sắm.
+- "get_price": Hỏi giá, tồn kho của một sản phẩm đơn lẻ cụ thể (có tên sản phẩm rõ ràng).
+- "get_combo": Hỏi gợi ý ăn gì / combo theo buổi. KHÔNG có đề cập số tiền, ngân sách.
+- "custom_menu_budget": Lên thực đơn / gợi ý món ăn KÈM THEO số tiền ngân sách cụ thể (dù nhỏ hay lớn). CÒN BAO GỒM: hỏi "X tiền ăn được gì", "tầm Xk ăn gì", "dưới Xk có gì ăn".
+- "policy": Hỏi về phí ship, giao hàng, freeship, đổi trả, bảo hành.
+- "support_issue": Khiếu nại hàng hỏng, mốc, rò rỉ, giao nhầm, yêu cầu đổi/hoàn.
+- "small_talk": Câu hỏi ngoài lề không liên quan siêu thị.
 
-COUNTER-EXAMPLES (tránh nhầm):
-- "ship bao nhiêu tiền?" → policy (không phải get_price)
-- "tỷ giá đô la hôm nay?" → small_talk (không liên quan shop)
-- "bạn là AI không?" → small_talk (không phải chat)
-- "nhận bánh bao bị mốc, làm sao?" → support_issue (không phải policy)
-- "còn hàng không?" → get_price
+## QUY TẮC ƯU TIÊN (PHẢI TUÂN THỦ TUYỆT ĐỐI)
+⚠️  QUY TẮC #1 — TÍN HIỆU NGÂN SÁCH: Nếu tin nhắn có chứa BẤT KỲ đơn vị tiền tệ hoặc số tiền nào (k, nghìn, ngàn, cành, đồng, đ, lít, trăm, triệu, số + tiền) KÈM với ngữ cảnh thực phẩm / bữa ăn → BẮT BUỘC phân loại là "custom_menu_budget". KHÔNG được phân loại là "get_combo".
+⚠️  QUY TẮC #2 — get_combo CHỈ dùng khi câu hỏi GỢI Ý ĂN GÌ mà HOÀN TOÀN không có đề cập số tiền.
 
-Phân loại câu sau:`;
+## BUDGET EXTRACTION
+- max_budget: số nguyên (Integer). Quy đổi: "50k"→50000, "100 cành"→100000, "1 lít"→100000, "trăm rưỡi"→150000, "hai trăm nghìn"→200000, "30k"→30000, "150.000đ"→150000.
+- currency: "VND" nếu có ngân sách, null nếu không.
 
-async function classifyIntent(message) {
+## OUTPUT SCHEMA (JSON thô, không markdown)
+{"intent":"...","budget":{"max_budget":integer_or_null,"currency":"VND"_or_null},"extracted_entities":{"meals":["morning"|"noon"|"afternoon"|"night"],"product_keywords":"string"_or_null}}
+
+## FEW-SHOT EXAMPLES
+Khách: "lên cho tôi thực đơn bữa sáng 50k" → {"intent":"custom_menu_budget","budget":{"max_budget":50000,"currency":"VND"},"extracted_entities":{"meals":["morning"],"product_keywords":null}}
+Khách: "Gợi ý thực đơn sáng và trưa khoảng 100 cành" → {"intent":"custom_menu_budget","budget":{"max_budget":100000,"currency":"VND"},"extracted_entities":{"meals":["morning","noon"],"product_keywords":null}}
+Khách: "thiết lập menu trọn gói cả ngày dưới 150.000đ" → {"intent":"custom_menu_budget","budget":{"max_budget":150000,"currency":"VND"},"extracted_entities":{"meals":["morning","noon","afternoon","night"],"product_keywords":null}}
+Khách: "tầm 30k thì ăn được gì buổi sáng shop ơi" → {"intent":"custom_menu_budget","budget":{"max_budget":30000,"currency":"VND"},"extracted_entities":{"meals":["morning"],"product_keywords":null}}
+Khách: "lên thực đơn ăn tối khoảng hai trăm nghìn" → {"intent":"custom_menu_budget","budget":{"max_budget":200000,"currency":"VND"},"extracted_entities":{"meals":["night"],"product_keywords":null}}
+Khách: "Trưa nay ăn gì ngon không shop" → {"intent":"get_combo","budget":{"max_budget":null,"currency":null},"extracted_entities":{"meals":["noon"],"product_keywords":null}}
+Khách: "Sáng không biết ăn gì, gợi ý combo đi" → {"intent":"get_combo","budget":{"max_budget":null,"currency":null},"extracted_entities":{"meals":["morning"],"product_keywords":null}}
+Khách: "Sữa tươi Ba Vì giá bao nhiêu" → {"intent":"get_price","budget":{"max_budget":null,"currency":null},"extracted_entities":{"meals":[],"product_keywords":"Sữa tươi Ba Vì"}}
+
+Phân tích câu sau:`;
+
+// Fallback NLU thuần regex khi Groq gặp sự cố
+function fallbackNLU(message) {
+    const lower = message.toLowerCase();
+    const cleanMsg = lower.replace(/[.,đ]/g, '');
+
+    // ── Detect budget (mở rộng: tầm, dưới, khoảng, số chữ) ──
+    let max_budget = null;
+    const writtenNumbers = {
+        'một trăm': 100000, 'hai trăm': 200000, 'ba trăm': 300000,
+        'trăm rưỡi': 150000, 'một lít': 100000, 'hai lít': 200000,
+        'một triệu': 1000000,
+    };
+    for (const [text, val] of Object.entries(writtenNumbers)) {
+        if (lower.includes(text)) { max_budget = val; break; }
+    }
+    if (!max_budget) {
+        // tầm 30k / dưới 50k / khoảng 100 cành / 150.000đ
+        const kMatch = cleanMsg.match(/(?:tầm|dưới|khoảng|trong|từ)?\s*(\d+)\s*(k|nghìn|ngàn|cành)/);
+        const litMatch = cleanMsg.match(/(\d+)\s*lít/);
+        const rawMatch = cleanMsg.match(/(\d{4,})/);
+        if (kMatch) max_budget = parseInt(kMatch[1]) * 1000;
+        else if (litMatch) max_budget = parseInt(litMatch[1]) * 100000;
+        else if (rawMatch) max_budget = parseInt(rawMatch[1]);
+    }
+
+    // ── Detect meals ──
+    const meals = [];
+    if (lower.includes('sáng')) meals.push('morning');
+    if (lower.includes('trưa')) meals.push('noon');
+    if (lower.includes('chiều')) meals.push('afternoon');
+    if (lower.includes('tối') || lower.includes('đêm') || lower.includes('khuya')) meals.push('night');
+    if (lower.includes('cả ngày') || lower.includes('mỗi ngày')) {
+        if (!meals.includes('morning'))   meals.push('morning');
+        if (!meals.includes('noon'))      meals.push('noon');
+        if (!meals.includes('night'))     meals.push('night');
+    }
+
+    // ── Detect intent (ưu tiên budget signal) ──
+    const hasFoodContext = meals.length > 0 ||
+        lower.includes('ăn') || lower.includes('thực đơn') ||
+        lower.includes('menu') || lower.includes('món') || lower.includes('bữa');
+    const hasPolicy = lower.includes('ship') || lower.includes('giao hàng') || lower.includes('đổi trả') || lower.includes('freeship');
+    const hasIssue  = lower.includes('hỏng') || lower.includes('mốc') || lower.includes('sai hàng') || lower.includes('lỗi');
+    const hasCombo  = lower.includes('ăn gì') || lower.includes('combo') || lower.includes('gợi ý');
+
+    let intent = 'get_price';
+    // QUY TẮC ƯU TIÊN: có budget + ngữ cảnh thức ăn → custom_menu_budget
+    if (max_budget && hasFoodContext) intent = 'custom_menu_budget';
+    else if (lower.includes('thực đơn') || lower.includes('menu') || lower.includes('lên món')) intent = 'custom_menu_budget';
+    else if (hasCombo && !max_budget) intent = 'get_combo';
+    else if (hasPolicy) intent = 'policy';
+    else if (hasIssue)  intent = 'support_issue';
+
+    return {
+        intent,
+        budget: { max_budget, currency: max_budget ? 'VND' : null },
+        extracted_entities: { meals, product_keywords: null },
+    };
+}
+
+// ─── Helpers deterministic cho budget override ───────────────────────────────
+function detectBudgetFromMessage(message) {
+    const lower = message.toLowerCase();
+    const clean = lower.replace(/[.,đ]/g, ' ');
+    const written = {
+        'một trăm': 100000, 'hai trăm': 200000, 'ba trăm': 300000,
+        'bốn trăm': 400000, 'năm trăm': 500000,
+        'trăm rưỡi': 150000, 'một lít': 100000, 'hai lít': 200000,
+        'mươi lăm': 15000, 'hai mươi': 20000, 'ba mươi': 30000,
+    };
+    for (const [text, val] of Object.entries(written)) {
+        if (lower.includes(text)) return val;
+    }
+    const kMatch = clean.match(/(?:tầm|dưới|khoảng|từ)?\s*(\d+)\s*(k|nghìn|ngàn|cành)(?!\s*km)/);
+    if (kMatch) return parseInt(kMatch[1]) * 1000;
+    const rawNum = message.replace(/\./g, '').match(/(\d{4,})/);
+    if (rawNum) return parseInt(rawNum[1]);
+    return null;
+}
+
+function hasFoodContextInMessage(message) {
+    const lower = message.toLowerCase();
+    return ['ăn', 'bữa', 'sáng', 'trưa', 'chiều', 'tối', 'khuya',
+            'thực đơn', 'menu', 'món', 'combo', 'lên món', 'gợi ý',
+    ].some(kw => lower.includes(kw));
+}
+
+async function parseNLU(message) {
     try {
         const raw = await groqService.getChatCompletion(
             NLU_SYSTEM_PROMPT,
             message,
-            0,   // temperature: 0 — ổn định tối đa
-            20   // max_tokens: 20 — chỉ cần 1 từ
+            0,    // temperature 0 — ổn định tối đa
+            200   // đủ cho JSON ~1 dòng (tăng đề phòng truncation)
         );
-        const intent = raw?.trim().toLowerCase().replace(/[^a-z_]/g, '');
-        return VALID_INTENTS.includes(intent) ? intent : 'get_price';
+        // Lấy khối JSON đầu tiên trong response
+        const jsonMatch = raw?.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error('Không tìm thấy JSON trong response NLU');
+        const parsed = JSON.parse(jsonMatch[0]);
+        // Validate intent
+        if (!VALID_INTENTS.includes(parsed.intent)) parsed.intent = 'get_price';
+        // Đảm bảo meals là mảng
+        if (!Array.isArray(parsed.extracted_entities?.meals)) {
+            parsed.extracted_entities = parsed.extracted_entities || {};
+            parsed.extracted_entities.meals = [];
+        }
+
+        // ── POST-PROCESS: Budget override deterministic ──────────────────
+        // Groq có thể vẫn trả về get_combo dù có ngân sách → override cứng bằng regex
+        if (['get_combo', 'get_price', 'get_price'].includes(parsed.intent) ||
+            !parsed.budget?.max_budget) {
+            const detectedBudget = detectBudgetFromMessage(message);
+            if (detectedBudget && hasFoodContextInMessage(message)) {
+                parsed.intent = 'custom_menu_budget';
+                if (!parsed.budget) parsed.budget = {};
+                parsed.budget.max_budget = parsed.budget.max_budget || detectedBudget;
+                parsed.budget.currency   = 'VND';
+            }
+        }
+
+        return parsed;
     } catch (err) {
-        console.error('[NLU] classifyIntent lỗi:', err.message);
-        return 'get_price'; // fallback an toàn
+        console.error('[NLU] parseNLU lỗi, dùng fallback:', err.message);
+        return fallbackNLU(message);
     }
 }
 
@@ -386,9 +583,13 @@ exports.chat = async (req, res) => {
         const validSlots = ['Sáng', 'Trưa', 'Chiều', 'Tối', 'Khuya'];
         const safeTimeSlot = validSlots.includes(timeSlot) ? timeSlot : null;
 
-        // ── NLU: Phân loại intent trước, chỉ fetch data phù hợp ─────────────
-        const intent = await classifyIntent(trimmedMessage);
-        console.log(`[NLU] intent: ${intent} | message: "${trimmedMessage.substring(0, 50)}"`);
+        // ── NLU: Phân loại intent + trích xuất entities (JSON mode) ──────────
+        const nlu = await parseNLU(trimmedMessage);
+        const intent      = nlu.intent;
+        const maxBudget   = nlu.budget?.max_budget   ?? null;
+        const meals       = nlu.extracted_entities?.meals ?? [];
+        const productKw   = nlu.extracted_entities?.product_keywords ?? null;
+        console.log(`[NLU] intent=${intent} budget=${maxBudget} meals=[${meals}] kw=${productKw}`);
 
         let productResult = { context: null, products: [] };
         let comboResult   = null;
@@ -396,7 +597,17 @@ exports.chat = async (req, res) => {
         let returnPolicyContext = null;
 
         if (intent === 'get_price') {
-            productResult = await fetchProductContext(trimmedMessage);
+            // Dùng product_keywords nếu NLU trích xuất được, fallback về raw message
+            productResult = await fetchProductContext(productKw || trimmedMessage);
+        }
+        if (intent === 'custom_menu_budget') {
+            const customMenuResult = await fetchCustomMenuContext(maxBudget, meals);
+            if (customMenuResult) {
+                productResult = customMenuResult;
+            } else {
+                // Fallback: hiển thị combo theo giờ nếu không tìm được sản phẩm
+                comboResult = await fetchComboContext(safeTimeSlot);
+            }
         }
         if (intent === 'get_combo') {
             comboResult = await fetchComboContext(safeTimeSlot);
@@ -424,18 +635,23 @@ exports.chat = async (req, res) => {
 
         // ── System Prompt với quy tắc nghiêm ngặt ───────────────
         const systemPrompt = [
-            `Bạn là nhân viên tư vấn khách hàng thân thiện của siêu thị tiện lợi EzyMart.`,
-            `Câu trả lời phải ngắn gọn, súc tích (tối đa 3–4 câu), tự nhiên như con người, tuyệt đối KHÔNG được dùng các từ máy móc như 'KnowledgeContext', 'hệ thống', 'dữ liệu', 'AI'.`,
+            `Bạn là nhân viên tư vấn khách hàng thân thiện, chuyên nghiệp của siêu thị tiện lợi EzyMart.`,
+            `Nhiệm vụ của bạn là giao tiếp với khách hàng và trả lời các thắc mắc dựa trên Danh sách thông tin cung cấp.`,
             `Hiện tại đang là buổi ${safeTimeSlot || 'trong ngày'}.`,
             '',
-            `📌 QUY TẮC BẮT BUỘC:`,
-            `1. LUÔN ưu tiên Thông tin cung cấp để trả lời. Không được tự suy diễn hay bịa thêm thông tin.`,
-            `2. Giá sản phẩm: TUYỆT ĐỐI không tự bịa giá. Chỉ báo đúng giá từ Thông tin cung cấp.`,
-            `3. Combo: CHỈ ĐƯỢC PHÉP đề cập các Combo có tên trong Thông tin cung cấp. Tuyệt đối không tự bịa tên Combo hay món ăn không có trong danh sách. Khi khách hỏi về combo, hãy liệt kê tên combo và giá trọn bộ sau khi đã cộng tổng, không được đưa ra dải giá gây hiểu lầm.`,
-            `4. Nếu khách hỏi thông tin không có trong danh sách cung cấp: hãy trả lời khéo léo đúng nguyên văn: "Dạ, về vấn đề này bạn vui lòng liên hệ hotline 0349484515 để nhân viên EzyMart hỗ trợ kiểm tra trực tiếp cho mình ngay ạ!".`,
+            `📌 QUY TẮC PHẢN HỒI BẮT BUỘC:`,
+            `1. Độ dài và văn phong: Câu trả lời phải ngắn gọn, súc tích (tối đa 3–4 câu), tự nhiên như con người. Tuyệt đối KHÔNG được dùng các từ ngữ máy móc kỹ thuật như 'KnowledgeContext', 'hệ thống', 'dữ liệu', 'AI', 'văn bản cung cấp'.`,
+            `2. Tính chính xác: LUÔN ưu tiên Thông tin cung cấp để trả lời. Không được tự suy diễn hay bịa thêm thông tin. Chỉ báo đúng giá sản phẩm thực tế từ Danh sách được cấp, tuyệt đối không tự bịa giá.`,
+            `3. ⚠️ QUY TẮC LÊN THỰC ĐƠN THEO NGÂN SÁCH (QUAN TRỌNG):`,
+            `   - Nếu khách hàng yêu cầu TỰ LÊN THỰC ĐƠN kèm theo một mức ngân sách cụ thể (Ví dụ: 50k, 100k, 150k...), bạn hãy đóng vai trò là một toán tử logic tối ưu hóa.`,
+            `   - Bạn hãy chọn và phối hợp các món ăn/đồ uống từ Danh sách gợi ý được cấp sao cho: TỔNG TIỀN CỦA TOÀN BỘ THỰC ĐƠN PHẢI TIỆM CẬN SÁT NÚT VỚI NGÂN SÁCH CỦA KHÁCH (Đạt tỷ lệ từ 80% đến 100% số tiền khách đưa ra).`,
+            `   - Tuyệt đối KHÔNG được chọn quá ít món hoặc chọn các món quá rẻ khiến tổng tiền thấp hơn một cách vô lý (Ví dụ: Ngân sách 100.000đ thì tổng tiền thực đơn phải đạt từ 80.000đ đến 100.000đ, không được phép dừng lại ở mức 50.000đ - 60.000đ).`,
+            `   - Hãy tính toán cẩn thận: Liệt kê rõ ràng tên từng món, ghi kèm giá tiền bên cạnh, tính tổng tiền toàn bộ và số tiền còn dư (nếu có). Phân chia bố cục gãy gọn theo đúng các bữa ăn khách yêu cầu (Sáng, Trưa hoặc Tối).`,
+            `   - TUYỆT ĐỐI KHÔNG tự bịa tên món ăn nằm ngoài danh sách được cung cấp dưới đây.`,
+            `4. Nếu khách hỏi thông tin không có trong danh sách cung cấp hoặc vượt quá khả năng xử lý: hãy trả lời khéo léo đúng nguyên văn: "Dạ, về vấn đề này bạn vui lòng liên hệ hotline 0349484515 để nhân viên EzyMart hỗ trợ kiểm tra trực tiếp cho mình ngay ạ!".`,
             knowledgeContext
-                ? `\n📚 Danh sách thông tin cung cấp (chỉ dùng thông tin này):\n${knowledgeContext}`
-                : `\n📚 Danh sách thông tin cung cấp: Trống. (Hãy áp dụng quy tắc 4).`
+                ? `\n📚 DANH SÁCH THÔNG TIN CUNG CẤP (chỉ dùng thông tin này):\n${knowledgeContext}`
+                : `\n📚 DANH SÁCH THÔNG TIN CUNG CẤP: Trống. (Hãy áp dụng quy tắc 4).`
         ].join('\n');
 
         // ── Gọi Groq / Llama qua Service ──────────────────────────────────────────────
@@ -443,9 +659,18 @@ exports.chat = async (req, res) => {
 
         const reply = replyContent || 'Xin lỗi, mình không thể trả lời lúc này. Bạn vui lòng thử lại nhé!';
 
-        // products: sản phẩm tìm theo từ khoá
+        // Nếu là yêu cầu lên thực đơn tự động, chỉ hiển thị những card sản phẩm được AI chọn và nhắc tên trong reply
+        let finalProducts = products || [];
+        if (intent === 'custom_menu_budget' && finalProducts.length > 0) {
+            const lowerReply = reply.toLowerCase();
+            finalProducts = finalProducts.filter(p => 
+                lowerReply.includes(p.product_name.toLowerCase())
+            );
+        }
+
+        // products: sản phẩm tìm theo từ khoá hoặc kết quả lọc menu
         // comboProducts: mảng combo [{comboName, items[]}] để render combo card
-        res.json({ reply, products: products || [], comboProducts });
+        res.json({ reply, products: finalProducts, comboProducts });
     } catch (error) {
         console.error('[Chatbot] Lỗi khi gọi API Groq:', error);
         res.status(500).json({

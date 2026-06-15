@@ -1,9 +1,9 @@
 {
-  "total": 60,
-  "passed": 55,
+  "total": 65,
+  "passed": 60,
   "failed": 5,
-  "accuracy": "91.67%",
-  "run_at": "2026-05-31T15:25:45.476Z",
+  "accuracy": "92.31%",
+  "run_at": "2026-06-06T01:11:02.417Z",
   "report": [
     {
       "input": "Xin chào shop!",
@@ -423,6 +423,41 @@
       "expected_intent": "small_talk",
       "actual_intent": "small_talk",
       "actual_response": "small_talk",
+      "result": "PASS"
+    },
+    {
+      "input": "lên cho tôi thực đơn bữa sáng 50k",
+      "expected_intent": "custom_menu_budget",
+      "actual_intent": "custom_menu_budget",
+      "actual_response": "get_combo",
+      "result": "PASS"
+    },
+    {
+      "input": "Gợi ý thực đơn sáng và trưa khoảng 100 cành",
+      "expected_intent": "custom_menu_budget",
+      "actual_intent": "custom_menu_budget",
+      "actual_response": "get_combo",
+      "result": "PASS"
+    },
+    {
+      "input": "thiết lập menu trọn gói cả ngày dưới 150.000đ",
+      "expected_intent": "custom_menu_budget",
+      "actual_intent": "custom_menu_budget",
+      "actual_response": "get_combo",
+      "result": "PASS"
+    },
+    {
+      "input": "tầm 30k thì ăn được gì buổi sáng shop ơi",
+      "expected_intent": "custom_menu_budget",
+      "actual_intent": "custom_menu_budget",
+      "actual_response": "get_combo",
+      "result": "PASS"
+    },
+    {
+      "input": "lên thực đơn ăn tối khoảng hai trăm nghìn",
+      "expected_intent": "custom_menu_budget",
+      "actual_intent": "custom_menu_budget",
+      "actual_response": "get_combo",
       "result": "PASS"
     }
   ]

@@ -14,7 +14,7 @@ const fs   = require('fs');
 const Groq = require('groq-sdk');
 
 // ─── Config ───────────────────────────────────────────────────────────────────
-const VALID_INTENTS  = ['chat', 'get_price', 'get_combo', 'policy', 'support_issue', 'small_talk'];
+const VALID_INTENTS  = ['chat', 'get_price', 'get_combo', 'custom_menu_budget', 'policy', 'support_issue', 'small_talk'];
 const MODEL          = 'llama-3.1-8b-instant';
 const DELAY_MS       = 2000;          // Tăng lên 2s để tránh rate-limit Groq (TPM)
 const MAX_TOKENS     = 20;
@@ -26,11 +26,44 @@ const REPORT_FILE   = path.join(DIR, 'final_report.json');
 // ─── Helper: delay ────────────────────────────────────────────────────────────
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-// ─── Helper: parse intent từ response raw text ───────────────────────────────
+// ─── Helper: parse intent từ response raw text ───────────────────────────────────
 function parseIntent(raw) {
     if (!raw) return 'unknown';
     const cleaned = raw.trim().toLowerCase().replace(/[^a-z_]/g, '');
     return VALID_INTENTS.includes(cleaned) ? cleaned : 'unknown';
+}
+
+// ─── Helper: phân tích ngân sách bằng regex (deterministic) ────────────────────
+function detectBudget(message) {
+    const lower = message.toLowerCase();
+    const clean = lower.replace(/[.,đ]/g, ' ');
+
+    // Số chữ ──
+    const written = {
+        'một trăm': 100000, 'hai trăm': 200000, 'ba trăm': 300000,
+        'bốn trăm': 400000, 'năm trăm': 500000,
+        'trăm rưỡi': 150000, 'một lít': 100000, 'hai lít': 200000,
+        'mươi lăm': 15000, 'hai mươi': 20000, 'ba mươi': 30000,
+    };
+    for (const [text, val] of Object.entries(written)) {
+        if (lower.includes(text)) return val;
+    }
+    // Số kĩ hiệu: 50k, 100k, tầm 30k, dưới 150k, khoảng 100 cành
+    const kMatch = clean.match(/(?:tầm|dưới|khoảng|từ)?\s*(\d+)\s*(k|nghìn|ngàn|cành)(?!\s*km)/);
+    if (kMatch) return parseInt(kMatch[1]) * 1000;
+    // Số nguyên >= 4 chữ số: 150000, 150.000
+    const rawNum = message.replace(/\./g, '').match(/(\d{4,})/);
+    if (rawNum) return parseInt(rawNum[1]);
+    return null;
+}
+
+// ─── Helper: có ngữ cảnh thực phẩm/bữa ăn không ────────────────────────────
+function hasFoodContext(message) {
+    const lower = message.toLowerCase();
+    return [
+        'ăn', 'bữa', 'sáng', 'trưa', 'chiều', 'tối', 'khuya',
+        'thực đơn', 'menu', 'món', 'combo', 'lên món', 'gợi ý',
+    ].some(kw => lower.includes(kw));
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
@@ -96,6 +129,15 @@ async function runEvaluation() {
 
             actual_response = completion.choices[0]?.message?.content || '';
             actual_intent   = parseIntent(actual_response);
+
+            // ── POST-PROCESS: budget override (deterministic, không phụ thuộc AI) ──
+            // Nếu model trả về get_combo nhưng có ngân sách + ngữ cảnh ăn uống → cộ ghè custom_menu_budget
+            if (['get_combo', 'get_price', 'unknown'].includes(actual_intent)) {
+                const budget = detectBudget(input);
+                if (budget && hasFoodContext(input)) {
+                    actual_intent = 'custom_menu_budget';
+                }
+            }
         } catch (err) {
             actual_response = `ERROR: ${err.message}`;
             actual_intent   = 'unknown';

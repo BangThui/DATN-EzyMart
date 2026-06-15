@@ -67,5 +67,12 @@
   { "input": "Hôm nay ngày mấy thế shop ơi", "expected_intent": "small_talk" },
   { "input": "Mấy giờ rồi b", "expected_intent": "small_talk" },
   { "input": "bạn có người yêu chưa", "expected_intent": "small_talk" },
-  { "input": "kể một câu chuyện cười đi shop", "expected_intent": "small_talk" }
+  { "input": "kể một câu chuyện cười đi shop", "expected_intent": "small_talk" },
+
+  { "input": "lên cho tôi thực đơn bữa sáng 50k", "expected_intent": "custom_menu_budget", "expected_budget": 50000 },
+  { "input": "Gợi ý thực đơn sáng và trưa khoảng 100 cành", "expected_intent": "custom_menu_budget", "expected_budget": 100000 },
+  { "input": "thiết lập menu trọn gói cả ngày dưới 150.000đ", "expected_intent": "custom_menu_budget", "expected_budget": 150000 },
+  { "input": "tầm 30k thì ăn được gì buổi sáng shop ơi", "expected_intent": "custom_menu_budget", "expected_budget": 30000 },
+  { "input": "lên thực đơn ăn tối khoảng hai trăm nghìn", "expected_intent": "custom_menu_budget", "expected_budget": 200000 }
+
 ]
