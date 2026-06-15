@@ -243,6 +243,7 @@
 
 .cb-bubble__text {
   margin: 0;
+  white-space: pre-wrap;
 }
 
 /* Bold highlight for prices */
