@@ -22,7 +22,7 @@ class GroqService {
                     { role: 'system', content: systemPrompt },
                     { role: 'user',   content: userMessage }
                 ],
-                model: 'llama-3.1-8b-instant',
+                model: 'llama-3.3-70b-versatile',
                 temperature: temperature,
                 max_tokens: maxTokens,
             });
