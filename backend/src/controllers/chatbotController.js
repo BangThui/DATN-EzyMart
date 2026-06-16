@@ -803,10 +803,10 @@ exports.chat = async (req, res) => {
         }
 
         systemRules.push(
-            `4. Nếu khách hỏi thông tin không có trong danh sách cung cấp hoặc vượt quá khả năng xử lý: hãy trả lời khéo léo đúng nguyên văn: "Dạ, về vấn đề này bạn vui lòng liên hệ hotline 0349484515 để nhân viên EzyMart hỗ trợ kiểm tra trực tiếp cho mình ngay ạ!".`,
+            `4. Quy tắc từ chối: Nếu khách hỏi về sản phẩm không có trong danh sách cung cấp, các vấn đề kỹ thuật/đơn hàng phức tạp, HOẶC hỏi những câu hỏi linh tinh, ngoài lề không liên quan đến siêu thị, BẮT BUỘC trả lời đúng nguyên văn: "Dạ, về vấn đề này bạn vui lòng liên hệ hotline 0349484515 để nhân viên EzyMart hỗ trợ kiểm tra trực tiếp cho mình ngay ạ!". (⚠️ NGOẠI LỆ: KHÔNG áp dụng câu này nếu khách chỉ đang chào hỏi hoặc cảm ơn).`,
             knowledgeContext
                 ? `\n📚 DANH SÁCH THÔNG TIN CUNG CẤP (chỉ dùng thông tin này):\n${knowledgeContext}`
-                : `\n📚 DANH SÁCH THÔNG TIN CUNG CẤP: Trống. (Hãy áp dụng quy tắc 4).`
+                : `\n📚 DANH SÁCH THÔNG TIN CUNG CẤP: Trống. (Nếu khách hỏi linh tinh ngoài lề hoặc tìm kiếm thông tin, HÃY ÁP DỤNG QUY TẮC 4. NẾU khách chỉ đang chào hỏi/cảm ơn, hãy phản hồi thân thiện bình thường).`
         );
 
         const systemPrompt = systemRules.join('\n');
