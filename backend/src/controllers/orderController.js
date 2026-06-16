@@ -1,6 +1,9 @@
 const OrderModel = require('../models/orderModel');
 const CartModel = require('../models/cartModel');
 const { getIO } = require('../socket');
+const PDFDocument = require('pdfkit');
+const path = require('path');
+const fs = require('fs');
 
 // ─── Adapter: qlbanhang_v2 → qlbanhang_final ───────────────────────────────
 // createOrder: Bỏ customer/giaodich, dùng orders + order_items
@@ -132,6 +135,14 @@ exports.getOrderByMahang = async (req, res) => {
         const { mahang } = req.params;
         const [rows] = await OrderModel.getByMahang(mahang);
         if (rows.length === 0) return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
+        
+        const orderInfo = rows[0];
+        const userRole = req.user.role;
+        const isAdmin = userRole === 0 || userRole === '0' || userRole === 2 || userRole === '2';
+        if (!isAdmin && String(orderInfo.user_id) !== String(req.user.user_id)) {
+            return res.status(403).json({ error: 'Bạn không có quyền xem đơn hàng này' });
+        }
+
         res.json(rows);
     } catch (err) {
         console.error(err);
@@ -316,5 +327,132 @@ exports.updatePickupStatus = async (req, res) => {
         console.error(err);
         const status = err.statusCode || 500;
         res.status(status).json({ error: err.message || 'Lỗi cập nhật trạng thái chuẩn bị hàng' });
+    }
+};
+
+// [API] Xuất hóa đơn PDF
+exports.exportInvoicePDF = async (req, res) => {
+    try {
+        const order_id = req.params.order_id || req.query.order_id;
+        if (!order_id) {
+            return res.status(400).json({ error: 'Thiếu mã đơn hàng' });
+        }
+
+        const [rows] = await OrderModel.getByMahang(order_id);
+        if (!rows || rows.length === 0) {
+            return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
+        }
+
+        // Lấy thông tin đơn hàng chung từ dòng đầu tiên
+        const orderInfo = rows[0]; 
+
+        // Kiểm tra quyền truy cập
+        const userRole = req.user.role;
+        const isAdmin = userRole === 0 || userRole === '0' || userRole === 2 || userRole === '2';
+        if (!isAdmin && String(orderInfo.user_id) !== String(req.user.user_id)) {
+            return res.status(403).json({ error: 'Bạn không có quyền xem hóa đơn này' });
+        }
+
+        const doc = new PDFDocument({ size: 'A5', margin: 30 });
+        
+        // Đường dẫn font chữ (bắt buộc hỗ trợ Tiếng Việt)
+        const fontPathRegular = path.join(__dirname, '../assets/fonts/Roboto-Regular.ttf');
+        const fontPathBold = path.join(__dirname, '../assets/fonts/Roboto-Bold.ttf');
+        
+        // Cấu hình header response cho file PDF stream
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `inline; filename="invoice_${order_id}.pdf"`);
+        doc.pipe(res);
+
+        // Header
+        doc.font(fontPathBold).fontSize(14).text('EZYMART - THỰC PHẨM SẠCH', { align: 'center' });
+        doc.font(fontPathRegular).fontSize(10).text('Địa chỉ:Tổ 1, Phường Yên Nghĩa, Hà Nội', { align: 'center' });
+        doc.text('Hotline: 0349484515', { align: 'center' });
+        doc.moveDown(2);
+
+        // Title
+        doc.font(fontPathBold).fontSize(16).text('HÓA ĐƠN BÁN HÀNG', { align: 'center' });
+        doc.moveDown(1);
+
+        // Thông tin chung
+        doc.font(fontPathRegular).fontSize(10);
+        doc.text(`Mã hóa đơn: ${orderInfo.mahang}`);
+        doc.text(`Ngày lập: ${new Date(orderInfo.ngayDatHang || Date.now()).toLocaleString('vi-VN')}`);
+        doc.text(`Khách hàng: ${orderInfo.customer_name || 'Khách lẻ'}`);
+        
+        const shippingMethodName = orderInfo.shipping_method === 'pickup' ? 'Nhận tại cửa hàng' : 'Giao hàng COD';
+        doc.text(`Hình thức nhận hàng: ${shippingMethodName}`);
+        doc.moveDown(1);
+
+        // Header bảng sản phẩm
+        const tableTop = doc.y;
+        const columnX = [30, 60, 220, 260, 320]; // Tọa độ X cho STT, Tên SP, SL, Đơn giá, Thành tiền
+        
+        doc.font(fontPathBold);
+        doc.text('STT', columnX[0], tableTop);
+        doc.text('Tên sản phẩm', columnX[1], tableTop);
+        doc.text('SL', columnX[2], tableTop, { width: 30, align: 'center' });
+        doc.text('Đơn giá', columnX[3], tableTop, { width: 50, align: 'right' });
+        doc.text('Thành tiền', columnX[4], tableTop, { width: 70, align: 'right' });
+        
+        const hrY = doc.y + 5;
+        doc.moveTo(30, hrY).lineTo(390, hrY).stroke(); // Kẻ ngang (Chiều rộng A5 ~419.53)
+        
+        // Danh sách sản phẩm
+        doc.font(fontPathRegular);
+        let currentY = doc.y + 10;
+        let totalAmount = 0;
+
+        rows.forEach((item, index) => {
+            const name = item.product_name + (item.variant_name ? ` - ${item.variant_name}` : '');
+            const qty = item.soluong || 1;
+            const price = Number(item.variant_price) || 0;
+            const amount = qty * price;
+            totalAmount += amount;
+
+            // Chuyển trang nếu sắp hết giấy (A5 cao ~595)
+            if (currentY > 520) {
+                doc.addPage({ size: 'A5', margin: 30 });
+                currentY = 30;
+                doc.font(fontPathRegular);
+            }
+
+            doc.text(`${index + 1}`, columnX[0], currentY);
+            doc.text(name, columnX[1], currentY, { width: 150 });
+            
+            // Tính toán Y tiếp theo dựa trên độ dài của tên SP
+            const nextY = doc.y; 
+            
+            doc.text(`${qty}`, columnX[2], currentY, { width: 30, align: 'center' });
+            doc.text(price.toLocaleString('vi-VN'), columnX[3], currentY, { width: 50, align: 'right' });
+            doc.text(amount.toLocaleString('vi-VN'), columnX[4], currentY, { width: 70, align: 'right' });
+
+            currentY = Math.max(nextY, currentY + 15) + 5;
+        });
+
+        // Kẻ ngang cuối bảng
+        doc.moveTo(30, currentY).lineTo(390, currentY).stroke();
+        currentY += 10;
+
+        // Tổng tiền (Sử dụng tongDoanhThu từ DB nếu có, hoặc tổng đã tính)
+        const finalTotal = Number(orderInfo.tongDoanhThu) || totalAmount;
+        doc.font(fontPathBold).fontSize(12);
+        doc.text('Tổng tiền thanh toán:', 30, currentY);
+        doc.text(`${finalTotal.toLocaleString('vi-VN')} VNĐ`, 200, currentY, { width: 190, align: 'right' });
+        doc.moveDown(2);
+
+        // Footer cảm ơn
+        doc.font(fontPathRegular).fontSize(10);
+        if (orderInfo.shipping_method === 'pickup') {
+            doc.text('Cảm ơn quý khách đã mua sắm tại EzyMart! Vui lòng lưu mã hóa đơn này để đối chiếu với nhân viên khi đến nhận hàng.', 30, doc.y, { align: 'center', width: 360 });
+        } else {
+            doc.text('Cảm ơn quý khách đã mua sắm tại EzyMart! Đơn hàng sẽ được đóng gói và giao đến quý khách trong thời gian sớm nhất.', 30, doc.y, { align: 'center', width: 360 });
+        }
+
+        doc.end();
+
+    } catch (error) {
+        console.error('Export PDF error:', error);
+        res.status(500).json({ error: 'Lỗi xuất file PDF hóa đơn' });
     }
 };

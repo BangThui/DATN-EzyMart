@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Tag, Typography, Empty, Button, Spin, Tabs, Drawer, Steps, List, Divider, message, Popconfirm, Space } from "antd";
 import { Link, useLocation } from "react-router-dom";
+import { DownloadOutlined } from "@ant-design/icons";
 import { orderService } from "../../services/orderService";
 import { useAuth } from "../../context/AuthContext";
 import { useSocket } from "../../context/SocketContext";
@@ -376,9 +377,20 @@ const Orders = () => {
                         <Button type="primary">Đã nhận được hàng</Button>
                       </Popconfirm>
                     )}
+                    <Button 
+                      icon={<DownloadOutlined />} 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const token = localStorage.getItem('token');
+                        window.open(`http://localhost:5000/api/orders/export-invoice/${order.mahang}?token=${token}`, '_blank');
+                      }}
+                    >
+                      Tải hóa đơn
+                    </Button>
                     <Button className="order-detail-btn" onClick={() => handleOpenDrawer(order)}>Xem chi tiết</Button>
                   </div>
                 </div>
+
               </div>
             );
           })}
@@ -499,6 +511,15 @@ const Orders = () => {
 
             {/* Hành động */}
             <div className="drawer-actions">
+              <Button 
+                icon={<DownloadOutlined />} 
+                onClick={() => {
+                  const token = localStorage.getItem('token');
+                  window.open(`http://localhost:5000/api/orders/export-invoice/${selectedOrder.mahang}?token=${token}`, '_blank');
+                }}
+              >
+                Tải hóa đơn
+              </Button>
               {selectedOrder.order_status === "pending" && (
                 <Button danger onClick={() => message.info("Tính năng Hủy đơn đang phát triển")}>Hủy đơn</Button>
               )}
@@ -510,6 +531,7 @@ const Orders = () => {
               )}
             </div>
           </div>
+
         )}
       </Drawer>
     </div>

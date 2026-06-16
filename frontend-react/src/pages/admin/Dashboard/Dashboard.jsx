@@ -13,6 +13,7 @@ import {
   DollarCircleOutlined,
   InboxOutlined,
   FileExcelOutlined,
+  FilePdfOutlined,
 } from "@ant-design/icons";
 import {
   BarChart,
@@ -109,6 +110,13 @@ const Dashboard = () => {
     const fileName = `Bao_cao_doanh_thu_EzyMart_${dateString}.xlsx`;
 
     XLSX.writeFile(workbook, fileName);
+  };
+
+  const handleExportPDF = () => {
+    const startDate = dateRange?.[0] ? dateRange[0].format("YYYY-MM-DD") : "";
+    const endDate = dateRange?.[1] ? dateRange[1].format("YYYY-MM-DD") : "";
+    const token = localStorage.getItem('token');
+    window.open(`http://localhost:5000/api/dashboard/export-report-pdf?startDate=${startDate}&endDate=${endDate}&token=${token}`, '_blank');
   };
 
   useEffect(() => {
@@ -234,14 +242,24 @@ const Dashboard = () => {
               { label: 'Tháng này', value: [dayjs().startOf('month'), dayjs().endOf('month')] },
             ]}
           />
-          <Button
+          {/* <Button
             type="primary"
             icon={<FileExcelOutlined />}
             onClick={handleExportExcel}
             style={{ backgroundColor: '#107c41', borderColor: '#107c41' }}
           >
             Xuất Excel
-          </Button>
+          </Button> */}
+          {isAdmin && (
+            <Button
+              type="primary"
+              icon={<FilePdfOutlined />}
+              onClick={handleExportPDF}
+              danger
+            >
+              Xuất PDF
+            </Button>
+          )}
         </Space>
       </div>
 

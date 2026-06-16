@@ -175,6 +175,7 @@ const OrderModel = {
   getByMahang: mahang => {
     return db.query(
       `SELECT
+                o.user_id,
                 o.order_id AS mahang,
                 o.total_price AS tongDoanhThu,
                 o.order_date AS ngayDatHang,

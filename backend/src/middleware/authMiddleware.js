@@ -2,7 +2,12 @@ const jwt = require("jsonwebtoken");
 
 const authMiddleware = (req, res, next) => {
   const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1]; // Bearer <token>
+  let token = authHeader && authHeader.split(" ")[1]; // Bearer <token>
+
+  // Hỗ trợ lấy token từ query parameter (cho trường hợp tải file qua window.open)
+  if (!token && req.query.token) {
+    token = req.query.token;
+  }
 
   if (!token) {
     return res.status(401).json({ error: "Không có token xác thực" });

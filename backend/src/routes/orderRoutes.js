@@ -5,8 +5,9 @@ const { authMiddleware, adminMiddleware } = require('../middleware/authMiddlewar
 
 // Public (user)
 router.post('/', orderController.createOrder);
-router.get('/user/:user_code', orderController.getOrdersByUserCode);
-router.get('/detail/:mahang', orderController.getOrderByMahang);
+router.get('/user/:user_code', authMiddleware, orderController.getOrdersByUserCode);
+router.get('/detail/:mahang', authMiddleware, orderController.getOrderByMahang);
+router.get('/export-invoice/:order_id', authMiddleware, orderController.exportInvoicePDF);
 router.patch('/:id/status', authMiddleware, orderController.customerUpdateOrderStatus);
 router.patch('/:id/cancel', authMiddleware, orderController.customerCancelOrder);
 

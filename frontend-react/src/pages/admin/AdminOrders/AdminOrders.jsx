@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Table, Tag, Select, Typography, message, Modal, Tooltip, Descriptions, Button, Input, Space, Row, Col, Popconfirm } from 'antd';
-import { EyeOutlined, SearchOutlined, ClockCircleOutlined, ShopOutlined } from '@ant-design/icons';
+import { EyeOutlined, SearchOutlined, ClockCircleOutlined, ShopOutlined, PrinterOutlined } from '@ant-design/icons';
 import { orderService } from '../../../services/orderService';
 import { formatCurrency } from '../../../utils';
 import { getImageUrl } from '../../../utils/imageHelper';
@@ -288,7 +288,7 @@ const AdminOrders = () => {
                                 {PICKUP_STATUS_MAP[pickupStatus]?.label}
                             </Tag>
                             {/* Nút chuyển trạng thái tiếp theo */}
-                            {nextStatus && pickupStatus !== 'received' && (
+                            {nextStatus && pickupStatus !== 'received' && record.order_status !== 'cancelled' && (
                                 <Popconfirm
                                     title={`Xác nhận: ${PICKUP_NEXT_LABEL[pickupStatus]}?`}
                                     onConfirm={() => handlePickupStatusChange(record.mahang || record.donhang_id, nextStatus)}
@@ -355,16 +355,30 @@ const AdminOrders = () => {
         {
             title: 'Thao tác', key: 'action', align: 'center',
             render: (_, record) => (
-                <Tooltip title="Xem chi tiết đơn hàng">
-                    <Button 
-                        type="text" 
-                        icon={<EyeOutlined style={{ color: '#1890ff', fontSize: 18 }} />} 
-                        onClick={() => {
-                            setSelectedOrder(record);
-                            setIsModalVisible(true);
-                        }}
-                    />
-                </Tooltip>
+                <Space>
+                    <Tooltip title="In hóa đơn">
+                        <Button 
+                            type="text" 
+                            icon={<PrinterOutlined style={{ color: '#52c41a', fontSize: 18 }} />} 
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                const token = localStorage.getItem('token');
+                                window.open(`http://localhost:5000/api/orders/export-invoice/${record.mahang || record.donhang_id}?token=${token}`, '_blank');
+                            }}
+                        />
+                    </Tooltip>
+                    <Tooltip title="Xem chi tiết đơn hàng">
+                        <Button 
+                            type="text" 
+                            icon={<EyeOutlined style={{ color: '#1890ff', fontSize: 18 }} />} 
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedOrder(record);
+                                setIsModalVisible(true);
+                            }}
+                        />
+                    </Tooltip>
+                </Space>
             )
         }
     ];

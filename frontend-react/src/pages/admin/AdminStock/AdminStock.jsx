@@ -23,9 +23,9 @@ import {
   MinusCircleOutlined,
   EyeOutlined,
   PlusCircleOutlined,
-  FileExcelOutlined,
+  PrinterOutlined,
+  FilePdfOutlined,
 } from "@ant-design/icons";
-import * as XLSX from "xlsx";
 import { stockService } from "../../../services/stockService";
 import { supplierService } from "../../../services/supplierService";
 import { productService } from "../../../services/productService";
@@ -111,47 +111,33 @@ const AdminStock = () => {
     }
   };
 
-  const handleExportGoodsReceipt = () => {
-    if (!receipts || receipts.length === 0) {
-      message.warning("Không có dữ liệu phiếu nhập để xuất!");
-      return;
+  const handlePrintPDF = async (id) => {
+    try {
+      const response = await stockService.exportPDF(id);
+      const blob = new Blob([response], { type: "application/pdf" });
+      const blobURL = window.URL.createObjectURL(blob);
+      window.open(blobURL, "_blank");
+    } catch (error) {
+      console.error("Lỗi xuất PDF phiếu nhập:", error);
+      message.error("Lỗi khi xuất phiếu nhập kho PDF!");
     }
+  };
 
-    const excelData = receipts.map((item, index) => ({
-      "STT": index + 1,
-      "Mã phiếu nhập": item.receipt_id,
-      "Nhà cung cấp": item.supplier_name || "---",
-      "Tổng tiền nhập": Number(item.total_cost || 0).toLocaleString("vi-VN"),
-      "Số sản phẩm": item.item_count || 0,
-      "Ngày nhập kho": dayjs(item.created_at).format("DD/MM/YYYY HH:mm"),
-      "Trạng thái": item.status || "Hoàn thành",
-    }));
-
-    const worksheet = XLSX.utils.json_to_sheet(excelData);
-
-    const wscols = [
-      { wch: 5 },  
-      { wch: 15 }, 
-      { wch: 25 }, 
-      { wch: 20 }, 
-      { wch: 15 }, 
-      { wch: 20 }, 
-      { wch: 15 }, 
-    ];
-    worksheet["!cols"] = wscols;
-
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Nhập Kho");
-
-    const currentDate = new Date();
-    const day = String(currentDate.getDate()).padStart(2, "0");
-    const month = String(currentDate.getMonth() + 1).padStart(2, "0");
-    const year = currentDate.getFullYear();
-    const dateString = `${day}_${month}_${year}`;
-
-    const fileName = `Nhat_ky_nhap_kho_EzyMart_${dateString}.xlsx`;
-
-    XLSX.writeFile(workbook, fileName);
+  const handleExportReportPDF = async () => {
+    try {
+      const params = {};
+      if (dateRange && dateRange.length === 2) {
+        params.startDate = dateRange[0].format("YYYY-MM-DD");
+        params.endDate = dateRange[1].format("YYYY-MM-DD");
+      }
+      const response = await stockService.exportReportPDF(params);
+      const blob = new Blob([response], { type: "application/pdf" });
+      const blobURL = window.URL.createObjectURL(blob);
+      window.open(blobURL, "_blank");
+    } catch (error) {
+      console.error("Lỗi xuất báo cáo PDF:", error);
+      message.error("Lỗi khi xuất báo cáo PDF!");
+    }
   };
 
   // === Quick Add Supplier ===
@@ -233,15 +219,30 @@ const AdminStock = () => {
     {
       title: "Thao tác",
       key: "action",
-      width: 100,
+      align: "center",
       render: (_, record) => (
-        <Button
-          icon={<EyeOutlined />}
-          size="small"
-          onClick={() => handleViewDetail(record.receipt_id)}
-        >
-          Chi tiết
-        </Button>
+        <Space>
+          <Tooltip title="In phiếu nhập">
+            <Button
+              type="text"
+              icon={<PrinterOutlined style={{ color: '#52c41a', fontSize: 18 }} />}
+              onClick={(e) => {
+                e.stopPropagation();
+                handlePrintPDF(record.receipt_id);
+              }}
+            />
+          </Tooltip>
+          <Tooltip title="Xem chi tiết">
+            <Button
+              type="text"
+              icon={<EyeOutlined style={{ color: '#1890ff', fontSize: 18 }} />}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleViewDetail(record.receipt_id);
+              }}
+            />
+          </Tooltip>
+        </Space>
       ),
     },
   ];
@@ -312,11 +313,11 @@ const AdminStock = () => {
           />
           <Button
             type="primary"
-            icon={<FileExcelOutlined />}
-            onClick={handleExportGoodsReceipt}
-            style={{ backgroundColor: '#107c41', borderColor: '#107c41' }}
+            danger
+            icon={<FilePdfOutlined />}
+            onClick={handleExportReportPDF}
           >
-            Xuất Excel
+            Xuất PDF
           </Button>
         </Space>
       </div>
@@ -416,6 +417,15 @@ const AdminStock = () => {
         open={detailModalVisible}
         onCancel={() => setDetailModalVisible(false)}
         footer={[
+          <Button
+            key="print"
+            type="primary"
+            danger
+            icon={<PrinterOutlined />}
+            onClick={() => handlePrintPDF(currentReceipt.receipt_id)}
+          >
+            In PDF
+          </Button>,
           <Button key="close" onClick={() => setDetailModalVisible(false)}>
             Đóng
           </Button>,

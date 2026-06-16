@@ -7,6 +7,8 @@ const { authMiddleware, adminMiddleware } = require('../middleware/authMiddlewar
 router.get('/', authMiddleware, adminMiddleware, stockController.getReceipts);
 router.post('/import', authMiddleware, adminMiddleware, stockController.importStock);
 router.post('/bulk-import', authMiddleware, adminMiddleware, stockController.bulkImportStock);
+router.get('/export-report-pdf', authMiddleware, adminMiddleware, stockController.exportStockReportPDF);
+router.get('/export-pdf/:id', authMiddleware, adminMiddleware, stockController.exportInventoryReceiptPDF);
 router.get('/:id', authMiddleware, adminMiddleware, stockController.getReceiptById);
 
 module.exports = router;
