@@ -189,7 +189,7 @@ async function fetchComboContext(timeSlot) {
     try {
         const hour = new Date().getHours();
 
-        // --- ĐỌC TỪ CACHE TRƯỚC ---
+        // --- ĐỌC TỪ CACHE TRƯỚC (ưu tiên tuyệt đối để không gọi LLM lặp) ---
         const cachedData = comboCache.getCache(hour);
         if (cachedData) {
             const comboProducts = cachedData.combos.map(combo => {
@@ -236,55 +236,45 @@ async function fetchComboContext(timeSlot) {
 
             return { context, comboProducts };
         }
-        // --- NẾU CACHE RỖNG THÌ FALLBACK BỐC MỚI ---
-
-        const isMorning   = (timeSlot === 'Sáng') || (!timeSlot && hour >= 6  && hour < 11);
-        const isAfternoon = (timeSlot === 'Trưa') || (!timeSlot && hour >= 11 && hour < 16);
-
-        let title = '';
-        // Mỗi combo: { comboName, slots: [[catIds, fallbackIds], ...] } — 5 slot/combo
-        let comboDefinitions = [];
-
-        if (isMorning) {
-            title = '🌅 Năng lượng buổi sáng';
-            comboDefinitions = [
-                { comboName: 'Bữa sáng tiện lợi', slots: [[125,126,130],[125,126,130],[107,109],[107,109],[90]] },
-                { comboName: 'Sáng ấm bụng',      slots: [[98,101],[98,101],[82,69,83],[82,69,83],[108]] },
-                { comboName: 'Healthy Sáng',       slots: [[103],[103],[90],[90],[130]] },
-            ];
-        } else if (isAfternoon) {
-            title = '☀️ Gợi ý combo ăn trưa & giải nhiệt';
-            comboDefinitions = [
-                { comboName: 'Cơm trưa nhanh gọn',  slots: [[98,101,104],[98,101,104],[98,101,104],[83],[83]] },
-                { comboName: 'Giải nhiệt thanh mát', slots: [[90],[90],[90],[130],[130]] },
-                { comboName: 'Nạp đường xế chiều',  slots: [[93,94,95],[93,94,95],[93,94,95],[69],[69]] },
-            ];
-        } else {
-            title = '🌙 Combo buổi tối & Ăn đêm';
-            comboDefinitions = [
-                { comboName: 'Nấu cơm gia đình',              slots: [[112,113,115,117],[112,113,115,117],[91,92],[91,92],[88,89]] },
-                { comboName: 'Cú đêm ăn liền',                slots: [[98,100],[98,100],[108],[108],[69]] },
-                { comboName: 'Trái cây tráng miệng & Đồ nhắm',slots: [[90],[118],[118],[96],[96]] },
-            ];
+        // --- CACHE RỖNG: Gọi LLM để sinh Combo mới (đồng bộ với recommendationController) ---
+        console.log('[Chatbot] Cache combo trống, gọi LLM để sinh combo mới...');
+        const { generateCombosFromLLM, generateCombosWithFallback } = require('./recommendationController');
+        let title, rawCombos;
+        try {
+            ({ title, combos: rawCombos } = await generateCombosFromLLM(hour));
+        } catch (llmErr) {
+            console.warn('[Chatbot] LLM lỗi, dùng Fallback:', llmErr.message);
+            ({ title, combos: rawCombos } = await generateCombosWithFallback(hour));
         }
 
-        // Lấy sản phẩm song song cho mỗi combo
-        const comboProducts = await Promise.all(
-            comboDefinitions.map(async ({ comboName, slots }) => {
-                const excludeIds = [];
-                const items = [];
-                for (const catIds of slots) {
-                    const p = await getRandomProduct(catIds, excludeIds);
-                    if (p) {
-                        excludeIds.push(p.product_id);
-                        items.push(p);
-                    }
-                }
-                return { comboName, items };
+        // Map sang định dạng comboProducts mà chatbot cần
+        const comboProducts = rawCombos.map(combo => ({
+            comboName: combo.comboName,
+            items: (combo.items || []).map(item => {
+                const variants = item.variants || [];
+                const original_price = variants.length > 0
+                    ? Math.min(...variants.map(v => Number(v.variant_price)))
+                    : Number(item.price || item.original_price || 0);
+                const display_price = variants.length > 0
+                    ? Math.min(...variants.map(v => {
+                        const vp = Number(v.variant_price);
+                        const vd = Number(v.variant_discount);
+                        return (vd > 0 && vd < vp) ? vd : vp;
+                    }))
+                    : original_price;
+                const default_variant_id = variants.length > 0 ? variants[0].variant_id : null;
+                return {
+                    product_id: item.product_id,
+                    product_name: item.product_name,
+                    product_image: item.product_image,
+                    display_price,
+                    original_price,
+                    has_discount: display_price < original_price,
+                    default_variant_id
+                };
             })
-        );
+        }));
 
-        // Text context ngắn gọn cho Llama
         const comboLines = comboProducts.map(({ comboName, items }) => {
             const totalPrice = items.reduce((sum, item) => sum + (item.display_price || 0), 0);
             return `  • ${comboName} - Tổng giá trọn bộ: ${totalPrice.toLocaleString('vi-VN')}đ`;
@@ -306,6 +296,7 @@ async function fetchComboContext(timeSlot) {
     }
 }
 
+
 // ─── Lấy sản phẩm để tự động lên thực đơn theo ngân sách/bữa ──────────
 // budget: số nguyên (VD: 50000) hoặc null
 // meals: mảng ['morning','noon','night'] hoặc []
@@ -313,7 +304,7 @@ async function fetchComboContext(timeSlot) {
 async function fetchCustomMenuContext(budget, meals = [], purpose = 'mac_dinh') {
     try {
         // Tập hợp danh mục đồ ăn (sáng, trưa, tối, ăn vặt, nước)
-        const foodCats = [125,126,130,107,109,98,101,104,83,90,93,94,95,69,112,113,115,117,91,92,88,89,100,108,118,96];
+        const foodCats = [125,126,130,107,109,98,101,104,83,90,93,94,95,69,112,113,115,117,91,92,100,108,118,96];
 
         // ── Điều kiện WHERE cơ bản ──────────────────────────────────────────
         let whereClause = `p.is_deleted = 0 AND p.product_active = 1

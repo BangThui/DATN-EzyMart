@@ -93,6 +93,15 @@ httpServer.listen(PORT, () => {
     console.log(`🔌 Socket.io đã kích hoạt`);
 });
 
-
-
-
+// Xử lý lỗi port bị chiếm — hiển thị thông báo rõ ràng thay vì crash
+httpServer.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+        console.error(`\n❌ [SERVER] Port ${PORT} đang bị chiếm bởi tiến trình khác.`);
+        console.error(`   👉 Chạy lệnh này để giải phóng port: Stop-Process -Id (Get-NetTCPConnection -LocalPort ${PORT} -State Listen).OwningProcess -Force`);
+        console.error(`   Hoặc đổi PORT trong file .env\n`);
+        process.exit(1);
+    } else {
+        console.error('❌ [SERVER] Lỗi không xác định:', err);
+        process.exit(1);
+    }
+});
