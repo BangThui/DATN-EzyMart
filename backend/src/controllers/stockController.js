@@ -36,23 +36,21 @@ exports.importStock = async (req, res) => {
     await connection.beginTransaction();
 
     // Kiểm tra supplier_id hợp lệ (nếu có cung cấp)
-    let supplier_name = null;
     if (supplier_id) {
       const [supplierRows] = await connection.execute(
-        `SELECT supplier_id, supplier_name FROM suppliers WHERE supplier_id = ? AND is_deleted = 0`,
+        `SELECT supplier_id FROM suppliers WHERE supplier_id = ? AND is_deleted = 0`,
         [supplier_id]
       );
       if (supplierRows.length === 0) {
         await connection.rollback();
         return res.status(404).json({ error: 'Nhà cung cấp không tồn tại hoặc đã bị xóa' });
       }
-      supplier_name = supplierRows[0].supplier_name;
     }
 
-    // --- Hành động 1: Lưu phiếu nhập (dùng cả supplier_id và supplier_name để đảm bảo tương thích ngược) ---
+    // --- Hành động 1: Lưu phiếu nhập ---
     const [receiptResult] = await connection.execute(
-      `INSERT INTO stock_receipts (supplier_id, supplier_name, total_cost, note, user_id) VALUES (?, ?, ?, ?, ?)`,
-      [supplier_id || null, supplier_name, total_cost, note || null, user_id]
+      `INSERT INTO stock_receipts (supplier_id, total_cost, note, user_id) VALUES (?, ?, ?, ?)`,
+      [supplier_id || null, total_cost, note || null, user_id]
     );
     const receipt_id = receiptResult.insertId;
 
@@ -136,23 +134,21 @@ exports.bulkImportStock = async (req, res) => {
     await connection.beginTransaction();
 
     // Kiểm tra supplier_id hợp lệ (nếu có cung cấp)
-    let supplier_name = null;
     if (supplier_id) {
       const [supplierRows] = await connection.execute(
-        `SELECT supplier_id, supplier_name FROM suppliers WHERE supplier_id = ? AND is_deleted = 0`,
+        `SELECT supplier_id FROM suppliers WHERE supplier_id = ? AND is_deleted = 0`,
         [supplier_id]
       );
       if (supplierRows.length === 0) {
         await connection.rollback();
         return res.status(404).json({ error: 'Nhà cung cấp không tồn tại hoặc đã bị xóa' });
       }
-      supplier_name = supplierRows[0].supplier_name;
     }
 
     // Bước 1: INSERT vào stock_receipts để lấy receipt_id
     const [receiptResult] = await connection.execute(
-      `INSERT INTO stock_receipts (supplier_id, supplier_name, total_cost, note, user_id) VALUES (?, ?, ?, ?, ?)`,
-      [supplier_id || null, supplier_name, total_cost, note || null, user_id]
+      `INSERT INTO stock_receipts (supplier_id, total_cost, note, user_id) VALUES (?, ?, ?, ?)`,
+      [supplier_id || null, total_cost, note || null, user_id]
     );
     const receipt_id = receiptResult.insertId;
 
@@ -221,7 +217,7 @@ exports.getReceipts = async (req, res) => {
               u.user_name AS creator_name,
               COUNT(srd.detail_id) AS item_count
        FROM stock_receipts sr
-       LEFT JOIN suppliers s ON sr.supplier_id = s.supplier_id AND s.is_deleted = 0
+       LEFT JOIN suppliers s ON sr.supplier_id = s.supplier_id
        LEFT JOIN users u ON sr.user_id = u.user_id
        LEFT JOIN stock_receipt_details srd ON sr.receipt_id = srd.receipt_id
        ${timeCondition}
@@ -245,7 +241,7 @@ exports.getReceiptById = async (req, res) => {
       `SELECT sr.receipt_id, sr.supplier_id, s.supplier_name,
               sr.total_cost, sr.note, sr.created_at
        FROM stock_receipts sr
-       LEFT JOIN suppliers s ON sr.supplier_id = s.supplier_id AND s.is_deleted = 0
+       LEFT JOIN suppliers s ON sr.supplier_id = s.supplier_id
        WHERE sr.receipt_id = ?`,
       [id]
     );
@@ -282,7 +278,7 @@ exports.exportInventoryReceiptPDF = async (req, res) => {
             `SELECT sr.receipt_id, sr.supplier_id, s.supplier_name,
                     sr.total_cost, sr.note, sr.created_at, u.user_name as creator_name
              FROM stock_receipts sr
-             LEFT JOIN suppliers s ON sr.supplier_id = s.supplier_id AND s.is_deleted = 0
+             LEFT JOIN suppliers s ON sr.supplier_id = s.supplier_id
              LEFT JOIN users u ON sr.user_id = u.user_id
              WHERE sr.receipt_id = ?`,
             [id]
@@ -442,7 +438,7 @@ exports.exportStockReportPDF = async (req, res) => {
                     u.user_name AS creator_name,
                     COUNT(srd.detail_id) AS item_count
              FROM stock_receipts sr
-             LEFT JOIN suppliers s ON sr.supplier_id = s.supplier_id AND s.is_deleted = 0
+             LEFT JOIN suppliers s ON sr.supplier_id = s.supplier_id
              LEFT JOIN users u ON sr.user_id = u.user_id
              LEFT JOIN stock_receipt_details srd ON sr.receipt_id = srd.receipt_id
              ${timeCondition}
