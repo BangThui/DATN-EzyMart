@@ -415,7 +415,44 @@ async function fetchCustomMenuContext(budget, meals = [], purpose = 'mac_dinh') 
 
         if (rows.length === 0) return null;
 
-        const lines = rows.map(r => `• ${r.product_name}: ${Number(r.min_price).toLocaleString('vi-VN')}đ`);
+        if (rows.length === 0) return null;
+
+        // --- NEW LOGIC: Tự động ghép thực đơn (Greedy Knapsack) bằng Javascript ---
+        let selectedItems = [];
+        let currentTotal = 0;
+        
+        if (budget) {
+            const targetMin = budget * 0.8;
+            const targetMax = budget;
+            
+            // KHÔNG xáo trộn bằng JS nữa vì câu lệnh SQL đã dùng ORDER BY CASE ..., RAND()
+            // Việc xáo trộn ở JS sẽ làm hỏng thứ tự ưu tiên nhóm (trộn lẫn trái cây/bánh kẹo lên trước thịt/cá)
+            for (const r of rows) {
+                const price = Number(r.min_price);
+                // Thêm món nếu chưa vượt budget
+                if (currentTotal + price <= targetMax) {
+                    selectedItems.push(r);
+                    currentTotal += price;
+                }
+                // Nếu tổng đã nằm trong khoảng 80% - 100% thì dừng
+                if (currentTotal >= targetMin) break;
+            }
+            
+            // Nếu ngân sách quá thấp không nhặt được gì
+            if (selectedItems.length === 0 && rows.length > 0) {
+                 const cheapest = [...rows].sort((a,b) => Number(a.min_price) - Number(b.min_price))[0];
+                 selectedItems.push(cheapest);
+                 currentTotal += Number(cheapest.min_price);
+            }
+        } else {
+            // Không có budget thì lấy ngẫu nhiên 3-5 món từ top 15
+            const takeCount = Math.floor(Math.random() * 3) + 3;
+            selectedItems = rows.slice(0, 15).sort(() => 0.5 - Math.random()).slice(0, takeCount);
+            currentTotal = selectedItems.reduce((sum, r) => sum + Number(r.min_price), 0);
+        }
+
+        const lines = selectedItems.map(r => `• ${r.product_name} — ${Number(r.min_price).toLocaleString('vi-VN')}đ`);
+        const remaining = budget ? budget - currentTotal : 0;
         
         // Map meal codes sang tên tiếng Việt để đưa vào prompt
         const mealLabelMap = { morning: 'bữa sáng', noon: 'bữa trưa', afternoon: 'bữa chiều', night: 'bữa tối' };
@@ -424,33 +461,32 @@ async function fetchCustomMenuContext(budget, meals = [], purpose = 'mac_dinh') 
             : 'các bữa trong ngày';
 
         const purposeLabelMap = {
-            lau:           'ăn lẩu (cần nguyên liệu lẩu: nước lẩu/viên thả lẩu, thịt/hải sản, rau/nấm, mì/bún)',
-            com_gia_dinh:  'nấu cơm gia đình (cần thịt, cá, rau, đồ ăn kèm cơm)',
-            nuong:         'nướng BBQ (cần thịt/hải sản tươi, đồ ướp, rau củ nướng)',
-            an_vat:        'ăn vặt (chủ yếu snack, bánh kẹo, đồ ăn nhẹ)',
-            do_an_nhanh:   'ăn nhanh/tiện lợi (mì ăn liền, bánh mì, đồ đóng hộp ăn liền)',
+            lau:           'ăn lẩu',
+            com_gia_dinh:  'nấu cơm gia đình',
+            nuong:         'nướng BBQ',
+            an_vat:        'ăn vặt',
+            do_an_nhanh:   'ăn nhanh/tiện lợi',
             mac_dinh:      null,
         };
         const purposeLabel = purposeLabelMap[purpose] || null;
 
         let context = `🛒 YÊU CẦU LÊN THỰC ĐƠN: Khách hàng muốn lên thực đơn cho ${mealLabels}.`;
-        if (budget) context += ` Ngân sách tối đa: ${Number(budget).toLocaleString('vi-VN')}đ.`;
-        if (purposeLabel) context += `\n🎯 MỤC ĐÍCH: Khách muốn ${purposeLabel}. BẮT BUỘC ưu tiên chọn các sản phẩm phù hợp với mục đích này.`;
-        context += `\n\n⚙️ BẮT BUỘC TÍNH TOÁN TRONG THẺ <think>:`;
-        context += `\n- BẠN PHẢI THỰC HIỆN TOÀN BỘ QUÁ TRÌNH CỘNG TRỪ TỔNG TIỀN, LỰA CHỌN MÓN VÀ SO SÁNH VỚI NGÂN SÁCH TRONG CẶP THẺ <think> ... </think>.`;
-        context += `\n- VD: <think>Chọn cơm 50k, chọn nước 20k, tổng = 70k. Ngân sách 100k -> Còn dư 30k. Hợp lý.</think>.`;
-        context += `\n- CHỈ in KẾT QUẢ CUỐI CÙNG (Lời chào, danh sách món, tổng tiền) ra bên ngoài thẻ <think>. Không để lọt bất kỳ câu tính toán nào ra ngoài.`;
-        context += `\n\n📋 ĐỊNH DẠNG ĐẦU RA BẮT BUỘC (output theo đúng mẫu này):`;
-        context += `\n  Dòng 1: Lời chào thân thiện. BẮT BUỘC NHẮC LẠI MỨC NGÂN SÁCH trong lời chào (VD: "Dạ EzyMart xin chào! Dưới đây là thực đơn siêu ngon trong tầm giá ${budget ? Number(budget).toLocaleString('vi-VN') + 'đ' : 'của bạn'} mà EzyMart chuẩn bị riêng cho bạn nhé:").`;
-        context += `\n  Tiếp theo: Danh sách món theo từng bữa — mỗi món 1 dòng: "• [Tên món] — [Giá]đ"`;
-        context += `\n  Dòng cuối: "💰 Tổng chi phí: Xđ / Còn dư: Yđ"`;
-        context += `\n  KHÔNG thêm bất kỳ nội dung nào khác ngoài 3 phần trên.`;
-        context += `\n\n⚠️ QUY TẮC TỔNG TIỀN:`;
-        context += `\n- Tổng tiền PHẢI đạt từ ${budget ? Math.round(Number(budget) * 0.8).toLocaleString('vi-VN') : '80%'}đ đến ${budget ? Number(budget).toLocaleString('vi-VN') : '100%'}đ.`;
-        context += `\n- TUYỆT ĐỐI KHÔNG bịa thêm món ngoài danh sách. Tên món phải trùng khớp chính xác nguyên văn.`;
-        context += `\n\nDanh sách món ăn có thể chọn (CHỈ ĐƯỢC CHỌN TỪ ĐÂY):\n${lines.join('\n')}`;
+        if (purposeLabel) context += `\n🎯 MỤC ĐÍCH: Khách muốn ${purposeLabel}.`;
+        
+        context += `\n\nHệ thống đã chọn SẴN một danh sách món phù hợp với ngân sách và tổng tiền chuẩn xác. Nhiệm vụ của bạn LÀ KHÔNG ĐƯỢC TÍNH TOÁN NỮA, chỉ cần ĐỊNH DẠNG LẠI và chào hỏi khách hàng.`;
+        
+        context += `\n\n📋 ĐỊNH DẠNG ĐẦU RA BẮT BUỘC:`;
+        context += `\n  Dòng 1: Lời chào thân thiện. Nhắc lại mức ngân sách (nếu có). VD: "Dạ EzyMart xin chào! Dưới đây là thực đơn siêu ngon trong tầm giá ${budget ? Number(budget).toLocaleString('vi-VN') + 'đ' : 'của bạn'} mà EzyMart đã chuẩn bị riêng cho bạn nhé:"`;
+        context += `\n  Tiếp theo: In lại Y HỆT danh sách món hệ thống đã chọn dưới đây, KHÔNG TỰ Ý SỬA TÊN HAY GIÁ:`;
+        context += `\n${lines.join('\n')}`;
+        context += `\n\n  Dòng cuối cùng phải in CHÍNH XÁC câu sau (không tự làm toán):`;
+        if (budget) {
+             context += `\n  "💰 Tổng chi phí: ${currentTotal.toLocaleString('vi-VN')}đ / Còn dư: ${remaining.toLocaleString('vi-VN')}đ"`;
+        } else {
+             context += `\n  "💰 Tổng chi phí: ${currentTotal.toLocaleString('vi-VN')}đ"`;
+        }
 
-        const products = rows.map(r => ({
+        const finalProducts = selectedItems.map(r => ({
             product_id:         r.product_id,
             product_name:       r.product_name,
             product_image:      r.product_image,
@@ -460,7 +496,7 @@ async function fetchCustomMenuContext(budget, meals = [], purpose = 'mac_dinh') 
             default_variant_id: r.default_variant_id,
         }));
 
-        return { context, products };
+        return { context, products: finalProducts };
     } catch (e) {
         console.error('[RAG] Lỗi fetchCustomMenuContext:', e);
         return null;
