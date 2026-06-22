@@ -44,6 +44,7 @@ const paypalRoutes = require('./src/routes/paypalRoutes');
 const recommendationRoutes = require('./src/routes/recommendationRoutes');
 const chatbotRoutes = require('./src/routes/chatbotRoutes');
 const settingRoutes = require('./src/routes/settingRoutes');
+const contactRoutes = require('./src/routes/contactRoutes');
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/categories', categoryRoutes);
@@ -59,6 +60,7 @@ app.use('/api/payment/paypal', paypalRoutes);
 app.use('/api/recommendations', recommendationRoutes);
 app.use('/api/chatbot', chatbotRoutes);
 app.use('/api/settings', settingRoutes);
+app.use('/api/contact', contactRoutes);
 
 // // Endpoint xem dữ liệu comboCache
 // const comboCacheObj = require('./src/utils/comboCache');

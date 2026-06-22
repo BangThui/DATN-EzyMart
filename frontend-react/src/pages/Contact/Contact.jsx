@@ -57,18 +57,30 @@ const Contact = () => {
     fetchSettings();
   }, []);
 
-  const onFinish = values => {
+  const onFinish = async (values) => {
     setLoading(true);
-    // Simulate API request loading
-    setTimeout(() => {
-      console.log("Contact form values submitted:", values);
+    try {
+      const res = await axiosClient.post("/contact", {
+        fullName: values.fullName,
+        contactMethod: values.contactMethod,
+        subject: values.subject,
+        message: values.message,
+      });
       message.success(
-        "Gửi thông tin liên hệ thành công! EzyMart sẽ phản hồi sớm nhất.",
+        res?.message || "Gửi tin nhắn thành công! EzyMart sẽ phản hồi bạn sớm nhất.",
+        5
       );
       form.resetFields();
+    } catch (err) {
+      const errMsg =
+        err?.response?.data?.error ||
+        "Gửi tin nhắn thất bại. Vui lòng thử lại hoặc liên hệ qua hotline.";
+      message.error(errMsg, 6);
+    } finally {
       setLoading(false);
-    }, 1200);
+    }
   };
+
 
   return (
     <div className="contact-page-container">
