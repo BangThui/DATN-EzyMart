@@ -152,7 +152,7 @@ const ProductDetail = () => {
         quantity,
         user_id: user?.user_id,
       });
-      navigate("/cart");
+      navigate("/checkout");
     } catch {
       message.error("Lỗi thêm vào giỏ hàng");
     } finally {
